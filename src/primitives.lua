@@ -1,0 +1,401 @@
+Screen = {
+	w = 480,
+	h = 270
+}
+
+function random_float(min_val, max_val)
+	return min_val + rnd(max_val - min_val)
+end
+
+function random_int(min_val, max_val)
+	return flr(min_val + rnd(max_val - min_val + 1))
+end
+
+function round(num, decimal_places)
+	if decimal_places == nil then
+		return flr(num + 0.5)
+	else
+		local factor = 10 ^ decimal_places
+		return flr(num * factor + 0.5) / factor
+	end
+end
+
+Vector = Class:new({
+	_type = "Vector",
+	x = 0,
+	y = 0,
+	randomize = function(self, min_val_x, max_val_x, min_val_y, max_val_y)
+		min_val_x = min_val_x or -1
+		max_val_x = max_val_x or 1
+		min_val_y = min_val_y or -1
+		max_val_y = max_val_y or 1
+		self.x = random_float(min_val_x, max_val_x)
+		self.y = random_float(min_val_y, max_val_y)
+		return self
+	end,
+	round = function(self)
+		self.x = round(self.x)
+		self.y = round(self.y)
+		return self
+	end,
+	add = function(self, vec2, useDelta)
+		useDelta = useDelta or false
+		if type(vec2) == "number" then
+			vec2 = {
+				x = vec2,
+				y = vec2
+			}
+		end
+		if useDelta then
+			self.x += vec2.x * _dt
+			self.y += vec2.y * _dt
+		else
+			self.x += vec2.x
+			self.y += vec2.y
+		end
+		return self
+	end,
+	sub = function(self, vec2, useDelta)
+		useDelta = useDelta or false
+		if type(vec2) == "number" then
+			vec2 = {
+				x = vec2,
+				y = vec2
+			}
+		end
+		if useDelta then
+			self.x -= vec2.x * _dt
+			self.y -= vec2.y * _dt
+		else
+			self.x -= vec2.x
+			self.y -= vec2.y
+		end
+		return self
+	end,
+	len = function(self)
+		return sqrt(self.x * self.x + self.y * self.y)
+	end,
+	normalize = function(self)
+		local l = self:len()
+		if l > 0 then
+			self.x /= l
+			self.y /= l
+		end
+		return self
+	end,
+	drag = function(self, dragV, useDelta)
+		useDelta = useDelta or false
+		local d = 1 - dragV
+		if useDelta then
+			local xDiff = self.x - (self.x * d)
+			local yDiff = self.y - (self.y * d)
+			self.x -= xDiff * _dt
+			self.y -= yDiff * _dt
+		else
+			self.x *= d
+			self.y *= d
+		end
+		return self
+	end,
+	dot = function(self, other_vec)
+		return self.x * other_vec.x + self.y * other_vec.y
+	end
+})
+
+Entity = Class:new({
+	_type = "Entity",
+	_delete = false,
+	name = "Entity",
+	pos = Vector:new({
+		x = Screen.w / 2,
+		y = Screen.h / 2
+	}),
+	vel = Vector:new(),
+	friction = 10,
+	graphics = nil,
+	stroke_color = -1,
+	fill_color = -1,
+	debug = DEBUG,
+	lifetime = -1,
+	ignore_physics = false,
+	ignore_gravity = false,
+	ignore_friction = false,
+	ignore_collisions = false,
+	collisions = {},
+	world = nil,
+	init = function(self)
+		self.timer = Timer:new()
+		self.percent_expired = 0
+
+		if self.world then
+			self.world:add(self)
+		end
+	end,
+	update = function(self)
+		if self.lifetime ~= -1 then
+			self.percent_expired = self.timer:elapsed() / self.lifetime
+			if self.timer:hasElapsed(self.lifetime) then
+				self._delete = true
+			end
+		end
+		if not self.ignore_physics then
+			if not self.ignore_gravity then
+				self.vel:add(self.world.gravity, true)
+			end
+			if not self.ignore_friction then
+				self.vel:drag(self.world.friction, false)
+			end
+			self.pos:add(self.vel, true)
+		end
+		if self.graphics then
+			self.graphics:update()
+		end
+	end,
+	draw = function(self)
+		if self.graphics then
+			self.graphics.pos.x = self.pos.x
+			self.graphics.pos.y = self.pos.y
+			self.graphics:draw()
+		else
+			if self.fill then
+				self:fill()
+			end
+			if self.stroke then
+				self:stroke()
+			end
+		end
+		if self.debug then
+			self:draw_debug()
+			local center = self:getCenter()
+			local vx = self.vel.x * 0.25
+			local vy = self.vel.y * 0.25
+			self.world.gfx:line(center.x, center.y, center.x + vx, center.y + vy, 8)
+		end
+	end,
+	draw_debug = function(self)
+	end,
+	getCenter = function(self)
+		return Vector:new({
+			x = self.pos.x,
+			y = self.pos.y
+		})
+	end,
+	on_collision = function(self, ent, vector)
+		if self.debug then
+			local center = self:getCenter()
+			local collision_scale = 10
+			local end_x = center.x + (vector.x * collision_scale)
+			local end_y = center.y + (vector.y * collision_scale)
+
+			self.world.gfx:line(center.x, center.y, end_x, end_y, 8)
+
+			self.world.gfx:circfill(end_x, end_y, 2, 8)
+		end
+	end,
+})
+
+Circle = Entity:new({
+	_type = "Circle",
+	r = 8,
+	stroke = function(self)
+		if self.stroke_color > -1 then
+			self.world.gfx:circ(self.pos.x, self.pos.y, self.r, self.stroke_color)
+		end
+	end,
+	fill = function(self)
+		if self.fill_color > -1 then
+			self.world.gfx:circfill(self.pos.x, self.pos.y, self.r, self.fill_color)
+		end
+	end,
+	getCenter = function(self)
+		return Vector:new({
+			x = self.pos.x,
+			y = self.pos.y
+		})
+	end,
+	draw_debug = function(self)
+		self.world.gfx:circ(self.pos.x, self.pos.y, self.r, 8)
+	end
+})
+
+Rectangle = Entity:new({
+	_type = "Rectangle",
+	w = 16,
+	h = 16,
+	stroke = function(self)
+		if self.stroke_color > -1 then
+			local x = self.pos.x - self.w / 2
+			local y = self.pos.y - self.h / 2
+			self.world.gfx:rect(x, y, x + self.w - 1, y + self.h - 1, self.stroke_color)
+		end
+	end,
+	fill = function(self)
+		if self.fill_color > -1 then
+			local x = self.pos.x - self.w / 2
+			local y = self.pos.y - self.h / 2
+			self.world.gfx:rectfill(x, y, x + self.w - 1, y + self.h - 1, self.fill_color)
+		end
+	end,
+	getCenter = function(self)
+		return Vector:new({
+			x = self.pos.x,
+			y = self.pos.y
+		})
+	end,
+	getTopLeft = function(self)
+		return Vector:new({
+			x = self.pos.x - self.w / 2,
+			y = self.pos.y - self.h / 2
+		})
+	end,
+	draw_debug = function(self)
+		local x = self.pos.x - self.w / 2
+		local y = self.pos.y - self.h / 2
+		self.world.gfx:rect(x, y, x + self.w - 1, y + self.h - 1, 8)
+	end
+})
+
+Particle = Circle:new({
+	_type = "Particle",
+	lifetime = 3000,
+	fill_color = 7,
+	init = function(self)
+		Circle.init(self)
+		self.vel:randomize(-5, 5, -50, -1)
+		self.r = random_int(2, 5)
+		self.initial_radius = self.r
+	end,
+	update = function(self)
+		local d = 1 - self.percent_expired
+		self.r = self.initial_radius * d
+		Circle.update(self)
+	end
+})
+
+ParticleEmitter = Rectangle:new({
+	_type = "ParticleEmitter",
+	rate = 100,
+	rate_variation = 0,
+	particle_lifetime = 500,
+	particle_lifetime_variation = 0,
+	ignore_physics = true,
+	state = true,
+	init = function(self)
+		Rectangle.init(self)
+		self.spawn_timer = Timer:new()
+		self.waiting_time = self.rate
+	end,
+	update = function(self)
+		if self.state and self.spawn_timer:hasElapsed(self.waiting_time) then
+			if self.rate_variation > 0 then
+				self.waiting_time = self.rate + random_int(-self.rate_variation, self.rate_variation)
+			else
+				self.waiting_time = self.rate
+			end
+			local particle_lifetime = self.particle_lifetime
+			if self.particle_lifetime_variation > 0 then
+				particle_lifetime = self.particle_lifetime +
+					random_int(-self.particle_lifetime_variation, self.particle_lifetime_variation)
+			end
+			local p = Particle:new({
+				world = self.world,
+				lifetime = particle_lifetime,
+			})
+			local min_x = self.pos.x - self.w / 2
+			local max_x = self.pos.x + self.w / 2
+			local min_y = self.pos.y - self.h / 2
+			local max_y = self.pos.y + self.h / 2
+			p.pos:randomize(min_x, max_x, min_y, max_y)
+		end
+		Rectangle.update(self)
+	end,
+	toggle = function(self)
+		self.state = not self.state
+	end,
+	on = function(self)
+		self.state = true
+	end,
+	off = function(self)
+		self.state = false
+	end
+})
+
+Graphic = Class:new({
+	_type = "Graphic",
+	pos = nil,
+	sprite = -1,
+	end_sprite = -1,
+	speed = 30,
+	loop = true,
+	_timer = 0,
+	_current_frame_idx = 0,
+	is_done = false,
+	on_complete = nil,
+	flip_x = false,
+	flip_y = false,
+	w = 16,
+	h = 16,
+	debug = DEBUG,
+	world = nil,
+	init = function(self)
+		self.pos = Vector:new()
+	end,
+	update = function(self)
+		if self.end_sprite < 0 then
+			return
+		end
+		if self.is_done and not self.loop then return end
+
+		self._timer += _dt
+
+		local total_frames = self.end_sprite - self.sprite + 1
+		if total_frames <= 0 then return end
+
+		local frame_duration = 1 / self.speed
+		local elapsed_frames = self._timer / frame_duration
+
+		if self.loop then
+			self._current_frame_idx = flr(elapsed_frames) % total_frames
+		else
+			if elapsed_frames >= total_frames then
+				self._current_frame_idx = total_frames - 1
+				if not self.is_done then
+					self.is_done = true
+					if self.on_complete then
+						self.on_complete(self)
+					end
+				end
+			else
+				self._current_frame_idx = flr(elapsed_frames)
+			end
+		end
+	end,
+
+	get_sprite_id = function(self)
+		if self.end_sprite < 0 then
+			return self.sprite
+		end
+		return self.sprite + self._current_frame_idx
+	end,
+
+	draw = function(self)
+		if self.debug then
+			self:draw_debug()
+		end
+		local x = self.pos.x - self.w / 2
+		local y = self.pos.y - self.h / 2
+		self.world.gfx:spr(self:get_sprite_id(), x, y, self.flip_x, self.flip_y)
+	end,
+
+	draw_debug = function(self)
+		local x = self.pos.x - self.w / 2
+		local y = self.pos.y - self.h / 2
+		self.world.gfx:rect(x, y, x + self.w - 1, y + self.h - 1, 8)
+	end,
+
+	reset = function(self)
+		self._timer = 0
+		self._current_frame_idx = 0
+		self.is_done = false
+	end
+})

@@ -1,0 +1,1821 @@
+picotron cartridge // www.picotron.net
+version 2
+
+:: gfx/
+:: gfx/0.gfx
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA3OjM3OjMyIixtb2RpZmllZD0iMjAyNS0w
+Ny0xOCAyMzoxMDowOSIscmV2aXNpb249MTBdXWx6NADWAQAAzToAAPAme1swXT17Ym1wPXB4dQBD
+IBAQBPBVFbAmBSZwBh8gZkAWHnYwDxc2NzYgHRZXFgAGMBYHMAcIAPELFVAV8BMsZmxhZ3M9MCxw
+YW5feD0tMC42MjUNAP8AeT0zLjc1LHpvb209OH0sYgABKBaAYgD-BRc2AAYgHRY3FhAGQBYHIBVw
+FfAbXwAvI1ZQXwAhB0ZfAK4nJgAGUBYHEBWAXwAPvgApAl8AIAZHvgCPFSAHBtAV8BZfADgAtwCR
+IB1nFhAGIBVAXgAfFV4AKgvdARAWXgDAFlcGEAYgFgdABwZQ3QEfFGIAJRBUYgAToGEA8AQWJyYw
+DxcWdxYgHQYnECcGABYQXQAfJV0ALgHaASQAJlwAMhcwF7cAHyRaACX-CXMFVnCGYIZgJicmYBUG
+JwYFABbwACbwEFAAJVNkBTaQZlIAITZQUgAvEAZSACof8DkA----Rg8SBQACcAVAFkcWAI0GPzAV
+YC4GLS8mcOwGRR-wOQD-Cv8QTQdgB1AXQJdAFwVnUA8XNxYXgBcGEAYHgA8PQA7wNZAAJg85AP--
+--------------------------------------------------------------_wUG09OH19
+:: gfx/.info.pod
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA4OjUxOjA4Iixtb2RpZmllZD0iMjAyNS0w
+Ny0yMSAxMTowMDoyMSJdXQ==
+:: library/
+:: library/audio.lua
+---@meta
+
+---Play sfx n (0..63) on channel (0..15) from note offset (0..63 in notes) for length notes.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#sfx)
+---@param n number -- 0~63
+---@param channel number? -- 0~15
+---@param offset number? -- 0~63
+---@param length number?
+function sfx(n, channel, offset, length) end
+
+---Play music starting from pattern n. -1 to stop music
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#music)
+---@param n number
+---@param fade_len number? default 0, in ms
+---@param channel_mask number?
+function music(n, fade_len, channel_mask) end
+
+---This provides low level control over the state of a channel. It is useful in more niche situations, like audio authoring tools and size-coding.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#note)
+---@param pitch number? -- channel pitch (default 48 -- middle C)
+---@param inst number? -- instrument index (default 0)
+---@param vol number? -- channel volume (default 64)
+---@param effect number? -- channel effect (default 0)
+---@param effect_p number?  -- effect parameter (default 0)
+---@param channel number? -- channel index (0..15 -- default 0)
+---@param retrig number? -- (boolean) force retrigger -- default to false
+---@param panning number? -- set channel panning (-128..127)
+function note(pitch, inst, vol, effect, effect_p, channel, retrig, panning) end
+
+:: library/coroutines.lua
+---@meta
+
+---Coroutine is not written in the Picotron manual. So this module is copied from the pico8 library.
+
+---YIELD() any number of times, and then resumed again at the same points.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/pico-8_manual.html#YIELD)
+function yield() end
+
+---Create a coroutine for function f.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/pico-8_manual.html#COCREATE)
+---@param f function
+---@return thread
+function cocreate(f) end
+
+---Run or continue the coroutine c.
+---
+---Parameters p0, p1.. are passed to the coroutine's function.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/pico-8_manual.html#CORESUME)
+---@param c thread
+---@param ... any
+---@return boolean,string?
+function coresume(c, ...) end
+
+---Return the status of coroutine C as a string
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/pico-8_manual.html#COSTATUS)
+---@param c thread
+function costatus(c) end
+
+:: library/files.lua
+---@meta
+
+---store a lua object (tables, strings, userdata, booleans and numbers are allowed) as a file.
+---
+---filenames can contain alphanumeric characters, "_", "-" and "."
+---
+---When metadata is given, each field is added to the file's metadata without clobbering any existing fields.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#store)
+---@param filename string
+---@param obj any
+---@param metadata metadata?
+function store(filename, obj, metadata) end
+
+---Return a lua object stored in a given file. Returns the object and metadata.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#fetch)
+---@param filename string
+---@return any,metadata
+function fetch(filename) end
+
+---Store and fetch just the metadata fork of a file or directory. This can be faster in some cases.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#store_metadata)
+---@param filename string
+---@param metadata metadata
+function store_metadata(filename, metadata) end
+
+---Store and fetch just the metadata fork of a file or directory. This can be faster in some cases.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#fetch_metadata)
+---@param filename string
+---@return metadata
+function fetch_metadata(filename) end
+
+---Create a directory
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#mkdir)
+---@param name any
+function mkdir(name) end
+
+---list files and folders in given path relative to the current directory.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#ls)
+---@param path any?
+function ls(path) end
+
+---Copy a file from src to dest. Folders are copied recursively, and dest is overwritten.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#cp)
+---@param src any
+---@param dest any
+function cp(src, dest) end
+
+---Move a file from src to dest. Folders are moved recursively, and dest is overwritten.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#mv)
+---@param src any
+---@param dest any
+function mv(src, dest) end
+
+---Delete a file or folder (recursive).
+---
+---Mount points are also deleted, but the contents of their origin folder are not deleted unless explicitly given as a parameter to rm.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#rm)
+function rm(filename) end
+
+---Return the present working directory. Relative filenames (that do not start with "/") all resolve relative to this path.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#pwd)
+function pwd() end
+
+---Change directory.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#cd)
+function cd() end
+
+---Resolve a filename to its canonical path based on the present working directory (pwd()).
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#fullpath)
+function fullpath(filename) end
+
+---returns 3 attributes of given filename (if it exists)
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#fstat)
+---@param filename any
+---@return string,number,string -- file or folder, size of file, origin of path
+function fstat(filename) end
+
+---Load and run a lua file.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#include)
+---@param filename string
+---@return any
+function include(filename) end
+
+:: library/graphics.lua
+--- @meta
+
+---sets the clipping rectangle in pixels. all drawing operations will be clipped to the rectangle at x, y with a width and height of w,h.
+---
+---clip() to reset.
+---
+---when clip_previous is true, clip the new clipping region by the old one.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#clip)
+---@param  x number
+---@param y number
+---@param w number
+---@param h number
+---@param clip_previous boolean?
+function clip(x, y, w, h, clip_previous) end
+
+---sets the clipping rectangle in pixels. all drawing operations will be clipped to the rectangle at x, y with a width and height of w,h.
+---
+---clip() to reset.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#clip)
+function clip() end
+
+---sets the pixel at x, y to colour index col (0..63).
+---
+---when col is not specified, the current draw colour is used.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#pset)
+---@param x number
+---@param y number
+---@param col number?
+function pset(x, y, col) end
+
+---returns the colour of a pixel on the screen at (x, y).
+---
+---when x and y are out of bounds, pget returns 0.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#pget)
+---@param x number
+---@param y number
+---@return number
+function pget(x, y) end
+
+---set the colour of a sprite sheet pixel
+---
+---when col is not specified, the current draw colour is used.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#sset)
+---@param x number
+---@param y number
+---@param col number?
+function sset(x, y, col) end
+
+---get the colour of a sprite sheet pixel
+---
+---when x and y are out of bounds, sget returns 0.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#sget)
+---@param x number
+---@param y number
+---@return number
+function sget(x, y) end
+
+---set the value (val) of sprite n's flag f.
+---
+---the initial state of flags 0..7 are settable in the sprite editor, so can be used to create    custom sprite attributes. it is also possible to draw only a subset of map tiles by providing a mask in @map().
+---
+---when f is omitted, all flags are retrieved/set as a single bitfield.
+---```
+---fset(2, 1 | 2 | 8) -- sets bits 0,1 and 3
+---fset(2, 4, true)   -- sets bit 4
+---print(fget(2))     -- 27 (1 | 2 | 8 | 16)
+---```
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#fset)
+---@param n number
+---@param f number? -- flag index 0..7
+---@param val boolean
+function fset(n, f, val) end
+
+---get the value of sprite n's flag f.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#fget)
+---@param n number
+---@param f number? -- flag index 0..7
+function fget(n, f) end
+
+---print a string str and optionally set the draw colour to col.
+---
+---shortcut: written on a single line, ? can be used to call print without brackets:
+---```
+---?"hi"
+---```
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#print)
+---@param str any
+---@param x number
+---@param y number
+---@param col number?
+---@return number
+function print(str, x, y, col) end
+
+---print a string str and optionally set the draw colour to col.
+---
+---shortcut: written on a single line, ? can be used to call print without brackets:
+---```
+---?"hi"
+---```
+---when x, y are not specified, a newline is automatically appended, printing text below 122 causes the console to scroll. this can be disabled during runtime with poke(0x5f36,0x40).
+---
+---print returns the right-most x position that occurred while printing. this can be used to find out the width of some text by printing it off-screen.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#print)
+---@param str any
+---@param col number?
+---@return number
+function print(str, col) end
+
+---set the cursor position.
+---
+---if col is specified, also set the current colour.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#cursor)
+---@param x number
+---@param y number
+---@param col number?
+function cursor(x, y, col) end
+
+---set the current colour to be used by shape drawing functions (pset, circ, rect..), when one is not given as the last argument.
+---
+---if col is not specified, the current colour is set to 6.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#color)
+---@param col number?
+function color(col) end
+
+---clear the screen and reset the clipping rectangle.
+---
+---col defaults to 0 (black)
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#cls)
+---@param col number?
+function cls(col) end
+
+---set a screen offset of -x, -y for all drawing operations
+---
+---camera() to reset
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#camera)
+---@param x number?
+---@param y number?
+function camera(x, y) end
+
+---draw a circle at x,y with radius r
+---
+---if r is negative, the circle is not drawn.
+---
+---When bit 0x800000000 in col is set, circfill draws inverted (everything outside the circle is drawn).
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#circ)
+---@param x number
+---@param y number
+---@param r number
+---@param col number?
+function circ(x, y, r, col) end
+
+---draw a filled circle at x,y with radius r
+---
+---if r is negative, the circle is not drawn.
+---
+---When bit 0x800000000 in col is set, circfill draws inverted (everything outside the circle is drawn).
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#circfill)
+---@param x number
+---@param y number
+---@param r number
+---@param col number?
+function circfill(x, y, r, col) end
+
+---draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle.
+---
+---When bit 0x800000000 in col is set, ovalfill is drawn inverted.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#oval)
+---@param x0 number
+---@param y0 number
+---@param x1 number
+---@param y1 number
+---@param col number?
+function oval(x0, y0, x1, y1, col) end
+
+---draw an filled oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle.
+---
+---When bit 0x800000000 in col is set, ovalfill is drawn inverted.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#ovalfill)
+---@param x0 number
+---@param y0 number
+---@param x1 number
+---@param y1 number
+---@param col number?
+function ovalfill(x0, y0, x1, y1, col) end
+
+---draw a line from (x0, y0) to (x1, y1)
+---
+---if (x1, y1) are not given, the end of the last drawn line is used.
+---
+---line() with no parameters means that the next call to line(x1, y1) will only set the end points without drawing.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#line)
+---@param x0 number
+---@param y0 number
+---@param x1 number?
+---@param y1 number?
+---@param col number?
+function line(x0, y0, x1, y1, col) end
+
+---draw a rectangle or filled rectangle with corners at (x0, y0), (x1, y1).
+---
+---When bit 0x800000000 in col is set, rectfill draws inverted.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#rect)
+---@param x0 number
+---@param y0 number
+---@param x1 number
+---@param y1 number
+---@param col number?
+function rect(x0, y0, x1, y1, col) end
+
+---draw a filled rectangle or filled rectangle with corners at (x0, y0), (x1, y1).
+---
+---When bit 0x800000000 in col is set, rectfill draws inverted.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#rectfill)
+---@param x0 number
+---@param y0 number
+---@param x1 number
+---@param y1 number
+---@param col number?
+function rectfill(x0, y0, x1, y1, col) end
+
+---pal() swaps colour c0 for c1 for one of three palette re-mappings (p defaults to 0):
+---
+---0: draw palette
+---
+---The draw palette re-maps colours when they are drawn. For example, an orange flower sprite can be drawn as a red flower by setting the 9th palette value to 8:
+---```
+---pal(9,8)     -- draw subsequent orange (colour 9) pixels as red (colour 8)
+---spr(1,70,60) -- any orange pixels in the sprite will be drawn with red instead
+---```
+---Changing the draw palette does not affect anything that was already drawn to the screen.
+---
+---1: display palette
+---
+---The display palette re-maps the whole screen when it is displayed at the end of a frame.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#pal)
+---@param c0 number
+---@param c1 number
+---@param p number?
+function pal(c0, c1, p) end
+
+---Set transparency for colour index c to is_transparent (boolean) transparency is observed by spr(), sspr(), map() and tline3d()
+---```
+---palt(8, true) -- red pixels not drawn in subsequent sprite/tline draw calls
+---```
+---When c is the only parameter, it is treated as a bitfield used to set all 64 values. for example: to set colours 0 and 1 as transparent:
+---```
+---palt(0x13) -- set colours 0,1 and 4 as transparent
+---```
+---palt() resets to default: all colours opaque except colour 0. Same as palt(1)
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#palt)
+---@param c? number
+---@param is_transparent? boolean
+function palt(c, is_transparent) end
+
+---Draw sprite s at position x,y
+---
+---s can be either a userdata (type "u8" -- see Userdata) or sprite index (0..255 for bank 0 (gfx/0.gfx), 256..511 for bank 1 (gfx/1.gfx) etc).
+---
+---Colour 0 drawn as transparent by default (see palt())
+---
+---When flip_x is true, flip horizontally. When flip_y is true, flip vertically.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#spr)
+---@param s number
+---@param x number
+---@param y number
+---@param flip_x boolean?
+---@param flip_y boolean?
+function spr(s, x, y, flip_x, flip_y) end
+
+---Stretch a source rectangle of sprite s (sx, sy, sw, sh) to a destination rectangle on the screen (dx, dy, dw, dh). In both cases, the x and y values are coordinates (in pixels) of the rectangle's top left corner, with a width of w, h.
+---
+---s can be either a userdata (type "u8") or the sprite index.
+---
+---Colour 0 drawn as transparent by default (see palt())
+---
+---dw, dh defaults to sw, sh.
+---
+---When flip_x is true, flip horizontally. When flip_y is true, flip vertically.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#sspr)
+---@param s number
+---@param sx number
+---@param sy number
+---@param sw number
+---@param sh number
+---@param dx number
+---@param dy number
+---@param dw number?
+---@param dh number?
+---@param flip_x number?
+---@param flip_y number?
+function sspr(s, sx, sy, sw, sh, dx, dy, dw, dh, flip_x, flip_y) end
+
+---Get the sprite (a 2d userdata object of type "u8") for a given index (0..16383).
+---
+---When a cartridge is run, files in gfx/ that start with an integer (0..63) are automatically loaded if they exist. Each file has 256 sprites indexes, so the sprites in gfx/0.gfx are given indexes 0..255, the sprites in gfx/1.gfx are given indexes 256..511, and so on up to gfx/63.gfx (16128..16383).
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#get_spr)
+---@param index number
+---@return Userdata
+function get_spr(index) end
+
+---Set the sprite (a 2d userdata object of type "u8") for a given index (0..16383).
+---
+---When a cartridge is run, files in gfx/ that start with an integer (0..63) are automatically loaded if they exist. Each file has 256 sprites indexes, so the sprites in gfx/0.gfx are given indexes 0..255, the sprites in gfx/1.gfx are given indexes 256..511, and so on up to gfx/63.gfx (16128..16383).
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#set_spr)
+---@param index number
+---@param userdata Userdata
+function set_spr(index, userdata) end
+
+---Set a 4x4 fill pattern using PICO-8 style fill patterns. p is a bitfield in reading order starting from the highest bit.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#fillp)
+---@param p any
+function fillp(p) end
+
+:: library/input.lua
+---@meta
+
+---Returns the state of button b for player index pl
+---```
+---0 1 2 3     LEFT RIGHT UP DOWN
+---4 5         Buttons: O X
+---6           MENU
+---7           reserved
+---8 9 10 11   Secondary Stick L,R,U,D
+---12 13       Buttons (not named yet!)
+---14 15       SL SR
+---```
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#btn)
+---@param b number? -- 0~15
+---@param pl number? -- default 0 -- means Player 1
+---@return boolean|number
+function btn(b, pl) end
+
+---btnp returns true when a button is down and it was not down the last frame.
+---
+---It also repeats after 30 frames, returning true every 8 frames after that.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#btnp)
+---@param b number? -- 0~15
+---@param pl number? -- default 0 -- means Player 1
+---@return boolean|number
+function btnp(b, pl) end
+
+---returns the state of key k
+---
+---To get the raw layout, use true as the second parameter to indicate that k should be the name of the raw scancode.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#key)
+---@param k string
+---@param raw boolean?
+---@return boolean
+function key(k, raw) end
+
+---keyp() has the same behaviour key(), but true when the key is pressed or repeating.
+---
+---To get the raw layout, use true as the second parameter to indicate that k should be the name of the raw scancode.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#keyp)
+---@param k number
+---@param raw boolean?
+---@return boolean
+function keyp(k, raw) end
+
+---To read text from the keyboard via the host operating system's text entry system.
+---
+---peektext() can be used to find out if there is some text waiting.
+---
+---and readtext() can be used to consume the next piece of text:
+---```
+---while (peektext())
+---  c = readtext()
+---  printh("read text: "..c)
+---end
+---```
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#peektext)
+---@return string
+function peektext() end
+
+---To read text from the keyboard via the host operating system's text entry system.
+---
+---peektext() can be used to find out if there is some text waiting.
+---
+---and readtext() can be used to consume the next piece of text:
+---```
+---while (peektext())
+---  c = readtext()
+---  printh("read text: "..c)
+---end
+---```
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#readtext)
+---@param clear boolean?
+---@return string
+function readtext(clear) end
+
+---mouse_b is a bitfield: 0x1 means left mouse button, 0x2 right mouse button
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#mouse)
+---@return number mouse_x, number mouse_y, number mouse_b, number wheel_x, number wheel_y
+function mouse() end
+
+---when lock is true, Picotron makes a request to the host operating system's window manager to capture the mouse, allowing it to control sensitivity and movement speed.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#mouselock)
+---@param lock boolean
+---@param event_sensitivity number -- 0~4, determines how fast dx, dy change (1.0 means once per picotron pixel)
+---@param move_sensitivity number -- 0~4, 1.0 means the cursor continues to move at the same speed.
+---@return number dx,number dy -- the relative position since the last frame
+function mouselock(lock, event_sensitivity, move_sensitivity) end
+
+:: library/map.lua
+---@meta
+
+---Draw section of a map (starting from tile_x, tile_y) at screen position sx, sy (pixels), from the userdata src, or from the current working map when src is not given. Note that the src parameter can be omitted entirely to give a PICO-8 compatible form.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#map)
+---@param src userdata?
+---@param tile_x number
+---@param tile_y number
+---@param sx number?
+---@param sy number?
+---@param tiles_x number?
+---@param tiles_y number?
+---@param p8layers number?
+---@param tile_w number?
+---@param tile_h number?
+function map(src, tile_x, tile_y, sx, sy, tiles_x, tiles_y, p8layers, tile_w, tile_h) end
+
+---PICO-8 style getters that operate on the current working map.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#mget)
+---@param x number
+---@param y number
+function mget(x, y) end
+
+---PICO-8 style setters that operate on the current working map.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#mset)
+---@param x number
+---@param y number
+---@param val userdata
+function mset(x, y, val) end
+
+---Draw a textured line from (x0,y0) to (x1,y1), sampling colour values from userdata src.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#tline3d)
+---@param src_ud userdata?
+---@param x0 number
+---@param y0 number
+---@param x1 number
+---@param y1 number
+---@param u0 number
+---@param v0 number
+---@param u1 number
+---@param v1 number
+---@param w0 number
+---@param w1 number
+---@param flags number?
+function tline3d(src_ud, x0, y0, x1, y1, u0, v0, u1, v1, w0, w1, flags) end
+
+:: library/math.lua
+---@meta
+
+---Pico-8 math functions.
+---The Picotron manual currently does not have a chapter on math functions.
+
+---Returns the maximum of x and y.
+---@param x number
+---@param y number
+---@return number
+function max(x, y) end
+
+---Returns the minimum of x and y.
+---@param x number
+---@param y number
+---@return number
+function min(x, y) end
+
+---Returns the middle value of parameters.
+---@param x number
+---@param y number
+---@param z number
+---@return number
+function mid(x, y, z) end
+
+---Rounds x down to the nearest integer.
+---@param x number
+---@return integer
+function flr(x) end
+
+---Rounds x up to the nearest integer.
+---@param x number
+---@return integer
+function ceil(x) end
+
+---Returns the cosine of x.
+---@param x number
+---@return number
+function cos(x) end
+
+---Returns the sine of x.
+---@param x number
+---@return number
+function sin(x) end
+
+---Converts DX, DY into an angle from 0..1
+---@param dx number
+---@param dy number
+---@return number
+function atan2(dx, dy) end
+
+---Returns the square root of x.
+---@param x number
+---@return number
+function sqrt(x) end
+
+---Returns the absolute value of x.
+---@param x number
+---@return number
+function abs(x) end
+
+---returns a random number n, 0 <= n < x.
+---
+---rnd() will return number n, 0 <= n < 1
+---@param x number?
+---@return number
+function rnd(x) end
+
+---Sets the random number seed. The seed is automatically randomized on cart startup.
+---@param x number
+function srand(x) end
+
+:: library/memory.lua
+---@meta
+
+---read a byte from an address in ram. if n is specified, peek() returns that number of results (max: 65536). for example, to read the first 2 bytes of video memory:
+---```
+---a, b = peek(0x10000, 2)
+---```
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#peek)
+---@param addr number
+---@param n number?
+---@return number ...
+function peek(addr, n) end
+
+---write one or more bytes to an address in base ram. if more than one parameter is provided, they are written sequentially (max: 65536).
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#poke)
+---@param addr any
+---@param val1 any
+---@param ... any?
+function poke(addr, val1, ...) end
+
+---peek i16 version
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#peek2)
+function peek2(addr) end
+
+---pook i16 version
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#poke2)
+function poke2(addr, val, ...) end
+
+---peek i32 version
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#peek4)
+function peek4(addr) end
+
+---pook i32 version
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#poke4)
+function poke4(addr, val, ...) end
+
+---peek i64 version
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#peek8)
+function peek8(addr) end
+
+---pook i64 version
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#poke8)
+function poke8(addr, val, ...) end
+
+---copy len bytes of base ram from source to dest. sections can be overlapping (but is slower)
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#memcpy)
+function memcpy(dest_addr, src_addr, len) end
+
+---write the 8-bit value val into memory starting at dest_addr, for len bytes.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#memset)
+function memset(dest_addr, val, len) end
+
+:: library/metatable.lua
+---@meta
+
+---Set table TBL metatable to M
+---
+---[View documents](https://www.lexaloffle.com/dl/docs/pico-8_manual.html#SETMETATABLE)
+---@param tbl table
+---@param m table
+function setmetatable(tbl, m) end
+
+---return the current metatable for table t, or nil if none is set
+---
+---[View documents](https://www.lexaloffle.com/dl/docs/pico-8_manual.html#GETMETATABLE)
+---@param tbl table
+function getmetatable(tbl) end
+
+---Raw access to the table, as if no metamethods were defined.
+---
+---[View documents](https://www.lexaloffle.com/dl/docs/pico-8_manual.html#RAWSET)
+---@param tbl any
+---@param key any
+---@param value any
+function rawset(tbl, key, value) end
+
+---Raw access to the table, as if no metamethods were defined.
+---
+---[View documents](https://www.lexaloffle.com/dl/docs/pico-8_manual.html#RAWGET)
+---@param tbl any
+---@param key any
+---@return any
+function rawget(tbl, key) end
+
+---Raw access to the table, as if no metamethods were defined.
+---
+---[View documents](https://www.lexaloffle.com/dl/docs/pico-8_manual.html#RAWRAWEQUAL)
+---@param tbl1 table
+---@param tbl2 table
+function rawequal(tbl1, tbl2) end
+
+---Raw access to the table, as if no metamethods were defined.
+---
+---[View documents](https://www.lexaloffle.com/dl/docs/pico-8_manual.html#RAWLEN)
+function rawlen(tbl) end
+
+:: library/picotron.lua
+---@meta
+
+--------------------------------------------------------------------------------
+-- Main Loop
+--------------------------------------------------------------------------------
+
+---called once just before the main loop
+function _init() end
+
+---called 60 times per second
+function _update() end
+
+---called each time the window manager asks for a frame
+---normally 60, 30 or 20 times per second
+function _draw() end
+
+--------------------------------------------------------------------------------
+-- Variables
+--------------------------------------------------------------------------------
+
+_ENV = {}
+
+---@class metadata
+metadata = {}
+
+---@class delta
+delta = {}
+
+--------------------------------------------------------------------------------
+-- OS library functions
+--------------------------------------------------------------------------------
+
+function notify(str) end
+
+function send_message(num, tbl) end
+
+function tostr(var) end
+
+:: library/pods.lua
+---@meta
+
+---Returns a binary string encoding val.
+---
+---flags determine the encoding format (default: 0x0)
+---
+---metadata is an optional value that is encoded into the string and stores additional information about the pod.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#pod)
+---@param val any
+---@param flags any?
+---@param metadata any?
+---@return string
+function pod(val, flags, metadata) end
+
+---returns the decoded value, and the decoded metadata as a second result.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#unpod)
+---@param str string
+---@return any,metadata
+function unpod(str) end
+
+:: library/string.lua
+---@meta
+
+---Convert VAL to a string.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/pico-8_manual.html#TOSTR)
+---@param val any
+---@param format_flags number?
+---@return string
+function tostr(val, format_flags) end
+
+---Converts VAL to a number.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/pico-8_manual.html#TONUM)
+---@param val any
+---@param format_flags number?
+---@return number
+function tonum(val, format_flags) end
+
+---Convert one or more ordinal character codes to a string.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#chr)
+---@param val0 number
+---@param val1 number
+---@param ... number
+---@return string
+function chr(val0, val1, ...) end
+
+---Convert one or more characters from string STR to their ordinal (0..255) character codes.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#ord)
+---@param str string
+---@param index number -- specify which character in the string to use
+---@param num_results number -- When num_results is given, ord returns multiple values starting from index.
+---@return number|nil -- When index is out of range or str is not a string, ord returns nil.
+function ord(str, index, num_results) end
+
+---grab a substring from string str, from pos0 up to and including pos1. when pos1 is not specified, the remainder of the string is returned. when pos1 is specified, but not a number, a single character at pos0 is returned.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#sub)
+---@param str string
+---@param pos0 number
+---@param pos1 number?
+function sub(str, pos0, pos1) end
+
+---Split a string into a table of elements delimited by the given separator (defaults to ",").
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#split)
+---@param str string
+---@param separator string|number?
+---@param convert_numbers boolean?
+---@return table
+function split(str, separator, convert_numbers) end
+
+---Returns the type of val as a string.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#type)
+---@param val any
+---@return string
+function type(val) end
+
+---create_delta returns a string encoding all of the information needed to get from str0 to str1 ("delta"). The delta can then be used by apply_delta to reproduce str1 given only str0.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#create_delta)
+---@param str0 string
+---@param str1 string
+---@return delta
+function create_delta(str0, str1) end
+
+---create_delta returns a string encoding all of the information needed to get from str0 to str1 ("delta"). The delta can then be used by apply_delta to reproduce str1 given only str0.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#apply_delta)
+---@param str0 string
+---@param delta delta
+---@return string
+function apply_delta(str0, delta) end
+
+:: library/system.lua
+---@meta
+
+---print a string to the host operating system's console for debugging.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#printh)
+---@param str any
+function printh(str) end
+
+---Returns a table of environment variables given to the process at the time of creation.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#env)
+---@return table
+function env() end
+
+---stop the cart and optionally print a message
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#stop)
+---@param message any?
+function stop(message) end
+
+---if condition is false, stop the program and print message if it is given. this can be useful for debugging cartridges, by assert()'ing that things that you expect to be true are indeed true.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#assert)
+---@param condition any
+---@param message any?
+function assert(condition, message) end
+
+---Returns the number of seconds elapsed since the cartridge was run.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#time)
+---@return number
+function time() end
+
+---Returns the number of seconds elapsed since the cartridge was run.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#time)
+---@return number
+function t() end
+
+---Returns the current day and time formatted using Lua's standard date strings.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#date)
+---@param format string -- specifies the output string format, and defaults to "!%Y-%m-%d %H:%M:%S" (UTC) when not given.
+---@param t string -- specifies the moment in time to be encoded as a string
+---@param delta number --  number of seconds to add to t.
+---@return string
+function date(format, t, delta) end
+
+---Read the contents of the clipboard. The value is always a single string;
+---
+---to copy structured objects to the clipboard, use pod() and unpod().
+---
+---For security reasons, get_clipboard() only has access to the host clipboard after ctrl-v is pressed while Picotron is active. Until ctrl-v is pressed, changes to the host clipboard have no effect on the return value of get_clipboard(). The same is true for sandboxed applications (e.g. bbs carts): they are only able to access clipboard contents from other processes once ctrl-v is pressed while that app has keyboard focus.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#get_clipboard)
+---@return string
+function get_clipboard() end
+
+---Write the contents of the clipboard. The value is always a single string;
+---
+------to copy structured objects to the clipboard, use pod() and unpod().
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#set_clipboard)
+---@param text string
+function set_clipboard(text) end
+
+:: library/table.lua
+---@meta
+
+---@class table: { [unknown]: any }
+---@class table<K, V>: { [K]: V }
+
+---Add value val to the end of table tbl.
+---
+---If index is given then the element is inserted at that position.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#add)
+---@param tbl table
+---@param val any
+---@param index number?
+function add(tbl, val, index) end
+
+---Delete the first instance of value VAL in table TBL. The remaining entries are shifted left one index to avoid holes.
+---
+---Note that val is the value of the item to be deleted, not the index into the table.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#del)
+---@param tbl table
+---@param val any
+---@return any -- returns the deleted item, or returns no value when nothing was deleted.
+function del(tbl, val) end
+
+---Like del(), but remove the item from table tbl at index. When index is not given, the last element of the table is removed and returned.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#deli)
+---@param tbl table
+---@param index number?
+---@return any -- returns the deleted item, or returns no value when nothing was deleted.
+function deli(tbl, index) end
+
+---Returns the length of table t (same as #tbl) When val is given, returns the number of instances of VAL in that table.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#count)
+---@param tbl table
+---@param val any
+---@return number
+function count(tbl, val) end
+
+---Used in for loops to iterate over all items in a table (that have a 1-based integer index), in the order they were added.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#all)
+---@param tbl table
+function all(tbl) end
+
+---For each item in table tbl, call function func with the item as a single parameter.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#foreach)
+---@param tbl table
+---@param func function
+function foreach(tbl, func) end
+
+---Used in for loops to iterate over table tbl, providing both the key and value for each item.
+---
+---Unlike all(), pairs() iterates over every item regardless of indexing scheme.
+---
+---Order is not guaranteed.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#pairs)
+---@generic T: table, K, V
+---@param tbl T
+---@return fun(table: table<K, V>, index?: K):K, V
+---@return T
+function pairs(tbl) end
+:: library/userdata.lua
+---@meta
+
+--------------------------------------------------------------------------------
+-- Userdata
+--------------------------------------------------------------------------------
+
+---Create a userdata with a data type
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata)
+---@param data_type string u8, i16, i32, i64, or f64
+---@param width number
+---@param height number
+---@param data string?
+---@return Userdata
+function userdata(data_type, width, height, data) end
+
+---A convenience function for constructing 1d vectors of f64s.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#vec)
+---@param ... number
+---@return Userdata
+function vec(...) end
+
+---Userdata in Picotron is a fixed-size allocation of memory that can be manipulated as a 1d or 2d array of typed data. It is used to repesent many things in Picotron: vectors, matrices, to store sprites, maps and the contents of display. Therefore, all of these things can be manipulated with the userdata API. It is also possible to expose the raw binary contents of a userdata to RAM (by giving it an address with memmap), in which case userdata API can be used to directly manipulate the contents of RAM.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#Userdata)
+---@class Userdata
+---@field x number the 1st element of a userdata
+---@field y number the 2nd element of a userdata
+---@field z number the 3rd element of a userdata
+---@field u number the 4th element of a userdata
+---@field v number the 5th element of a userdata
+---@field w number the 6th element of a userdata
+---@field t number the 7th element of a userdata
+local Userdata = {}
+
+---Return the width of the userdata
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_width)
+---@return number
+function Userdata:width() end
+
+---Return the height of the userdata
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_height)
+---@return number
+function Userdata:height() end
+
+---Returns the width, height, type and dimensionality of a userdata. Unlike :height(), :attribs() returns 1 as the height for 1d userdata.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_attribs)
+function Userdata:attribs() end
+
+---Return n values starting at x (or x, y for 2d userdata), or 0 if out of range.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_get)
+---@param x number
+---@param y number?
+---@param n number
+---@return number
+function Userdata:get(x, y, n) end
+
+---Return n values starting at x (or x, y for 2d userdata), or 0 if out of range.
+---
+---[View Online under `userdata:set()`](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_set)
+---@param u Userdata
+---@param x number
+---@param y number?
+---@param n number
+---@return number
+function get(u, x, y, n) end
+
+---Set one or more values starting at x (or x, y for 2d userdata).
+---
+---Values set at locations out of range are clipped and have no effect.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_set)
+---@param x number
+---@param y number?
+---@param val0 any
+---@param ... any
+function Userdata:set(x, y, val0, ...) end
+
+---Set one or more values starting at x (or x, y for 2d userdata).
+---
+---Values set at locations out of range are clipped and have no effect.
+---
+---When the global set() is passed a nil userdata, no error or action is performed.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_set)
+---@param u Userdata
+---@param x number
+---@param y number?
+---@param val0 any
+---@param ... any
+function set(u, x, y, val0, ...) end
+
+---Return a row of a 2d userdata (0 is the first row), or nil when out of range.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_row)
+---@param i number
+---@return Userdata
+function Userdata:row(i) end
+
+---Return a column of a 2d userdata (0 is the first column), or nil when out of range.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_column)
+---@param i number
+---@return Userdata
+function Userdata:column(i) end
+
+---Copy a region of one userdata to another. Both src and dest must be the same type.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_blit)
+---@param dest Userdata?
+---@param src_x number?
+---@param src_y number?
+---@param dest_x number?
+---@param dest_y number?
+---@param width number?
+---@param height number?
+function Userdata:blit(dest, src_x, src_y, dest_x, dest_y, width, height) end
+
+---Copy a region of one userdata to another. Both src and dest must be the same type.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#blit)
+---@param src Userdata?
+---@param dest Userdata?
+---@param src_x number?
+---@param src_y number?
+---@param dest_x number?
+---@param dest_y number?
+---@param width number?
+---@param height number?
+function blit(src, dest, src_x, src_y, dest_x, dest_y, width, height) end
+
+---Change the type or size of a userdata.
+---
+---When changing data type, only integer types can be used.
+---
+---The total data size given by the new data type and dimensions must be the same as or smaller than the old one.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_mutate)
+---@param data_type string u8, i16, i32, i64, or f64
+---@param width number?
+---@param height number?
+function Userdata:mutate(data_type, width, height) end
+
+---Linearly interpolate between two elements of a userdata.
+---
+---Multiple lerps can be performed at once using num_lerps, and lerp_stride. lerp_stride is added to offset after each lerp.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_lerp)
+---@param offset number? offset is the flat index to start from (default: 0)
+---@param len number? len is the length of the lerp, including the end element but not the start element
+---@param el_stride number? el_stride is the distance between elements (default: 1)
+---@param num_lerps number?
+---@param lerp_stride number?
+function Userdata:lerp(offset, len, el_stride, num_lerps, lerp_stride) end
+
+---Return a copy of userdata cast as a different type.
+---
+---When converting to ints, f64 values are flr()'ed and out of range values overflow.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_convert)
+function Userdata:convert(data_type, dest) end
+
+---Sort a 2d userdata of any type by the value found in the index column (0 by default).
+---
+---When descending is true, sort from largest to smallest.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_sort)
+---@param index number?
+---@param descending boolean?
+function Userdata:sort(index, descending) end
+
+--------------------------------------------------------------------------------
+-- Userdata Operations
+--------------------------------------------------------------------------------
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:add(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:sub(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:mul(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:div(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:idiv(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:mod(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:pow(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---abs(x) for each element (except: int_min -> int_min, not int_max)
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:abs(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---returns -1 for negative values and 1 for positive values and zero
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:sgn(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---returns -1 for negative values and 1 for positive values, and 0 for zero
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:sgn0(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:band(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:bor(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:bxor(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:max(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Applies operator to each element and written to a new userdata. All parameters are optional.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_op)
+---@param src Userdata|number?
+---@param dest Userdata|boolean?
+---@param src_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param src_stride number?
+---@param dest_stride number?
+---@param spans number?
+---@return Userdata
+function Userdata:min(src, dest, src_offset, dest_offset, len, src_stride, dest_stride, spans) end
+
+---Equivalent to :add(0, ...) when src is nil
+---
+---When :copy is given a table as the first argument (after self), it is taken to be a lookup table into that userdata for the start of each span.
+---
+---This form will be **deprecated in 0.1.2** -- use :take() instead with the same parameters.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_copy)
+---@param idx Userdata|number?
+---@param dest Userdata|boolean?
+---@param idx_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param idx_stride number?
+---@param dest_stride number?
+function Userdata:copy(idx, dest, idx_offset, dest_offset, len, idx_stride, dest_stride) end
+
+---Take values from the userdata at locations specified by idx.
+---
+---By default, the userdata returned by :take is the same shape as idx.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_take)
+---@param idx Userdata|number?
+---@param dest Userdata|boolean?
+---@param idx_offset number?
+---@param dest_offset number?
+---@param len number?
+---@param idx_stride number?
+---@param dest_stride number?
+function Userdata:take(idx, dest, idx_offset, dest_offset, len, idx_stride, dest_stride) end
+
+--------------------------------------------------------------------------------
+-- Matrics and Vectors
+--------------------------------------------------------------------------------
+
+---Multiply two matrixes together. matmul is part of the userdata metatable, so it can also be called using the equivalent form: `m0:matmul(m1)`.
+---
+---When m_out is given, the output is written to that userdata. Otherwise a new userdata is created of width `m1:width()` and height `m0:height()`.
+---
+---As per standard matrix multiplication rules, the width of m0 and the height of m1 must match -- otherwise no result is returned.
+---
+---> In version 0.1.1d, matmul() can not be called directly, use Userdata:matmul() instead.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#matmul)
+---@param m0 Userdata|number
+---@param m1 Userdata|number
+---@param m_out any?
+---@return Userdata
+function matmul(m0, m1, m_out) end
+
+Userdata.matmul = matmul
+
+---For 2d 4x4 transformation matrices, matmul2d can be used.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#matmul)
+---@param m0 Userdata|number
+---@param m1 Userdata|number
+---@param m_out any?
+---@return Userdata
+function matmul2d(m0, m1, m_out) end
+
+Userdata.matmul2d = matmul2d
+
+---For 3d 4x4 transformation matrices, matmul3d can be used.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#matmul3d)
+---@param m0 Userdata|number
+---@param m1 Userdata|number
+---@param m_out any?
+---@return Userdata
+function matmul3d(m0, m1, m_out) end
+
+Userdata.matmul3d = matmul3d
+
+---Transpose any type of matrices
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#Matrix_methods)
+---@param m_out any?
+---@return Userdata
+function transpose(m_out) end
+
+--------------------------------------------------------------------------------
+--- Userdata Memory Functions
+--------------------------------------------------------------------------------
+
+---Map the contents of an integer-type userdata to ram.
+---
+---addr is the starting memory address, which must be in 4k increments (i.e. end in 000 in hex).
+---
+---Userdata does not need to be sized to fit 4k boundaries, with one exception: addresses below 0x10000 must always be fully mapped, and memmap calls that break that rule return with no effect.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#memmap)
+---@param ud Userdata
+---@param addr number
+function memmap(ud, addr) end
+
+---Unmap userdata from ram. When an address is given, only the mapping at that address is removed. This is relevant only when there are multiple mappings of the same userdata to different parts of memory.
+---
+---`unmap(ud)` is needed in order for a userdata to be garbage collected, as mapping it to ram counts as an object reference. Overwriting mappings with memmap() is not sufficient to release the reference to the original userdata.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#memunmap)
+---@param ud Userdata
+---@param addr number?
+function memunmap(ud, addr) end
+
+---read from ram into an integer-typed userdata.
+---
+---addr is the address to peek
+---
+---offset is the userdata element to start from (flattened 1d index), and len is the number of elements to peek.
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_peek)
+---@param addr number
+---@param offset number?
+---@param elements any?
+function Userdata:peek(addr, offset, elements) end
+
+---write from ram into an integer-typed userdata.
+---
+---addr is the address to poke
+---
+---offset is the userdata element to start from (flattened 1d index), and len is the number of elements to poke.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#userdata_poke)
+---@param addr number
+---@param offset number?
+---@param elements any?
+function Userdata:poke(addr, offset, elements) end
+
+--------------------------------------------------------------------------------
+--- Batch GFX Operations
+--------------------------------------------------------------------------------
+
+---A userdata can be used to represent lists of arguments to be passed to gfx functions, so that multiple draws can be made with only the overhead of a single function call.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#gfx_func)
+---
+---@param p Userdata p is the f64 userdata -- normally 2d with a row for each call
+---@param offset number? offset is the flat offset into the userdata for the first call. Default: 0
+---@param num number? num is the number of gfx calls to make. Default: p:height()
+---@param num_params number? params is the number of parameters to pass to the gfx function. Default: p:width()
+---@param stride number? stride is the number of elements to jump after each call. Default: p:width()
+function pset(p, offset, num, num_params, stride) end
+
+---A userdata can be used to represent lists of arguments to be passed to gfx functions, so that multiple draws can be made with only the overhead of a single function call.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#gfx_func)
+---
+---@param p Userdata p is the f64 userdata -- normally 2d with a row for each call
+---@param offset number? offset is the flat offset into the userdata for the first call. Default: 0
+---@param num number? num is the number of gfx calls to make. Default: p:height()
+---@param num_params number? params is the number of parameters to pass to the gfx function. Default: p:width()
+---@param stride number? stride is the number of elements to jump after each call. Default: p:width()
+function circfill(p, offset, num, num_params, stride) end
+
+---A userdata can be used to represent lists of arguments to be passed to gfx functions, so that multiple draws can be made with only the overhead of a single function call.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#gfx_func)
+---
+---@param p Userdata p is the f64 userdata -- normally 2d with a row for each call
+---@param offset number? offset is the flat offset into the userdata for the first call. Default: 0
+---@param num number? num is the number of gfx calls to make. Default: p:height()
+---@param num_params number? params is the number of parameters to pass to the gfx function. Default: p:width()
+---@param stride number? stride is the number of elements to jump after each call. Default: p:width()
+function rectfill(p, offset, num, num_params, stride) end
+
+---A userdata can be used to represent lists of arguments to be passed to gfx functions, so that multiple draws can be made with only the overhead of a single function call.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#gfx_func)
+---
+---@param p Userdata p is the f64 userdata -- normally 2d with a row for each call
+---@param offset number? offset is the flat offset into the userdata for the first call. Default: 0
+---@param num number? num is the number of gfx calls to make. Default: p:height()
+---@param num_params number? params is the number of parameters to pass to the gfx function. Default: p:width()
+---@param stride number? stride is the number of elements to jump after each call. Default: p:width()
+function tline3d(p, offset, num, num_params, stride) end
+
+---A userdata can be used to represent lists of arguments to be passed to gfx functions, so that multiple draws can be made with only the overhead of a single function call.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#gfx_func)
+---
+---@param p Userdata p is the f64 userdata -- normally 2d with a row for each call
+---@param offset number? offset is the flat offset into the userdata for the first call. Default: 0
+---@param num number? num is the number of gfx calls to make. Default: p:height()
+---@param num_params number? params is the number of parameters to pass to the gfx function. Default: p:width()
+---@param stride number? stride is the number of elements to jump after each call. Default: p:width()
+function spr(p, offset, num, num_params, stride) end
+
+:: library/windows.lua
+---@meta
+
+---Returns the current display as a u8, 2d userdata.
+---
+---There is no way to set the display userdata directly;
+---
+---it can be resized using the window() function.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#get_display)
+function get_display() end
+
+---Set the draw target to ud, which must be a u8, 2d userdata. When ud is not given, set_draw_target() defaults to the current display.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#set_draw_target)
+---@param ud any
+function set_draw_target(ud) end
+
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#get_draw_target)
+function get_draw_target() end
+
+---@class window
+---@field x? number                --  x position in pixels
+---@field y? number                --  y position in pixels
+---@field dx? number               --  x-offset to move the window
+---@field dy? number               --  y-offset to move the window
+---@field z? number                --  windows with higher z are drawn on top. Defaults to 0
+---@field width? number            --  width in pixels (not including the frame)
+---@field height? number           --  height in pixels
+---@field title? string            --  set a title displayed on the window's titlebar
+---@field pauseable? boolean       --  false to turn off the app menu that normally comes up with ENTER
+---@field tabbed? boolean          --  true to open in a tabbed workspace (like the code editor)
+---@field has_frame? boolean       --  default: true
+---@field moveable? boolean        --  default: true
+---@field resizeable? boolean      --  default: true
+---@field wallpaper? boolean       --  act as a wallpaper (z defaults to -1000 in that case)
+---@field autoclose? boolean       --  close window when is no longer in focus or when press escape
+---@field cursor? number|userdata  --  0 for no cursor, 1 for default, or a userdata for a custom cursor
+
+---Create a window and/or set the window's attributes.
+---
+---attribs is table of desired attributes for the window.
+---```
+---x          --  x position in pixels
+---y          --  y position in pixels
+---dx         --  x-offset to move the window
+---dy         --  y-offset to move the window
+---z          --  windows with higher z are drawn on top. Defaults to 0
+---width      --  width in pixels (not including the frame)
+---height     --  height in pixels
+---title      --  set a title displayed on the window's titlebar
+---pauseable  --  false to turn off the app menu that normally comes up with ENTER
+---tabbed     --  true to open in a tabbed workspace (like the code editor)
+---has_frame  --  default: true
+---moveable   --  default: true
+---resizeable --  default: true
+---wallpaper  --  act as a wallpaper (z defaults to -1000 in that case)
+---autoclose  --  close window when is no longer in focus or when press escape
+---cursor     --  0 for no cursor, 1 for default, or a userdata for a custom cursor
+---squashable --  window resizes itself to stay within the desktop region
+---```
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#window)
+---@param attribs window
+function window(attribs) end
+
+---Create a window and/or set the window's attributes.
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#window)
+---@param width number
+---@param height number
+---@param attribs? window
+function window(width, height, attribs) end
+
+---Set a fullscreen video mode. Currently supported modes:
+---- vid(0): 480x270
+---- vid(3): 240x135
+---- vid(4): 160x90
+---
+---[View Online](https://www.lexaloffle.com/dl/docs/picotron_manual.html#vid)
+---@param video_mode number
+function vid(video_mode) end
+
+:: library/.info.pod
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTIxIDExOjAwOjEzIixtb2RpZmllZD0iMjAyNS0w
+Ny0yMSAxMTowMDoyMSJdXQ==
+:: map/
+:: map/0.map
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA3OjM3OjMyIixtb2RpZmllZD0iMjAyNS0w
+Ny0xOCAxNjo1MjowNiIscmV2aXNpb249N11dbHo0AG8AAABYEAAA8Ah7e2JtcD11c2VyZGF0YSgi
+aTE2IiwzMgMALyIwAQD----------64-MTMwAQD---------N-EIIiksaGlkZGVuPWZhbHNlLHBh
+bl94PTAIANJ5PTAsdGlsZV9oPTE2CgAQdwoAgHpvb209M319
+:: map/.info.pod
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA4OjUxOjA4Iixtb2RpZmllZD0iMjAyNS0w
+Ny0yMSAxMTowMDoyMSJdXQ==
+:: sfx/
+:: sfx/0.sfx
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA3OjM3OjMyIixtb2RpZmllZD0iMjAyNS0w
+Ny0xOCAyMzozNjo0NyIscmV2aXNpb249M11dbHo0APsAAABjCgAA-zBweHUAAygAAAQABA9AEAIO
+AAGgASACoA4ADxAADfDKAQIDQA8PkAQFBgdADJAICQoLQAyQDwwPDQ8ODEAM8P8BAOvwC6oBEAQP
+IBABIAEgAfAAAhACDw4QASAPIA8YFACgD1OQDyECIA8gUA0A9xJKIA9IIAHwlw1gDycP_-DGD-gK
+D-8PgA-3Dw0B8AkBEAZJABEgRwDPISABMA9A8MMPKA--MAAAFw54ABUNMABvySAP6-C-MwAQDmMA
+DzAA------9AH-8BAKygyA9AAA1AD0UPQQQAsf--LDDzLD7zLPBwGABf87DwcAUIABsf-wEA-_FQ
+-----yg=
+:: sfx/.info.pod
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA4OjUxOjA4Iixtb2RpZmllZD0iMjAyNS0w
+Ny0yMSAxMTowMDoyMSJdXQ==
+:: main.lua
+--[[pod_format="raw",created="2025-07-18 07:37:32",modified="2025-07-21 11:00:00",revision=197]]
+cd("/Jimokomi")
+include("main.lua")
+include("error_exporer.lua")
+:: .info.pod
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA4OjUxOjA1Iixtb2RpZmllZD0iMjAyNS0w
+Ny0yMSAxMTowMDoyMSIscnVudGltZT0xOSx3b3Jrc3BhY2VzPXt7bG9jYXRpb249Im1haW4ubHVh
+IzMiLHdvcmtzcGFjZV9pbmRleD0xfSx7bG9jYXRpb249ImdmeC8wLmdmeCIsd29ya3NwYWNlX2lu
+ZGV4PTJ9LHtsb2NhdGlvbj0ibWFwLzAubWFwIix3b3Jrc3BhY2VfaW5kZXg9M30se2xvY2F0aW9u
+PSJzZngvMC5zZngiLHdvcmtzcGFjZV9pbmRleD00fX1dXQ==
+:: [eoc]
