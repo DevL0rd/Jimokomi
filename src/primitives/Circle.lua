@@ -1,4 +1,4 @@
-local Entity = include("src/classes/Entity.lua")
+local Entity = include("src/primitives/Entity.lua")
 
 local Circle = Entity:new({
     _type = "Circle",

@@ -132,14 +132,6 @@ local JIJI = Circle:new({
 		else
 			self.runEmitter:off()
 		end
-		print_debug("self.state: " .. tostring(self.state) .. "\n" ..
-			"self.direction: " .. tostring(self.direction) .. "\n" ..
-			"self.vel.x: " .. tostring(self.vel.x) .. "\n" ..
-			"self.vel.y: " .. tostring(self.vel.y) .. "\n" ..
-			"is_on_ground: " .. tostring(is_on_ground) .. "\n" ..
-			"is_close_to_ground: " .. tostring(is_close_to_ground) .. "\n" ..
-			"is_moving: " .. tostring(self.state == States.Moving) .. "\n" ..
-			"ground_dist: " .. tostring(ground_dist) .. "\n")
 		Rectangle.update(self)
 	end,
 	draw = function(self)

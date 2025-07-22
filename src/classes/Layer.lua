@@ -12,17 +12,15 @@ local Layer = Class:new({
     gravity = Vector:new({ y = 200 }),
     friction = 0.01,
     wall_friction = 0.05,
-    collision_passes = 2,
+    collision_passes = 1, -- Reduced from 2 to prevent over-correction jitter
     running = false,
     layer_id = 0,
     physics_enabled = true,
     map_id = nil,
-    tile_size = 8,
+    tile_size = 16, -- Fixed: Match actual map tile size
     tile_properties = {
         [0] = { solid = false, name = "empty" },
-        [1] = { solid = true, name = "wall" },
-        [2] = { solid = false, name = "background" },
-        [3] = { solid = false, name = "decoration" },
+        [41] = { solid = true, name = "ground" },
     },
 
     init = function(self)
@@ -80,11 +78,13 @@ local Layer = Class:new({
             end
         end
 
-        self.camera:update()
-
-        -- Update collision system with world bounds
+        -- Update collision system IMMEDIATELY after physics
         self.collision:setWorldBounds(0, 0, self.w, self.h)
         self.collision:update(self.entities, self.map_id)
+
+        -- Update camera after collision resolution
+        self.camera:update()
+
         for _, ent in pairs(self.entities) do
             if ent.parent then
                 ent.pos.x = ent.parent.pos.x + ent.init_pos.x
@@ -98,16 +98,6 @@ local Layer = Class:new({
             return
         end
 
-        if self.map_id ~= nil then
-            -- Apply camera transformation for map rendering
-            local shake = self.camera:getShakeOffset()
-            local cam_x = flr(self.camera.pos.x * self.camera.parallax_factor.x + shake.x)
-            local cam_y = flr(self.camera.pos.y * self.camera.parallax_factor.y + shake.y)
-            -- Set camera for map rendering (positive values to scroll map opposite to camera)
-            camera(cam_x, cam_y)
-            map(nil, 0, 0)
-            camera() -- Reset camera
-        end
 
         -- Draw grid for this layer if DEBUG is enabled
         if DEBUG then
@@ -134,6 +124,17 @@ local Layer = Class:new({
                 local end_pos = self.camera:worldToScreen({ x = view_bottom_right.x, y = y })
                 line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, grid_color)
             end
+        end
+
+        if self.map_id ~= nil then
+            -- Apply camera transformation for map rendering
+            local shake = self.camera:getShakeOffset()
+            local cam_x = flr(self.camera.pos.x * self.camera.parallax_factor.x + shake.x)
+            local cam_y = flr(self.camera.pos.y * self.camera.parallax_factor.y + shake.y)
+            -- Set camera for map rendering (positive values to scroll map opposite to camera)
+            camera(cam_x, cam_y)
+            map(nil, 0, 0)
+            camera() -- Reset camera
         end
 
         for _, ent in pairs(self.entities) do

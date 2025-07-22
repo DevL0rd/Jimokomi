@@ -1,4 +1,4 @@
-local Entity = include("src/classes/Entity.lua")
+local Entity = include("src/primitives/Entity.lua")
 local Vector = include("src/classes/Vector.lua")
 local Timer = include("src/classes/Timer.lua")
 local Circle = include("src/primitives/Circle.lua")
@@ -133,17 +133,135 @@ local Ray = Entity:new({
         return t_hit_near
     end,
 
+    -- Ray to tile collision using DDA (Digital Differential Analyzer) algorithm
+    rayToTiles = function(self, map_id, tile_size)
+        if not map_id or not self.world or not self.world.collision then
+            return false
+        end
+
+        tile_size = tile_size or 16
+        local collision_system = self.world.collision
+
+        -- Starting position
+        local start_x = self.pos.x
+        local start_y = self.pos.y
+
+        -- Normalized direction vector
+        local dir_x = self.vec.x
+        local dir_y = self.vec.y
+        local length = sqrt(dir_x * dir_x + dir_y * dir_y)
+        if length == 0 then return false end
+
+        dir_x = dir_x / length
+        dir_y = dir_y / length
+
+        -- Current position along the ray
+        local current_x = start_x
+        local current_y = start_y
+
+        -- Step size for ray marching
+        local step_size = tile_size / 4 -- Quarter-tile precision for accuracy
+
+        -- March along the ray
+        local distance = 0
+        while distance < self.length do
+            -- Get current tile
+            local tile_x = flr(current_x / tile_size)
+            local tile_y = flr(current_y / tile_size)
+            local tile_id = mget(tile_x, tile_y)
+
+            -- Check if this tile is solid
+            if collision_system:isSolidTile(tile_id) then
+                -- Found a solid tile, calculate precise intersection
+                local tile_left = tile_x * tile_size
+                local tile_right = (tile_x + 1) * tile_size
+                local tile_top = tile_y * tile_size
+                local tile_bottom = (tile_y + 1) * tile_size
+
+                -- Calculate intersection with tile bounds
+                local t_min = -1
+                local intersections = {}
+
+                -- Left edge
+                if dir_x ~= 0 then
+                    local t = (tile_left - start_x) / dir_x
+                    local y = start_y + t * dir_y
+                    if t >= 0 and y >= tile_top and y <= tile_bottom then
+                        add(intersections, t)
+                    end
+                end
+
+                -- Right edge
+                if dir_x ~= 0 then
+                    local t = (tile_right - start_x) / dir_x
+                    local y = start_y + t * dir_y
+                    if t >= 0 and y >= tile_top and y <= tile_bottom then
+                        add(intersections, t)
+                    end
+                end
+
+                -- Top edge
+                if dir_y ~= 0 then
+                    local t = (tile_top - start_y) / dir_y
+                    local x = start_x + t * dir_x
+                    if t >= 0 and x >= tile_left and x <= tile_right then
+                        add(intersections, t)
+                    end
+                end
+
+                -- Bottom edge
+                if dir_y ~= 0 then
+                    local t = (tile_bottom - start_y) / dir_y
+                    local x = start_x + t * dir_x
+                    if t >= 0 and x >= tile_left and x <= tile_right then
+                        add(intersections, t)
+                    end
+                end
+
+                -- Find the closest valid intersection
+                local min_t = self.length
+                for _, t in pairs(intersections) do
+                    if t >= 0 and t < min_t then
+                        min_t = t
+                    end
+                end
+
+                if min_t < self.length then
+                    return min_t
+                end
+            end
+
+            -- Move to next step
+            current_x = current_x + dir_x * step_size
+            current_y = current_y + dir_y * step_size
+            distance = distance + step_size
+        end
+
+        return false
+    end,
+
     cast = function(self)
         if self.timer:hasElapsed(self.rate) then
             local closest_hit_obj = nil
             local min_t = self.length
 
+            -- Check world bounds collision
             local world_t = self:rayToWorld({ x = 0, y = 0, w = self.world.w, h = self.world.h })
             if world_t ~= false and world_t >= 0 and world_t < min_t then
                 min_t = world_t
                 closest_hit_obj = "world"
             end
 
+            -- Check tile collision
+            if self.world.map_id then
+                local tile_t = self:rayToTiles(self.world.map_id, self.world.tile_size or 16)
+                if tile_t ~= false and tile_t >= 0 and tile_t < min_t then
+                    min_t = tile_t
+                    closest_hit_obj = "tile"
+                end
+            end
+
+            -- Check entity collision
             for _, obj in pairs(self.world.entities) do
                 local t = false
                 if obj:is_a(Circle) then
