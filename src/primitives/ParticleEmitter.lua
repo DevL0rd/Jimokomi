@@ -1,6 +1,7 @@
 local Timer = include("src/classes/Timer.lua")
 local Particle = include("src/primitives/Particle.lua")
 local Rectangle = include("src/primitives/Rectangle.lua")
+local Vector = include("src/classes/Vector.lua")
 
 local ParticleEmitter = Rectangle:new({
     _type = "ParticleEmitter",
@@ -8,6 +9,7 @@ local ParticleEmitter = Rectangle:new({
     rate_variation = 0,
     particle_lifetime = 500,
     particle_lifetime_variation = 0,
+    vec_variation = 0,
     ignore_physics = true,
     state = true,
     Particle = Particle,
@@ -39,6 +41,11 @@ local ParticleEmitter = Rectangle:new({
             p.pos:randomize(min_x, max_x, min_y, max_y)
         end
         Rectangle.update(self)
+    end,
+    draw_debug = function(self)
+        local x = self.pos.x - self.w / 2
+        local y = self.pos.y - self.h / 2
+        self.world.gfx:rect(x, y, x + self.w - 1, y + self.h - 1, 16)
     end,
     toggle = function(self)
         self.state = not self.state

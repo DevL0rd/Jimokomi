@@ -4,7 +4,6 @@ local Circle = include("src/primitives/Circle.lua")
 local Sprite = include("src/primitives/Sprite.lua")
 local Ray = include("src/primitives/Ray.lua")
 local ParticleEmitter = include("src/primitives/ParticleEmitter.lua")
-local Rectangle = include("src/primitives/Rectangle.lua")
 
 player_speed = 5
 directions = {
@@ -132,10 +131,10 @@ local JIJI = Circle:new({
 		else
 			self.runEmitter:off()
 		end
-		Rectangle.update(self)
+		Circle.update(self)
 	end,
 	draw = function(self)
-		Rectangle.draw(self)
+		Circle.draw(self)
 	end
 })
 

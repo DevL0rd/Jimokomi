@@ -151,7 +151,7 @@ local Engine = {
 	gravity = Vector:new({
 		y = 200
 	}),
-	fill_color = 32,
+	fill_color = 1,
 	stroke_color = 5,
 	createLayer = function(self, layer_id, physics_enabled, map_id)
 		physics_enabled = physics_enabled or true

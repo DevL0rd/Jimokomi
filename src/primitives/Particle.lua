@@ -5,6 +5,7 @@ local Particle = Circle:new({
     _type = "Particle",
     lifetime = 3000,
     fill_color = 7,
+    ignore_gravity = true,
     init = function(self)
         Circle.init(self)
         self.constant_vel = Vector:new()

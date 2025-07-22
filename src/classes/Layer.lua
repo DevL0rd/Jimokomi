@@ -135,6 +135,29 @@ local Layer = Class:new({
             camera(cam_x, cam_y)
             map(nil, 0, 0)
             camera() -- Reset camera
+            -- Debug: Render tile IDs on each visible tile
+            if DEBUG then
+                local view_top_left = self.camera:screenToWorld({ x = 0, y = 0 })
+                local view_bottom_right = self.camera:screenToWorld({ x = Screen.w, y = Screen.h })
+                local tile_size = self.tile_size
+                local start_tile_x = flr(view_top_left.x / tile_size)
+                local end_tile_x = ceil(view_bottom_right.x / tile_size)
+                local start_tile_y = flr(view_top_left.y / tile_size)
+                local end_tile_y = ceil(view_bottom_right.y / tile_size)
+                for tx = start_tile_x, end_tile_x do
+                    for ty = start_tile_y, end_tile_y do
+                        local tile_id = mget(tx, ty)
+                        if tile_id ~= 0 then
+                            local world_x = tx * tile_size + tile_size / 2
+                            local world_y = ty * tile_size + tile_size / 2
+                            local screen_pos = self.camera:worldToScreen({ x = world_x, y = world_y })
+                            if screen_pos.x >= 0 and screen_pos.x < Screen.w and screen_pos.y >= 0 and screen_pos.y < Screen.h then
+                                print(tile_id, screen_pos.x - 6, screen_pos.y - 4, 7)
+                            end
+                        end
+                    end
+                end
+            end
         end
 
         for _, ent in pairs(self.entities) do
