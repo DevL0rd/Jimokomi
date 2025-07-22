@@ -1,18 +1,25 @@
-Ray = Class:new({
+Ray = Entity:new({
     pos = Vector:new(),
     vec = Vector:new({ y = 1 }),
-    color = 8,
     length = 50,
-    debug = DEBUG,
     rate = 50,
-    world = nil,
+    ignore_physics = true,
     init = function(self)
+        Entity.init(self)
+        self.init_pos = Vector:new({
+            x = self.pos.x,
+            y = self.pos.y
+        })
         self.line_dist = self.length
         self.timer = Timer:new()
         self.cached_result = { nil, self.length }
-        self.world = self.world or WORLD
+        if self.parent then
+            self.world = self.parent.world
+        end
+        if self.world then
+            self.world:add(self)
+        end
     end,
-
     rayToWorld = function(self, world_obj)
         local t_x_min, t_x_max
         local t_y_min, t_y_max
@@ -157,14 +164,10 @@ Ray = Class:new({
 
         return self.cached_result[1], self.cached_result[2]
     end,
-    draw = function(self)
-        if not self.debug then
-            return
-        end
-
+    draw_debug = function(self)
         local world_end_x = self.pos.x + self.vec.x * self.line_dist
         local world_end_y = self.pos.y + self.vec.y * self.line_dist
 
-        self.world.gfx:line(self.pos.x, self.pos.y, world_end_x, world_end_y, self.color)
+        self.world.gfx:line(self.pos.x, self.pos.y, world_end_x, world_end_y, 8)
     end
 })

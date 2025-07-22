@@ -1,9 +1,9 @@
+--[[pod_format="raw",created="2025-07-21 21:47:56",modified="2025-07-22 00:49:12",revision=8]]
 include "src/class.lua"
 include "src/timer.lua"
 include "src/primitives.lua"
 include "src/ray.lua"
 include "src/graphics_helper.lua"
-
 local last_time = 0
 _dt = 0
 Layer = Class:new({
@@ -11,7 +11,7 @@ Layer = Class:new({
 	entities = {},
 	gravity = Vector:new({ y = 200 }),
 	friction = 0.01,
-	wall_friction = 0.2,
+	wall_friction = 0.05,
 	collisionPasses = 2,
 	running = false,
 	layer_id = 0,
@@ -39,14 +39,15 @@ Layer = Class:new({
 				max_y = nil
 			},
 			shake = {
+				initial_intensity = 0,
 				intensity = 0,
-				duration = 0,
-				timer = 0
+				duration = -1,
+				timer = Timer:new()
 			},
 			parallax_factor = Vector:new({ x = 1, y = 1 }),
 			update = function(self)
 				if self.target then
-					local target_pos = self.target:getCenter()
+					local target_pos = self.target.pos
 					local desired_x = target_pos.x - self.offset.x
 					local desired_y = target_pos.y - self.offset.y
 
@@ -67,10 +68,12 @@ Layer = Class:new({
 					self.pos.y = min(self.pos.y, self.bounds.max_y)
 				end
 
-				if self.shake.timer > 0 then
-					self.shake.timer -= _dt
-					if self.shake.timer <= 0 then
+				if self.shake.duration ~= -1 then
+					local percent_elapsed = self.shake.timer:elapsed() / self.shake.duration
+					self.shake.intensity = self.shake.initial_intensity * (1 - percent_elapsed)
+					if self.shake.timer:hasElapsed(self.shake.duration, false) then
 						self.shake.intensity = 0
+						self.shake.duration = -1
 					end
 				end
 			end,
@@ -85,10 +88,19 @@ Layer = Class:new({
 				}
 			end,
 
-			startShake = function(self, intensity, duration)
-				self.shake.intensity = intensity
+			startShaking = function(self, intensity, duration)
+				intensity = intensity or 5
+				duration = duration or -1
+				self.shake.initial_intensity = intensity
 				self.shake.duration = duration
-				self.shake.timer = duration
+				if duration ~= -1 then
+					self.shake.timer:reset()
+				end
+			end,
+
+			stopShaking = function(self)
+				self.shake.intensity = 0
+				self.shake.duration = -1
 			end,
 
 			setTarget = function(self, entity)
@@ -105,8 +117,8 @@ Layer = Class:new({
 			worldToScreen = function(self, world_pos)
 				local shake = self:getShakeOffset()
 				return {
-					x = world_pos.x - (self.pos.x * self.parallax_factor.x),
-					y = world_pos.y - (self.pos.y * self.parallax_factor.y)
+					x = world_pos.x - (self.pos.x * self.parallax_factor.x) + shake.x,
+					y = world_pos.y - (self.pos.y * self.parallax_factor.y) + shake.y
 				}
 			end,
 
@@ -214,6 +226,7 @@ Layer = Class:new({
 		end
 	end,
 
+
 	handleCollisionEvents = function(self)
 		if not self.physics_enabled then return end
 
@@ -246,6 +259,12 @@ Layer = Class:new({
 		self.camera:update()
 		self:resolveCollisions()
 		self:handleCollisionEvents()
+		for _, ent in pairs(self.entities) do
+			if ent.parent then
+				ent.pos.x = ent.parent.pos.x + ent.init_pos.x
+				ent.pos.y = ent.parent.pos.y + ent.init_pos.y
+			end
+		end
 	end,
 
 	draw = function(self)
@@ -254,10 +273,47 @@ Layer = Class:new({
 		end
 
 		if self.map_id ~= nil then
-			local cam_x = self.camera.pos.x * self.camera.parallax_factor.x
-			local cam_y = self.camera.pos.y * self.camera.parallax_factor.y
+			-- Apply camera transformation for map rendering
+			local shake = self.camera:getShakeOffset()
+			local cam_x = flr(self.camera.pos.x * self.camera.parallax_factor.x + shake.x)
+			local cam_y = flr(self.camera.pos.y * self.camera.parallax_factor.y + shake.y)
 
-			map(self.map_id, 0, 0, -cam_x, -cam_y)
+			-- Debug output if DEBUG is enabled
+			if DEBUG then
+				print("Rendering map " .. self.map_id .. " at offset: " .. cam_x .. ", " .. cam_y)
+			end
+
+			-- Set camera for map rendering (positive values to scroll map opposite to camera)
+			camera(cam_x, cam_y)
+			map(self.map_id)
+			camera() -- Reset camera
+		end
+
+		-- Draw grid for this layer if DEBUG is enabled
+		if DEBUG then
+			local grid_size = 16
+			local view_top_left = self.camera:screenToWorld({ x = 0, y = 0 })
+			local view_bottom_right = self.camera:screenToWorld({ x = Screen.w, y = Screen.h })
+
+			local start_x = flr(view_top_left.x / grid_size) * grid_size
+			local start_y = flr(view_top_left.y / grid_size) * grid_size
+
+			-- Use different colors for different layers
+			local grid_color = self.layer_id + 5 -- Different color per layer
+
+			-- Vertical lines
+			for x = start_x, view_bottom_right.x, grid_size do
+				local start_pos = self.camera:worldToScreen({ x = x, y = view_top_left.y })
+				local end_pos = self.camera:worldToScreen({ x = x, y = view_bottom_right.y })
+				line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, grid_color)
+			end
+
+			-- Horizontal lines
+			for y = start_y, view_bottom_right.y, grid_size do
+				local start_pos = self.camera:worldToScreen({ x = view_top_left.x, y = y })
+				local end_pos = self.camera:worldToScreen({ x = view_bottom_right.x, y = y })
+				line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, grid_color)
+			end
 		end
 
 		for _, ent in pairs(self.entities) do
@@ -421,14 +477,13 @@ Engine = {
 	layers = {},
 	master_camera = nil,
 
-	w = Screen.w * 4,
-	h = Screen.h,
+	w = 16 * 32,
+	h = 16 * 32,
 	gravity = Vector:new({
 		y = 200
 	}),
-	fill_color = 1,
-	stroke_color = 12,
-
+	fill_color = 32,
+	stroke_color = 5,
 	createLayer = function(self, layer_id, physics_enabled, map_id)
 		physics_enabled = physics_enabled or true
 		local layer = Layer:new()
@@ -527,6 +582,9 @@ Engine = {
 		for _, layer_id in pairs(layer_keys) do
 			self.layers[layer_id]:draw()
 		end
+
+		-- Reset camera after drawing all layers
+		camera()
 	end,
 
 	start = function(self)

@@ -1,6 +1,6 @@
 Timer = Class:new({
 	_type = "Timer",
-	init = function(self)
+	init = function(self, params)
 		self:reset()
 	end,
 	elapsed = function(self)

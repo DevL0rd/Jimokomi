@@ -1,4 +1,5 @@
-player_speed = 180
+--[[pod_format="raw",created="2025-07-21 18:49:36",modified="2025-07-21 22:05:48",revision=14]]
+player_speed = 5
 directions = {
 	left = false,
 	right = true
@@ -12,11 +13,10 @@ States = {
 Jiji = Circle:new({
 	_type = "jiji",
 	direction = directions.left,
-	graphics = nil,
 	init = function(self)
 		Circle.init(self)
-		self.graphics = Graphic:new({
-			world = self.world,
+		self.graphics = Sprite:new({
+			parent = self,
 			sprite = 0
 		})
 		self.old_direction = directions.left
@@ -24,30 +24,28 @@ Jiji = Circle:new({
 		self.old_is_on_ground = false
 		self.old_state = States.Idle
 		self.down_ray = Ray:new({
-			world = self.world
+			parent = self,
+			pos = Vector:new({ x = 0, y = self.r }),
+			dir = Vector:new({ x = 0, y = 1 })
 		})
 		self.state = States.Idle
 		self.runEmitter = ParticleEmitter:new({
-			world = self.world,
+			parent = self,
 			rate = 10,
 			rate_variation = 50,
 			particle_lifetime = 500,
 			particle_lifetime_variation = 100,
+			pos = Vector:new({ x = 0, y = self.r - 2 }),
 			w = self.r,
-			h = self.r,
+			h = 2,
 		})
+		self.did_ground_pound = false
 	end,
 	distToGround = function(self)
 		local obj, dist = self.down_ray:cast()
 		return dist
 	end,
 	update = function(self)
-		if self.world and not self.down_ray.world then
-			self.down_ray.world = self.world
-		end
-
-		self.down_ray.pos.x = self.pos.x + self.r
-		self.down_ray.pos.y = self.pos.y + self.r
 		local ground_dist = self:distToGround()
 		local is_on_ground = ground_dist <= 0.001
 		local is_close_to_ground = ground_dist <= 2
@@ -58,15 +56,16 @@ Jiji = Circle:new({
 		end
 		if is_close_to_ground then
 			if btn(0) then
-				self.vel.x = -player_speed
+				self.vel.x += -player_speed
 				self.state = States.Moving
 			elseif btn(1) then
-				self.vel.x = player_speed
+				self.vel.x += player_speed
 				self.state = States.Moving
 			else
 				self.state = States.Idle
 			end
 		else
+			self.did_ground_pound = false
 			self.state = States.Gliding
 			self.vel.y -= 1
 			local glideSpeed = self.vel.y > 0 and (self.vel.y * 0.1) or 0.6
@@ -81,23 +80,26 @@ Jiji = Circle:new({
 		self.old_state = self.state
 		if state_has_changed then
 			if self.state == States.Moving then
-				self.graphics = Graphic:new({
-					world = self.world,
+				self.graphics:destroy()
+				self.graphics = Sprite:new({
+					parent = self,
 					sprite = 1,
 					end_sprite = 5,
 					flip_x = self.direction
 				})
 			elseif self.state == States.Gliding then
-				self.graphics = Graphic:new({
-					world = self.world,
+				self.graphics:destroy()
+				self.graphics = Sprite:new({
+					parent = self,
 					sprite = 6,
 					end_sprite = 7,
 					speed = 6,
 					flip_x = self.direction
 				})
 			else
-				self.graphics = Graphic:new({
-					world = self.world,
+				self.graphics:destroy()
+				self.graphics = Sprite:new({
+					parent = self,
 					sprite = 0,
 					flip_x = self.direction
 				})
@@ -111,19 +113,29 @@ Jiji = Circle:new({
 				self.vel.y -= 8
 			end
 		end
-		self.runEmitter.pos.x = self.pos.x
-		self.runEmitter.pos.y = self.pos.y + self.r
+		if is_on_ground ~= self.old_is_on_ground then
+			if is_on_ground and not self.did_ground_pound then
+				self.world.camera:startShaking(5, 500)
+				self.did_ground_pound = true
+			end
+		end
+		self.old_is_on_ground = is_on_ground
 		if self.state == States.Moving then
 			self.runEmitter:on()
 		else
 			self.runEmitter:off()
 		end
-		self.runEmitter:update()
+		-- DEBUG_TEXT = "self.state: " .. tostring(self.state) .. "\n" ..
+		-- 	"self.direction: " .. tostring(self.direction) .. "\n" ..
+		-- 	"self.vel.x: " .. tostring(self.vel.x) .. "\n" ..
+		-- 	"self.vel.y: " .. tostring(self.vel.y) .. "\n" ..
+		-- 	"is_on_ground: " .. tostring(is_on_ground) .. "\n" ..
+		-- 	"is_close_to_ground: " .. tostring(is_close_to_ground) .. "\n" ..
+		-- 	"is_moving" .. tostring(self.state == States.Moving) .. "\n" ..
+		-- 	"ground_dist: " .. tostring(ground_dist) .. "\n"
 		Rectangle.update(self)
 	end,
 	draw = function(self)
-		self.down_ray:draw()
-		self.runEmitter:draw()
 		Rectangle.draw(self)
 	end
 })
