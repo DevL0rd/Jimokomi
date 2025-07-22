@@ -155,34 +155,36 @@ local Collision = {
                 local tile_top = tile.y * self.tile_size
                 local tile_bottom = (tile.y + 1) * self.tile_size
 
-                -- Calculate overlaps with precise rounding
+                -- Calculate overlaps with more precision
                 local overlap_left = tile_right - left
                 local overlap_right = right - tile_left
                 local overlap_top = tile_bottom - top
                 local overlap_bottom = bottom - tile_top
 
-                -- Only process if there's actually a real overlap
+                -- Only process if there's actually an overlap
                 if overlap_left > 0 and overlap_right > 0 and overlap_top > 0 and overlap_bottom > 0 then
                     -- Find the smallest overlap to determine push direction
                     local min_overlap = min(min(overlap_left, overlap_right), min(overlap_top, overlap_bottom))
 
-                    -- Use exact positioning to prevent floating point drift
+                    -- Add separation distance to ensure complete uncolliding
+                    local separation = 0.5
+
                     if min_overlap == overlap_left then
-                        -- Push right - position entity exactly at tile edge
-                        local target_x = tile_right + entity.w / 2
-                        push_x = max(push_x, target_x - entity.pos.x)
+                        -- Push right (out of left side of tile)
+                        local push_amount = overlap_left + separation
+                        push_x = max(push_x, push_amount)
                     elseif min_overlap == overlap_right then
-                        -- Push left - position entity exactly at tile edge
-                        local target_x = tile_left - entity.w / 2
-                        push_x = min(push_x, target_x - entity.pos.x)
+                        -- Push left (out of right side of tile)
+                        local push_amount = -(overlap_right + separation)
+                        push_x = min(push_x, push_amount)
                     elseif min_overlap == overlap_top then
-                        -- Push down - position entity exactly at tile edge
-                        local target_y = tile_bottom + entity.h / 2
-                        push_y = max(push_y, target_y - entity.pos.y)
+                        -- Push down (out of top of tile)
+                        local push_amount = overlap_top + separation
+                        push_y = max(push_y, push_amount)
                     else
-                        -- Push up - position entity exactly at tile edge
-                        local target_y = tile_top - entity.h / 2
-                        push_y = min(push_y, target_y - entity.pos.y)
+                        -- Push up (out of bottom of tile)
+                        local push_amount = -(overlap_bottom + separation)
+                        push_y = min(push_y, push_amount)
                     end
                 end
             end
@@ -350,7 +352,15 @@ local Collision = {
             -- Apply velocity changes after position correction
             if entity.vel and (has_x_collision or has_y_collision) then
                 -- Apply wall friction
-                entity.vel:drag(self.wall_friction, false)
+                entity.vel:drag(self.wall_friction, true)
+
+                -- Stop velocity in collision directions
+                if has_x_collision then
+                    entity.vel.x = 0
+                end
+                if has_y_collision then
+                    entity.vel.y = 0
+                end
             end
 
             ::skip::

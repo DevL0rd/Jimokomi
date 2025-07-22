@@ -66,7 +66,7 @@ local Layer = Class:new({
                         ent.vel:add(self.gravity, true)
                     end
                     if not ent.ignore_friction then
-                        ent.vel:drag(self.friction, false)
+                        ent.vel:drag(self.friction, true)
                     end
                     ent.pos:add(ent.vel, true)
                 end

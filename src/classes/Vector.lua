@@ -65,16 +65,13 @@ local Vector = Class:new({
     end,
     drag = function(self, dragV, useDelta)
         useDelta = useDelta or false
-        local d = 1 - dragV
         if useDelta then
-            local xDiff = self.x - (self.x * d)
-            local yDiff = self.y - (self.y * d)
-            self.x -= xDiff * _dt
-            self.y -= yDiff * _dt
-        else
-            self.x *= d
-            self.y *= d
+            dragV = dragV * _dt
         end
+
+        local d = 1 - dragV
+        self.x *= d
+        self.y *= d
         return self
     end,
     dot = function(self, other_vec)
