@@ -1,5 +1,10 @@
-Ray = Entity:new({
-    pos = Vector:new(),
+local Entity = include("src/classes/Entity.lua")
+local Vector = include("src/classes/Vector.lua")
+local Timer = include("src/classes/Timer.lua")
+local Circle = include("src/primitives/Circle.lua")
+local Rectangle = include("src/primitives/Rectangle.lua")
+
+local Ray = Entity:new({
     vec = Vector:new({ y = 1 }),
     length = 50,
     rate = 50,
@@ -171,3 +176,5 @@ Ray = Entity:new({
         self.world.gfx:line(self.pos.x, self.pos.y, world_end_x, world_end_y, 8)
     end
 })
+
+return Ray

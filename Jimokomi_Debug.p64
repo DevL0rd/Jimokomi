@@ -4,19 +4,19 @@ version 2
 :: gfx/
 :: gfx/0.gfx
 b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA3OjM3OjMyIixtb2RpZmllZD0iMjAyNS0w
-Ny0yMSAyMDowNzo1MCIscmV2aXNpb249MTFdXWx6NADsAQAAsToAAPAme1swXT17Ym1wPXB4dQBD
+Ny0yMiAwNjowNjoyMiIscmV2aXNpb249MTJdXWx6NAD1AQAAuzoAAPAme1swXT17Ym1wPXB4dQBD
 IBAQBPBVFbAmBSZwBh8gZkAWHnYwDxc2NzYgHRZXFgAGMBYHMAcIAPELFVAV8BMsZmxhZ3M9MCxw
 YW5feD0tMC42MjUNAP8AeT0zLjc1LHpvb209OH0sYgABKBaAYgD-BRc2AAYgHRY3FhAGQBYHIBVw
 FfAbXwAvI1ZQXwAhB0ZfAK4nJgAGUBYHEBWAXwAPvgApAl8AIAZHvgCPFSAHBtAV8BZfADgAtwCR
 IB1nFhAGIBVAXgAfFV4AKgvdARAWXgDAFlcGEAYgFgdABwZQ3QEfFGIAJRBUYgAToGEA8AQWJyYw
 DxcWdxYgHQYnECcGABYQXQAfJV0ALgHaASQAJlwAMhcwF7cAHyRaACX-CXMFVnCGYIZgJicmYBUG
 JwYFABbwACbwEFAAJVNkBTaQZlIAITZQUgAvEAZSACof8DkA-----9b-EE0HYAdQF0CXQBcFZ1AP
-FzcWF4AXBhAGB4APD0AO8DVXACX-IoIPGqAOIA8bEA5wDSAOEA5wHRANEB0wDhANDgMADQ4QDSAd
-EA0OEw0gDQMgDQ4A8wIyASYPOQD-------------------------------------------------
-----------------d1BtPTh9fQ==
+FzcWF4AXBhAGB4APD0AO8DVXACX-FYILEAtwCyALEAtACxALIA8bEAtASwMADgAuAB4A-gXzAP8T
+ACUBJg85AP97qf8VfQ8U-xVCAA4CAC-_AYkAJg85AP----------------------------------
+----------------------------rVBtPTh9fQ==
 :: gfx/.info.pod
 b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA4OjUxOjA4Iixtb2RpZmllZD0iMjAyNS0w
-Ny0yMiAwMTo0ODoxMyJdXQ==
+Ny0yMiAwNjowNjoyMyJdXQ==
 :: library/
 :: library/audio.lua
 ---@meta
@@ -1786,7 +1786,7 @@ function vid(video_mode) end
 
 :: library/.info.pod
 b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTIxIDExOjAwOjEzIixtb2RpZmllZD0iMjAyNS0w
-Ny0yMiAwMTo0ODoxMyJdXQ==
+Ny0yMiAwNjowNjoyMyJdXQ==
 :: map/
 :: map/0.map
 b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA3OjM3OjMyIixtb2RpZmllZD0iMjAyNS0w
@@ -1795,7 +1795,7 @@ ImkxNiIsMzIDAC8iMAEA--------------------fSIyMQQADwEAY-ELIiksaGlkZGVuPWZhbHNl
 LHBhbl94PS0yMjQLAHZ5PS0xMC42AQCyNyx0aWxlX2g9MTYKABB3CgCwem9vbT0wLjI1fX0=
 :: map/.info.pod
 b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA4OjUxOjA4Iixtb2RpZmllZD0iMjAyNS0w
-Ny0yMiAwMTo0ODoxMyJdXQ==
+Ny0yMiAwNjowNjoyMyJdXQ==
 :: sfx/
 :: sfx/0.sfx
 b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA3OjM3OjMyIixtb2RpZmllZD0iMjAyNS0w
@@ -1807,15 +1807,15 @@ DzAA------9AH-8BAKygyA9AAA1AD0UPQQQAsf--LDDzLD7zLPBwGABf87DwcAUIABsf-wEA-_FQ
 -----yg=
 :: sfx/.info.pod
 b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA4OjUxOjA4Iixtb2RpZmllZD0iMjAyNS0w
-Ny0yMiAwMTo0ODoxMyJdXQ==
+Ny0yMiAwNjowNjoyMyJdXQ==
 :: main.lua
---[[pod_format="raw",created="2025-07-18 07:37:32",modified="2025-07-22 00:51:28",revision=200]]
+--[[pod_format="raw",created="2025-07-18 07:37:32",modified="2025-07-22 01:59:20",revision=201]]
 cd("/Jimokomi")
 include("main.lua")
 include("error_exporer.lua")
 :: .info.pod
 b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA4OjUxOjA1Iixtb2RpZmllZD0iMjAyNS0w
-Ny0yMiAwMTo0ODoxMyIscnVudGltZT0xOSx3b3Jrc3BhY2VzPXt7bG9jYXRpb249Im1haW4ubHVh
+Ny0yMiAwNjowNjoyMyIscnVudGltZT0xOSx3b3Jrc3BhY2VzPXt7bG9jYXRpb249Im1haW4ubHVh
 IzMiLHdvcmtzcGFjZV9pbmRleD0xfSx7bG9jYXRpb249ImdmeC8wLmdmeCIsd29ya3NwYWNlX2lu
 ZGV4PTJ9LHtsb2NhdGlvbj0ibWFwLzAubWFwIix3b3Jrc3BhY2VfaW5kZXg9M30se2xvY2F0aW9u
 PSJzZngvMC5zZngiLHdvcmtzcGFjZV9pbmRleD00fX1dXQ==

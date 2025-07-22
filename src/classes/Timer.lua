@@ -1,4 +1,6 @@
-Timer = Class:new({
+local Class = include("src/classes/Class.lua")
+
+local Timer = Class:new({
 	_type = "Timer",
 	init = function(self, params)
 		self:reset()
@@ -18,3 +20,5 @@ Timer = Class:new({
 		self.start_time = time()
 	end
 })
+
+return Timer

@@ -1,4 +1,10 @@
---[[pod_format="raw",created="2025-07-21 18:49:36",modified="2025-07-21 22:05:48",revision=14]]
+local Vector = include("src/classes/Vector.lua")
+local Circle = include("src/primitives/Circle.lua")
+local Sprite = include("src/primitives/Sprite.lua")
+local Ray = include("src/primitives/Ray.lua")
+local ParticleEmitter = include("src/primitives/ParticleEmitter.lua")
+local Rectangle = include("src/primitives/Rectangle.lua")
+
 player_speed = 5
 directions = {
 	left = false,
@@ -10,8 +16,8 @@ States = {
 	Gliding = 3
 }
 
-Jiji = Circle:new({
-	_type = "jiji",
+local JIJI = Circle:new({
+	_type = "JIJI",
 	direction = directions.left,
 	init = function(self)
 		Circle.init(self)
@@ -139,3 +145,5 @@ Jiji = Circle:new({
 		Rectangle.draw(self)
 	end
 })
+
+return JIJI

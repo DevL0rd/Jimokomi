@@ -1,4 +1,9 @@
-Camera = Class:new({
+local Class = include("src/classes/Class.lua")
+local Vector = include("src/classes/Vector.lua")
+local Screen = include("src/classes/Screen.lua")
+
+
+local Camera = Class:new({
     _type = "Camera",
     pos = Vector:new({ x = 0, y = 0 }),
     target = nil,
@@ -99,3 +104,5 @@ Camera = Class:new({
         self.pos.y = master_camera.pos.y * parallax_y
     end
 })
+
+return Camera

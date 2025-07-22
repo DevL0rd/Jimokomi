@@ -25,7 +25,7 @@ local function deepcopy(original, visited)
     return copy
 end
 
-Class = {
+local Class = {
     _type = "Class",
     _has_init = false,
     new = function(self, tbl)
@@ -60,3 +60,5 @@ Class = {
     unInit = function(self)
     end
 }
+
+return Class
