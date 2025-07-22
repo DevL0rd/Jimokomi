@@ -17,7 +17,7 @@ function _init()
 	local CoCo = CoCo:new({
 		world = layer,
 		ignore_physics = true,
-		pos = Vector:new({ x = 490, y = 264 })
+		pos = Vector:new({ x = 490, y = 260 })
 	})
 	layer.camera:setTarget(jiji)
 	Engine:start()
