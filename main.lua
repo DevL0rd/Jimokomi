@@ -6,6 +6,12 @@ include "src/ent/jiji.lua"
 
 function _init()
 	WORLD = Engine:createLayer(0, true, 0)
+
+	-- local skyBox = Skybox:new({
+	-- 	world = WORLD,
+	-- 	cycle_duration = 30000 -- 30 second cycle for faster testing
+	-- })
+
 	local jiji = Jiji:new({
 		world = WORLD,
 		pos = Vector:new({ x = 200, y = 100 })

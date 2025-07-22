@@ -1,4 +1,4 @@
---[[pod_format="raw",created="2025-07-21 20:55:12",modified="2025-07-22 01:21:44",revision=34]]
+--[[pod_format="raw",created="2025-07-21 20:55:12",modified="2025-07-22 01:56:51",revision=41]]
 Screen = {
 	w = 480,
 	h = 270
@@ -329,9 +329,6 @@ Graphic = Rectangle:new({
 	init = function(self)
 		Rectangle.init(self)
 		self.pos = Vector:new()
-		if self.world then
-			self.world:add(self)
-		end
 	end,
 })
 
@@ -395,5 +392,137 @@ Sprite = Graphic:new({
 		self._timer = 0
 		self._current_frame_idx = 0
 		self.is_done = false
+	end
+})
+
+Skybox = Graphic:new({
+	_type = "Skybox",
+	cycle_duration = 60000, -- 60 seconds for full day/night cycle (in milliseconds)
+	world = nil,
+	init = function(self)
+		Graphic.init(self)
+		if self.world then
+			self.w = self.world.w
+			self.h = self.world.h
+			self.pos.x = self.world.w / 2
+			self.pos.y = self.world.h / 2
+		end
+		self.cycle_timer = Timer:new()
+	end,
+	update = function(self)
+		-- Reset timer when cycle completes
+		if self.cycle_timer:hasElapsed(self.cycle_duration) then
+			self.cycle_timer:reset()
+		end
+		Graphic.update(self)
+	end,
+	get_time_of_day = function(self)
+		-- Returns a value from 0 to 1 representing the time of day
+		-- 0 = midnight, 0.25 = dawn, 0.5 = noon, 0.75 = dusk, 1 = midnight again
+		return self.cycle_timer:elapsed() / self.cycle_duration
+	end,
+	get_sky_colors = function(self)
+		local time = self:get_time_of_day()
+
+		-- Define color phases for different times of day with smoother transitions
+		local phases = {
+			{ time = 0.0,  top = 0,  bottom = 1 }, -- Midnight: black to dark blue
+			{ time = 0.15, top = 0,  bottom = 1 }, -- Late night: black to dark blue
+			{ time = 0.25, top = 1,  bottom = 9 }, -- Dawn: dark blue to orange
+			{ time = 0.35, top = 9,  bottom = 10 }, -- Early morning: orange to yellow
+			{ time = 0.5,  top = 12, bottom = 7 }, -- Noon: light blue to white
+			{ time = 0.65, top = 12, bottom = 10 }, -- Afternoon: light blue to yellow
+			{ time = 0.75, top = 8,  bottom = 9 }, -- Dusk: red to orange
+			{ time = 0.85, top = 2,  bottom = 1 }, -- Evening: purple to dark blue
+			{ time = 1.0,  top = 0,  bottom = 1 } -- Midnight: black to dark blue
+		}
+
+		-- Find the two phases to interpolate between
+		local phase1, phase2
+		for i = 1, #phases - 1 do
+			if time >= phases[i].time and time <= phases[i + 1].time then
+				phase1 = phases[i]
+				phase2 = phases[i + 1]
+				break
+			end
+		end
+
+		-- If we didn't find phases, handle wrap-around
+		if not phase1 then
+			phase1 = phases[#phases]
+			phase2 = phases[1]
+		end
+
+		-- Calculate interpolation factor
+		local t = 0
+		if phase2.time > phase1.time then
+			t = (time - phase1.time) / (phase2.time - phase1.time)
+		else
+			-- Handle wrap-around case
+			local total_time = (1.0 - phase1.time) + phase2.time
+			if time >= phase1.time then
+				t = (time - phase1.time) / total_time
+			else
+				t = (1.0 - phase1.time + time) / total_time
+			end
+		end
+
+		-- Smooth the transition with easing
+		t = t * t * (3 - 2 * t) -- Smoothstep function
+
+		-- For now, just return the closest phase colors (we'll improve interpolation next)
+		if t < 0.5 then
+			return phase1.top, phase1.bottom
+		else
+			return phase2.top, phase2.bottom
+		end
+	end,
+	draw = function(self)
+		local top_color, bottom_color = self:get_sky_colors()
+		local time = self:get_time_of_day()
+
+		-- Create a more sophisticated gradient
+		for y = 0, self.world.h - 1 do
+			local gradient_factor = y / self.world.h
+
+			-- Use a smooth gradient transition
+			local current_color
+			if gradient_factor < 0.3 then
+				-- Top third uses top color
+				current_color = top_color
+			elseif gradient_factor > 0.7 then
+				-- Bottom third uses bottom color
+				current_color = bottom_color
+			else
+				-- Middle third blends between colors
+				local blend_factor = (gradient_factor - 0.3) / 0.4
+				-- Use smoothstep for the blend
+				blend_factor = blend_factor * blend_factor * (3 - 2 * blend_factor)
+
+				if blend_factor < 0.5 then
+					current_color = top_color
+				else
+					current_color = bottom_color
+				end
+			end
+
+			-- Add some atmospheric effects during certain times
+			if time > 0.2 and time < 0.35 and gradient_factor > 0.6 then
+				-- Dawn horizon glow
+				if rnd(1) < 0.3 then
+					current_color = 10 -- Yellow glow
+				end
+			elseif time > 0.7 and time < 0.8 and gradient_factor > 0.5 then
+				-- Dusk horizon glow
+				if rnd(1) < 0.2 then
+					current_color = 8 -- Red glow
+				end
+			end
+
+			-- Draw the line
+			self.world.gfx:line(0, y, self.world.w - 1, y, current_color)
+		end
+
+		Graphic.draw(self)
 	end
 })
