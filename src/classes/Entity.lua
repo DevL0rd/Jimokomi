@@ -42,15 +42,6 @@ local Entity = Class:new({
                 self:destroy()
             end
         end
-        if not self.ignore_physics then
-            if not self.ignore_gravity then
-                self.vel:add(self.world.gravity, true)
-            end
-            if not self.ignore_friction then
-                self.vel:drag(self.world.friction, false)
-            end
-            self.pos:add(self.vel, true)
-        end
     end,
     draw = function(self)
         if self.fill then
