@@ -1,3 +1,4 @@
+--[[pod_format="raw",created="2025-07-22 08:49:40",modified="2025-07-22 08:49:40",revision=0]]
 local Vector = include("src/classes/Vector.lua")
 local Circle = include("src/primitives/Circle.lua")
 local Sprite = include("src/primitives/Sprite.lua")
@@ -131,14 +132,14 @@ local JIJI = Circle:new({
 		else
 			self.runEmitter:off()
 		end
-		-- DEBUG_TEXT = "self.state: " .. tostring(self.state) .. "\n" ..
-		-- 	"self.direction: " .. tostring(self.direction) .. "\n" ..
-		-- 	"self.vel.x: " .. tostring(self.vel.x) .. "\n" ..
-		-- 	"self.vel.y: " .. tostring(self.vel.y) .. "\n" ..
-		-- 	"is_on_ground: " .. tostring(is_on_ground) .. "\n" ..
-		-- 	"is_close_to_ground: " .. tostring(is_close_to_ground) .. "\n" ..
-		-- 	"is_moving" .. tostring(self.state == States.Moving) .. "\n" ..
-		-- 	"ground_dist: " .. tostring(ground_dist) .. "\n"
+		print_debug("self.state: " .. tostring(self.state) .. "\n" ..
+			"self.direction: " .. tostring(self.direction) .. "\n" ..
+			"self.vel.x: " .. tostring(self.vel.x) .. "\n" ..
+			"self.vel.y: " .. tostring(self.vel.y) .. "\n" ..
+			"is_on_ground: " .. tostring(is_on_ground) .. "\n" ..
+			"is_close_to_ground: " .. tostring(is_close_to_ground) .. "\n" ..
+			"is_moving: " .. tostring(self.state == States.Moving) .. "\n" ..
+			"ground_dist: " .. tostring(ground_dist) .. "\n")
 		Rectangle.update(self)
 	end,
 	draw = function(self)

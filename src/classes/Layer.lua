@@ -7,6 +7,7 @@ local Camera = include("src/classes/Camera.lua")
 
 local Layer = Class:new({
     _type = "Layer",
+    debug = false,
     entities = {},
     gravity = Vector:new({ y = 200 }),
     friction = 0.01,
@@ -139,9 +140,9 @@ local Layer = Class:new({
             ent:draw()
         end
     end,
-
     add = function(self, ent)
         add(self.entities, ent)
+        ent.debug = ent.debug or self.debug
         ent.world = self
     end,
 

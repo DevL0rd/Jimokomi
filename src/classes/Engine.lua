@@ -4,11 +4,15 @@ local Screen = include("src/classes/Screen.lua")
 
 local last_time = 0
 _dt = 0
+local debug_text = ""
+function print_debug(text)
+	debug_text = debug_text .. text .. "\n"
+end
 
 local Engine = {
 	layers = {},
 	master_camera = nil,
-
+	debug = DEBUG or false,
 	w = 16 * 64,
 	h = 16 * 32,
 	gravity = Vector:new({
@@ -19,6 +23,7 @@ local Engine = {
 	createLayer = function(self, layer_id, physics_enabled, map_id)
 		physics_enabled = physics_enabled or true
 		local layer = Layer:new()
+		layer.debug = self.debug
 		layer.layer_id = layer_id
 		layer.physics_enabled = physics_enabled
 		layer.gravity = self.gravity
@@ -59,6 +64,7 @@ local Engine = {
 	update = function(self)
 		_dt = time() - last_time
 		last_time = time()
+		debug_text = ""
 
 		if self.master_camera then
 			self.master_camera:update()
@@ -114,7 +120,9 @@ local Engine = {
 		for _, layer_id in pairs(layer_keys) do
 			self.layers[layer_id]:draw()
 		end
-
+		if self.debug then
+			print(debug_text, 1, 1) -- Print debug text at the top-left corner
+		end
 		-- Reset camera after drawing all layers
 		camera()
 	end,
