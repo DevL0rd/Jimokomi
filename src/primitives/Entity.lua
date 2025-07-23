@@ -1,3 +1,4 @@
+--[[pod_format="raw",created="2025-07-23 05:38:50",modified="2025-07-23 05:40:25",revision=1]]
 local Class = include("src/classes/class.lua")
 local Vector = include("src/classes/Vector.lua")
 local Timer = include("src/classes/Timer.lua")
@@ -10,6 +11,7 @@ local Entity = Class:new({
         y = 0
     }),
     vel = Vector:new(),
+    accel = Vector:new(),
     friction = 10,
     stroke_color = -1,
     fill_color = -1,

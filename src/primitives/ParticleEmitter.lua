@@ -9,6 +9,10 @@ local ParticleEmitter = Rectangle:new({
     rate_variation = 0,
     particle_lifetime = 500,
     particle_lifetime_variation = 0,
+    particle_size = 3,
+    particle_size_variation = 2,
+    particle_accel = Vector:new({ x = 0, y = 0 }),
+    vec = Vector:new({ x = 0, y = 0 }),
     vec_variation = 0,
     ignore_physics = true,
     state = true,
@@ -20,25 +24,22 @@ local ParticleEmitter = Rectangle:new({
     end,
     update = function(self)
         if self.state and self.spawn_timer:hasElapsed(self.waiting_time) then
-            if self.rate_variation > 0 then
-                self.waiting_time = self.rate + random_int(-self.rate_variation, self.rate_variation)
-            else
-                self.waiting_time = self.rate
-            end
-            local particle_lifetime = self.particle_lifetime
-            if self.particle_lifetime_variation > 0 then
-                particle_lifetime = self.particle_lifetime +
-                    random_int(-self.particle_lifetime_variation, self.particle_lifetime_variation)
-            end
+            self.waiting_time = self.rate + random_int(-self.rate_variation, self.rate_variation)
             local p = self.Particle:new({
                 world = self.world,
-                lifetime = particle_lifetime,
+                lifetime = self.particle_lifetime +
+                    random_int(-self.particle_lifetime_variation, self.particle_lifetime_variation),
+                pos = Vector:new({
+                    x = self.pos.x + random_int(-self.w / 2, self.w / 2),
+                    y = self.pos.y + random_int(-self.h / 2, self.h / 2)
+                }),
+                vel = Vector:new({
+                    x = self.vec.x + random_int(-self.vec_variation, self.vec_variation),
+                    y = self.vec.y + random_int(-self.vec_variation, self.vec_variation)
+                }),
+                r = self.particle_size + random_int(-self.particle_size_variation, self.particle_size_variation),
+                accel = self.particle_accel,
             })
-            local min_x = self.pos.x - self.w / 2
-            local max_x = self.pos.x + self.w / 2
-            local min_y = self.pos.y - self.h / 2
-            local max_y = self.pos.y + self.h / 2
-            p.pos:randomize(min_x, max_x, min_y, max_y)
         end
         Rectangle.update(self)
     end,
@@ -46,6 +47,10 @@ local ParticleEmitter = Rectangle:new({
         local x = self.pos.x - self.w / 2
         local y = self.pos.y - self.h / 2
         self.world.gfx:rect(x, y, x + self.w - 1, y + self.h - 1, 16)
+        -- Draw the vec
+        local vec_end_x = self.pos.x + self.vec.x * 0.25
+        local vec_end_y = self.pos.y + self.vec.y * 0.25
+        self.world.gfx:line(self.pos.x, self.pos.y, vec_end_x, vec_end_y, 16)
     end,
     toggle = function(self)
         self.state = not self.state

@@ -3,6 +3,7 @@ local Vector = include("src/classes/Vector.lua")
 local Circle = include("src/primitives/Circle.lua")
 local Sprite = include("src/primitives/Sprite.lua")
 local ParticleEmitter = include("src/primitives/ParticleEmitter.lua")
+local zzz = include("src/particles/zzz.lua")
 
 local CoCo = Circle:new({
 	_type = "CoCo",
@@ -18,13 +19,15 @@ local CoCo = Circle:new({
 		self.sleepEmitter = ParticleEmitter:new({
 			parent = self,
 			rate = 2000,
+			Particle = zzz,
 			particle_lifetime = 500,
 			particle_lifetime_variation = 100,
 			pos = Vector:new({ x = 0, y = -5 }),
+			vec = Vector:new({ x = 0, y = -50 }),
+			accel = Vector:new({ x = 0, y = -210 }),
 			w = self.r,
 			h = 2,
 		})
-		self.did_ground_pound = false
 	end,
 	draw = function(self)
 		Circle.draw(self)

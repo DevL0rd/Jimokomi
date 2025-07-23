@@ -44,8 +44,9 @@ local JIJI = Circle:new({
 			pos = Vector:new({ x = 0, y = self.r - 2 }),
 			w = self.r,
 			h = 2,
+			particle_accel = Vector:new({ x = 0, y = -250 }),
 		})
-		self.did_ground_pound = false
+		self.did_ground_pound = true
 	end,
 	distToGround = function(self)
 		local obj, dist = self.down_ray:cast()
@@ -127,6 +128,8 @@ local JIJI = Circle:new({
 		end
 		self.old_is_on_ground = is_on_ground
 		if self.state == States.Moving then
+			self.runEmitter.vec.x = -self.vel.x * 0.2
+			self.runEmitter.vec.y = -30
 			self.runEmitter:on()
 		else
 			self.runEmitter:off()

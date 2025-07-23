@@ -354,12 +354,11 @@ local Collision = {
                 -- Apply wall friction
                 entity.vel:drag(self.wall_friction, true)
 
-                -- Stop velocity in collision directions
-                if has_x_collision then
-                    entity.vel.x = 0
-                end
+                -- Stop velocity in collision directions, priority to y-axis
                 if has_y_collision then
                     entity.vel.y = 0
+                elseif has_x_collision then
+                    entity.vel.x = 0
                 end
             end
 

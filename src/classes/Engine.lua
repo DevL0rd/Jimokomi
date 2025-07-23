@@ -255,8 +255,8 @@ local Engine = {
 			self.layers[layer_id]:draw()
 		end
 		if self.debug then
-			self:debug_state()
-			print(debug_text, 1, 1) -- Print debug text at the top-left corner
+			--self:debug_state()
+			print(debug_text, 1, 1, 8) -- Print debug text at the top-left corner
 		end
 		-- Reset camera after drawing all layers
 		camera()

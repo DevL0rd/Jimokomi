@@ -10,9 +10,9 @@ local Layer = Class:new({
     debug = false,
     entities = {},
     gravity = Vector:new({ y = 200 }),
-    friction = 0.01,
-    wall_friction = 0.05,
-    collision_passes = 1, -- Reduced from 2 to prevent over-correction jitter
+    friction = 0.5,
+    wall_friction = 2,
+    collision_passes = 2,
     running = false,
     layer_id = 0,
     physics_enabled = true,
@@ -20,7 +20,11 @@ local Layer = Class:new({
     tile_size = 16, -- Fixed: Match actual map tile size
     tile_properties = {
         [0] = { solid = false, name = "empty" },
-        [41] = { solid = true, name = "ground" },
+        [23] = { solid = true, name = "ground" },
+        [63] = { solid = true, name = "wood" },
+        [53] = { solid = true, name = "wood" },
+        [54] = { solid = true, name = "wood" },
+        [55] = { solid = true, name = "wood" },
     },
 
     init = function(self)
@@ -64,6 +68,7 @@ local Layer = Class:new({
                 if not ent.ignore_physics then
                     if not ent.ignore_gravity then
                         ent.vel:add(self.gravity, true)
+                        ent.vel:add(ent.accel, true)
                     end
                     if not ent.ignore_friction then
                         ent.vel:drag(self.friction, true)
