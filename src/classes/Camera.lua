@@ -113,17 +113,17 @@ local Camera = {
         self.bounds.max_y = max_y
     end,
 
-    -- Convert world coordinates to screen coordinates
-    worldToScreen = function(self, world_pos)
+    -- Convert layer coordinates to screen coordinates
+    layerToScreen = function(self, layer_pos)
         local shake = self:getShakeOffset()
         return {
-            x = world_pos.x - (self.pos.x * self.parallax_factor.x) + shake.x,
-            y = world_pos.y - (self.pos.y * self.parallax_factor.y) + shake.y
+            x = layer_pos.x - (self.pos.x * self.parallax_factor.x) + shake.x,
+            y = layer_pos.y - (self.pos.y * self.parallax_factor.y) + shake.y
         }
     end,
 
-    -- Convert screen coordinates to world coordinates
-    screenToWorld = function(self, screen_pos)
+    -- Convert screen coordinates to layer coordinates
+    screenToLayer = function(self, screen_pos)
         local shake = self:getShakeOffset()
         return {
             x = screen_pos.x + (self.pos.x * self.parallax_factor.x) - shake.x,
@@ -158,7 +158,7 @@ local Camera = {
         self.parallax_factor.y = y
     end,
 
-    -- Get camera center position in world coordinates
+    -- Get camera center position in layer coordinates
     getCenterPos = function(self)
         return {
             x = self.pos.x + self.offset.x,
@@ -166,16 +166,16 @@ local Camera = {
         }
     end,
 
-    -- Set camera center position in world coordinates
+    -- Set camera center position in layer coordinates
     setCenterPos = function(self, x, y)
         self.pos.x = x - self.offset.x
         self.pos.y = y - self.offset.y
     end,
 
-    -- Get camera viewport bounds in world coordinates
+    -- Get camera viewport bounds in layer coordinates
     getViewBounds = function(self)
-        local top_left = self:screenToWorld({ x = 0, y = 0 })
-        local bottom_right = self:screenToWorld({ x = Screen.w, y = Screen.h })
+        local top_left = self:screenToLayer({ x = 0, y = 0 })
+        local bottom_right = self:screenToLayer({ x = Screen.w, y = Screen.h })
         return {
             left = top_left.x,
             top = top_left.y,

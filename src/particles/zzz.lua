@@ -11,11 +11,11 @@ local zzz = Particle:new({
         local x = self.pos.x
         local y = self.pos.y
         if scale >= 0.5 then
-            self.world.gfx:print("Z", x, y, 7)
+            self.layer.gfx:print("Z", x, y, 7)
         elseif scale >= 0.25 then
-            self.world.gfx:print("z", x, y, 7)
+            self.layer.gfx:print("z", x, y, 7)
         else
-            self.world.gfx:print(".", x, y, 7)
+            self.layer.gfx:print(".", x, y, 7)
         end
     end
 })

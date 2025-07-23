@@ -11,11 +11,11 @@ local Vector = include("src/classes/Vector.lua")
 function _init()
 	local layer = Engine:createLayer(0, true, 0)
 	local jiji = JIJI:new({
-		world = layer,
+		layer = layer,
 		pos = Vector:new({ x = 420, y = 220 })
 	})
 	local coco = CoCo:new({
-		world = layer,
+		layer = layer,
 		pos = Vector:new({ x = 470, y = 328 })
 	})
 	layer.camera:setTarget(jiji)

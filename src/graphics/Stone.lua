@@ -16,7 +16,7 @@ local Stone = Graphic:new({
 		local x = self.pos.x - self.w / 2
 		local y = self.pos.y - self.h / 2
 
-		self.world.gfx.ProceduralTextures:stone(x, y, self.w, self.h, self.seed, 1, true)
+		self.layer.gfx.ProceduralTextures:stone(x, y, self.w, self.h, self.seed, 1, true)
 
 		Graphic.draw(self)
 	end

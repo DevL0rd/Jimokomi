@@ -121,7 +121,7 @@ local Cricket = Rectangle:new({
 		end
 		if is_on_ground ~= self.old_is_on_ground then
 			if is_on_ground and not self.did_ground_pound then
-				self.world.camera:startShaking(5, 500)
+				self.layer.camera:startShaking(5, 500)
 				self.did_ground_pound = true
 			end
 		end

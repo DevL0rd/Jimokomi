@@ -53,7 +53,7 @@ local Sprite = Graphic:new({
     draw = function(self)
         local x = self.pos.x - self.w / 2
         local y = self.pos.y - self.h / 2
-        self.world.gfx:spr(self:get_sprite_id(), x, y, self.flip_x, self.flip_y)
+        self.layer.gfx:spr(self:get_sprite_id(), x, y, self.flip_x, self.flip_y)
         Graphic.draw(self)
     end,
     reset = function(self)

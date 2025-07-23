@@ -18,7 +18,7 @@ local Fire = Graphic:new({
 		local x = self.pos.x - self.w / 2
 		local y = self.pos.y - self.h / 2
 
-		self.world.gfx.ProceduralTextures:fire(x, y, self.w, self.h, self.seed, self.time_offset)
+		self.layer.gfx.ProceduralTextures:fire(x, y, self.w, self.h, self.seed, self.time_offset)
 
 		Graphic.draw(self)
 	end

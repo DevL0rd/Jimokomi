@@ -1,4 +1,4 @@
---[[pod_format="raw",created="2025-07-22 09:38:12",modified="2025-07-22 09:38:12",revision=0]]
+--[[pod_format="raw",created="2025-07-22 09:38:12",modified="2025-07-23 06:03:23",revision=1]]
 local Vector = include("src/classes/Vector.lua")
 local Rectangle = include("src/primitives/Rectangle.lua")
 local Circle = include("src/primitives/Circle.lua")
@@ -12,7 +12,7 @@ local Collision = {
         collision.collision_passes = config.collision_passes or 3
         collision.wall_friction = config.wall_friction or 0.8
         collision.tile_size = config.tile_size or 16 -- Fixed: Default to 16 to match Picotron maps
-        collision.world_bounds = config.world_bounds or { x = 0, y = 0, w = 1024, h = 512 }
+        collision.layer_bounds = config.layer_bounds or { x = 0, y = 0, w = 1024, h = 512 }
 
         -- Tile properties for map collision
         collision.tile_properties = {}
@@ -25,10 +25,11 @@ local Collision = {
         self.tile_properties[tile_id] = properties
     end,
 
-    -- Get tile at world coordinates
-    getTileAt = function(self, x, y, map_id)
+    -- Get tile at layer coordinates
+    getTileIDAt = function(self, x, y, map_id)
         if map_id == nil then
-            return 0
+            -- If no map_id, use default map
+            map_id = 0
         end
 
         local tile_x = flr(x / self.tile_size)
@@ -63,9 +64,9 @@ local Collision = {
         return self.tile_properties[tile_id] or { solid = false, name = "unknown" }
     end,
 
-    -- Check collision between circle and world bounds
-    circleToWorld = function(self, circle)
-        local bounds = self.world_bounds
+    -- Check collision between circle and layer bounds
+    circleToLayer = function(self, circle)
+        local bounds = self.layer_bounds
         local push_x = 0
         local push_y = 0
 
@@ -88,9 +89,9 @@ local Collision = {
         end
     end,
 
-    -- Check collision between rectangle and world bounds
-    rectToWorld = function(self, rect)
-        local bounds = self.world_bounds
+    -- Check collision between rectangle and layer bounds
+    rectToLayer = function(self, rect)
+        local bounds = self.layer_bounds
         local push_x = 0
         local push_y = 0
 
@@ -141,7 +142,7 @@ local Collision = {
 
             for tile_x = left_tile, right_tile do
                 for tile_y = top_tile, bottom_tile do
-                    local tile_id = self:getTileAt(tile_x * self.tile_size, tile_y * self.tile_size, map_id)
+                    local tile_id = self:getTileIDAt(tile_x * self.tile_size, tile_y * self.tile_size, map_id)
                     if self:isSolidTile(tile_id) then
                         add(collided_tiles, { x = tile_x, y = tile_y })
                     end
@@ -198,7 +199,7 @@ local Collision = {
                 for dy = -radius_in_tiles, radius_in_tiles do
                     local tile_x = center_tile_x + dx
                     local tile_y = center_tile_y + dy
-                    local tile_id = self:getTileAt(tile_x * self.tile_size, tile_y * self.tile_size, map_id)
+                    local tile_id = self:getTileIDAt(tile_x * self.tile_size, tile_y * self.tile_size, map_id)
 
                     if self:isSolidTile(tile_id) then
                         -- Calculate distance from circle center to closest point on tile
@@ -259,18 +260,18 @@ local Collision = {
 
             entity.collisions = {}
 
-            -- Check world bounds collision
-            local world_collision = nil
+            -- Check layer bounds collision
+            local layer_collision = nil
             if entity:is_a(Rectangle) then
-                world_collision = self:rectToWorld(entity)
+                layer_collision = self:rectToLayer(entity)
             elseif entity:is_a(Circle) then
-                world_collision = self:circleToWorld(entity)
+                layer_collision = self:circleToLayer(entity)
             end
 
-            if world_collision then
+            if layer_collision then
                 add(entity.collisions, {
-                    object = "world",
-                    vector = world_collision
+                    object = "layer",
+                    vector = layer_collision
                 })
             end
 
@@ -296,14 +297,14 @@ local Collision = {
 
             -- Separate collisions by type for better resolution order
             local map_collisions = {}
-            local world_collisions = {}
+            local layer_collisions = {}
             local entity_collisions = {}
 
             for _, collision in pairs(entity.collisions) do
                 if collision.object == "map" then
                     add(map_collisions, collision)
-                elseif collision.object == "world" then
-                    add(world_collisions, collision)
+                elseif collision.object == "layer" then
+                    add(layer_collisions, collision)
                 else
                     add(entity_collisions, collision)
                 end
@@ -325,8 +326,8 @@ local Collision = {
                 end
             end
 
-            -- Then world collisions
-            for _, collision in pairs(world_collisions) do
+            -- Then layer collisions
+            for _, collision in pairs(layer_collisions) do
                 entity.pos:add(collision.vector)
 
                 if collision.vector.x ~= 0 then
@@ -385,9 +386,9 @@ local Collision = {
         end
     end,
 
-    -- Set world bounds for collision detection
-    setWorldBounds = function(self, x, y, w, h)
-        self.world_bounds = { x = x, y = y, w = w, h = h }
+    -- Set layer bounds for collision detection
+    setLayerBounds = function(self, x, y, w, h)
+        self.layer_bounds = { x = x, y = y, w = w, h = h }
     end,
 
     -- Update collision system (full collision resolution cycle)

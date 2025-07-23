@@ -22,7 +22,7 @@ local Entity = Class:new({
     ignore_friction = false,
     ignore_collisions = false,
     parent = nil,
-    world = nil,
+    layer = nil,
     init = function(self)
         self.init_pos = Vector:new({
             x = self.pos.x,
@@ -31,10 +31,10 @@ local Entity = Class:new({
         self.timer = Timer:new()
         self.percent_expired = 0
         if self.parent then
-            self.world = self.parent.world
+            self.layer = self.parent.layer
         end
-        if self.world then
-            self.world:add(self)
+        if self.layer then
+            self.layer:add(self)
         end
     end,
     update = function(self)
@@ -56,7 +56,7 @@ local Entity = Class:new({
             self:draw_debug()
             local vx = self.vel.x * 0.25
             local vy = self.vel.y * 0.25
-            self.world.gfx:line(self.pos.x, self.pos.y, self.pos.x + vx, self.pos.y + vy, 8)
+            self.layer.gfx:line(self.pos.x, self.pos.y, self.pos.x + vx, self.pos.y + vy, 8)
         end
     end,
     draw_debug = function(self)
@@ -67,9 +67,9 @@ local Entity = Class:new({
             local end_x = self.pos.x + (vector.x * collision_scale)
             local end_y = self.pos.y + (vector.y * collision_scale)
 
-            self.world.gfx:line(self.pos.x, self.pos.y, end_x, end_y, 8)
+            self.layer.gfx:line(self.pos.x, self.pos.y, end_x, end_y, 8)
 
-            self.world.gfx:circfill(end_x, end_y, 2, 8)
+            self.layer.gfx:circfill(end_x, end_y, 2, 8)
         end
         if self.parent then
             self.parent:on_collision(ent, vector)

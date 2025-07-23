@@ -18,7 +18,7 @@ local Water = Graphic:new({
 		if time_elapsed_seconds > 5 then
 			self.animtion_timer:reset()                                    -- Reset timer if it exceeds 5 seconds
 		end
-		self.world.gfx.ProceduralTextures:water(x, y, self.w, self.h, self.seed, time_elapsed_seconds,
+		self.layer.gfx.ProceduralTextures:water(x, y, self.w, self.h, self.seed, time_elapsed_seconds,
 			true)
 		Graphic.draw(self)
 	end

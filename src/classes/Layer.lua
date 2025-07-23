@@ -35,7 +35,7 @@ local Layer = Class:new({
             collision_passes = self.collision_passes,
             wall_friction = self.wall_friction,
             tile_size = self.tile_size,
-            world_bounds = { x = 0, y = 0, w = self.w or 1024, h = self.h or 512 }
+            layer_bounds = { x = 0, y = 0, w = self.w or 1024, h = self.h or 512 }
         })
 
         -- Transfer tile properties to collision system
@@ -84,7 +84,7 @@ local Layer = Class:new({
         end
 
         -- Update collision system IMMEDIATELY after physics
-        self.collision:setWorldBounds(0, 0, self.w, self.h)
+        self.collision:setLayerBounds(0, 0, self.w, self.h)
         self.collision:update(self.entities, self.map_id)
 
         -- Update camera after collision resolution
@@ -107,8 +107,8 @@ local Layer = Class:new({
         -- Draw grid for this layer if DEBUG is enabled
         if DEBUG then
             local grid_size = 16
-            local view_top_left = self.camera:screenToWorld({ x = 0, y = 0 })
-            local view_bottom_right = self.camera:screenToWorld({ x = Screen.w, y = Screen.h })
+            local view_top_left = self.camera:screenToLayer({ x = 0, y = 0 })
+            local view_bottom_right = self.camera:screenToLayer({ x = Screen.w, y = Screen.h })
 
             local start_x = flr(view_top_left.x / grid_size) * grid_size
             local start_y = flr(view_top_left.y / grid_size) * grid_size
@@ -118,15 +118,15 @@ local Layer = Class:new({
 
             -- Vertical lines
             for x = start_x, view_bottom_right.x, grid_size do
-                local start_pos = self.camera:worldToScreen({ x = x, y = view_top_left.y })
-                local end_pos = self.camera:worldToScreen({ x = x, y = view_bottom_right.y })
+                local start_pos = self.camera:layerToScreen({ x = x, y = view_top_left.y })
+                local end_pos = self.camera:layerToScreen({ x = x, y = view_bottom_right.y })
                 line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, grid_color)
             end
 
             -- Horizontal lines
             for y = start_y, view_bottom_right.y, grid_size do
-                local start_pos = self.camera:worldToScreen({ x = view_top_left.x, y = y })
-                local end_pos = self.camera:worldToScreen({ x = view_bottom_right.x, y = y })
+                local start_pos = self.camera:layerToScreen({ x = view_top_left.x, y = y })
+                local end_pos = self.camera:layerToScreen({ x = view_bottom_right.x, y = y })
                 line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, grid_color)
             end
         end
@@ -142,8 +142,8 @@ local Layer = Class:new({
             camera() -- Reset camera
             -- Debug: Render tile IDs on each visible tile
             if DEBUG then
-                local view_top_left = self.camera:screenToWorld({ x = 0, y = 0 })
-                local view_bottom_right = self.camera:screenToWorld({ x = Screen.w, y = Screen.h })
+                local view_top_left = self.camera:screenToLayer({ x = 0, y = 0 })
+                local view_bottom_right = self.camera:screenToLayer({ x = Screen.w, y = Screen.h })
                 local tile_size = self.tile_size
                 local start_tile_x = flr(view_top_left.x / tile_size)
                 local end_tile_x = ceil(view_bottom_right.x / tile_size)
@@ -153,9 +153,9 @@ local Layer = Class:new({
                     for ty = start_tile_y, end_tile_y do
                         local tile_id = mget(tx, ty)
                         if tile_id ~= 0 then
-                            local world_x = tx * tile_size + tile_size / 2
-                            local world_y = ty * tile_size + tile_size / 2
-                            local screen_pos = self.camera:worldToScreen({ x = world_x, y = world_y })
+                            local layer_x = tx * tile_size + tile_size / 2
+                            local layer_y = ty * tile_size + tile_size / 2
+                            local screen_pos = self.camera:layerToScreen({ x = layer_x, y = layer_y })
                             if screen_pos.x >= 0 and screen_pos.x < Screen.w and screen_pos.y >= 0 and screen_pos.y < Screen.h then
                                 print(tile_id, screen_pos.x - 6, screen_pos.y - 4, 7)
                             end
@@ -172,7 +172,7 @@ local Layer = Class:new({
     add = function(self, ent)
         add(self.entities, ent)
         ent.debug = ent.debug or self.debug
-        ent.world = self
+        ent.layer = self
     end,
 
     start = function(self)

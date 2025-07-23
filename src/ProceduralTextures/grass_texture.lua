@@ -8,7 +8,7 @@ ProceduralTextures.grass = function(self, x, y, w, h, seed, wind_strength, use_c
     wind_strength = wind_strength or 0.5
     -- Note: Grass is animated and not suitable for caching
 
-    local screen_pos = self.camera:worldToScreen({ x = x, y = y })
+    local screen_pos = self.camera:layerToScreen({ x = x, y = y })
     local sx, sy = screen_pos.x, screen_pos.y
     local current_time = time()
 

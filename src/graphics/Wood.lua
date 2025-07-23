@@ -18,7 +18,7 @@ local Wood = Graphic:new({
 		local x = self.pos.x - self.w / 2
 		local y = self.pos.y - self.h / 2
 
-		self.world.gfx.ProceduralTextures:wood(x, y, self.w, self.h, self.seed, 1, true)
+		self.layer.gfx.ProceduralTextures:wood(x, y, self.w, self.h, self.seed, 1, true)
 
 		Graphic.draw(self)
 	end

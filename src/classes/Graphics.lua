@@ -12,47 +12,47 @@ Graphics = Class:new({
     end,
 
     line = function(self, x1, y1, x2, y2, color)
-        local screen_pos1 = self.camera:worldToScreen({ x = x1, y = y1 })
-        local screen_pos2 = self.camera:worldToScreen({ x = x2, y = y2 })
+        local screen_pos1 = self.camera:layerToScreen({ x = x1, y = y1 })
+        local screen_pos2 = self.camera:layerToScreen({ x = x2, y = y2 })
         line(screen_pos1.x, screen_pos1.y, screen_pos2.x, screen_pos2.y, color)
     end,
 
     circ = function(self, x, y, r, color)
-        local screen_pos = self.camera:worldToScreen({ x = x, y = y })
+        local screen_pos = self.camera:layerToScreen({ x = x, y = y })
         circ(screen_pos.x, screen_pos.y, r, color)
     end,
 
     circfill = function(self, x, y, r, color)
-        local screen_pos = self.camera:worldToScreen({ x = x, y = y })
+        local screen_pos = self.camera:layerToScreen({ x = x, y = y })
         circfill(screen_pos.x, screen_pos.y, r, color)
     end,
 
     rect = function(self, x1, y1, x2, y2, color)
-        local screen_pos1 = self.camera:worldToScreen({ x = x1, y = y1 })
-        local screen_pos2 = self.camera:worldToScreen({ x = x2, y = y2 })
+        local screen_pos1 = self.camera:layerToScreen({ x = x1, y = y1 })
+        local screen_pos2 = self.camera:layerToScreen({ x = x2, y = y2 })
         rect(screen_pos1.x, screen_pos1.y, screen_pos2.x, screen_pos2.y, color)
     end,
 
     rectfill = function(self, x1, y1, x2, y2, color)
-        local screen_pos1 = self.camera:worldToScreen({ x = x1, y = y1 })
-        local screen_pos2 = self.camera:worldToScreen({ x = x2, y = y2 })
+        local screen_pos1 = self.camera:layerToScreen({ x = x1, y = y1 })
+        local screen_pos2 = self.camera:layerToScreen({ x = x2, y = y2 })
         rectfill(screen_pos1.x, screen_pos1.y, screen_pos2.x, screen_pos2.y, color)
     end,
 
     spr = function(self, sprite_id, x, y, flip_x, flip_y)
-        local screen_pos = self.camera:worldToScreen({ x = x, y = y })
+        local screen_pos = self.camera:layerToScreen({ x = x, y = y })
         spr(sprite_id, screen_pos.x, screen_pos.y, flip_x, flip_y)
     end,
 
     print = function(self, text, x, y, color)
-        local screen_pos = self.camera:worldToScreen({ x = x, y = y })
+        local screen_pos = self.camera:layerToScreen({ x = x, y = y })
         print(text, screen_pos.x, screen_pos.y, color)
     end,
 
     -- Gradient drawing functions
     drawLinearGradient = function(self, x1, y1, x2, y2, color1, color2)
-        local screen_pos1 = self.camera:worldToScreen({ x = x1, y = y1 })
-        local screen_pos2 = self.camera:worldToScreen({ x = x2, y = y2 })
+        local screen_pos1 = self.camera:layerToScreen({ x = x1, y = y1 })
+        local screen_pos2 = self.camera:layerToScreen({ x = x2, y = y2 })
         local sx1, sy1 = screen_pos1.x, screen_pos1.y
         local sx2, sy2 = screen_pos2.x, screen_pos2.y
         local dx = sx2 - sx1
@@ -74,7 +74,7 @@ Graphics = Class:new({
     end,
 
     drawRadialGradient = function(self, cx, cy, inner_radius, outer_radius, inner_color, outer_color)
-        local screen_pos = self.camera:worldToScreen({ x = cx, y = cy })
+        local screen_pos = self.camera:layerToScreen({ x = cx, y = cy })
         local scx, scy = screen_pos.x, screen_pos.y
         for x = scx - outer_radius, scx + outer_radius do
             for y = scy - outer_radius, scy + outer_radius do
@@ -94,7 +94,7 @@ Graphics = Class:new({
     end,
 
     drawHorizontalGradient = function(self, x, y, w, h, left_color, right_color)
-        local screen_pos = self.camera:worldToScreen({ x = x, y = y })
+        local screen_pos = self.camera:layerToScreen({ x = x, y = y })
         local sx, sy = screen_pos.x, screen_pos.y
         for i = 0, w - 1 do
             local t = i / (w - 1)
@@ -104,7 +104,7 @@ Graphics = Class:new({
     end,
 
     drawVerticalGradient = function(self, x, y, w, h, top_color, bottom_color)
-        local screen_pos = self.camera:worldToScreen({ x = x, y = y })
+        local screen_pos = self.camera:layerToScreen({ x = x, y = y })
         local sx, sy = screen_pos.x, screen_pos.y
         for i = 0, h - 1 do
             local t = i / (h - 1)
@@ -122,7 +122,7 @@ Graphics = Class:new({
         pattern = pattern or 0xAA55 -- Default checkerboard pattern
         fillp(pattern)
 
-        local screen_pos = self.camera:worldToScreen({ x = x, y = y })
+        local screen_pos = self.camera:layerToScreen({ x = x, y = y })
         local sx, sy = screen_pos.x, screen_pos.y
         rectfill(sx, sy, sx + w - 1, sy + h - 1, color1)
 
@@ -137,7 +137,7 @@ Graphics = Class:new({
     drawPaletteGradient = function(self, x, y, w, h, start_pal, end_pal, steps)
         -- Use pal() to create smooth color transitions
         steps = steps or 16
-        local screen_pos = self.camera:worldToScreen({ x = x, y = y })
+        local screen_pos = self.camera:layerToScreen({ x = x, y = y })
         local sx, sy = screen_pos.x, screen_pos.y
 
         -- Save current palette
@@ -174,7 +174,7 @@ Graphics = Class:new({
         speed = speed or 1
         local time_offset = flr(time() * speed * 100) % #colors
 
-        local screen_pos = self.camera:worldToScreen({ x = x, y = y })
+        local screen_pos = self.camera:layerToScreen({ x = x, y = y })
         local sx, sy = screen_pos.x, screen_pos.y
 
         for i = 0, h - 1 do
@@ -188,7 +188,7 @@ Graphics = Class:new({
         frequency = frequency or 0.1
         amplitude = amplitude or 0.5
 
-        local screen_pos = self.camera:worldToScreen({ x = x, y = y })
+        local screen_pos = self.camera:layerToScreen({ x = x, y = y })
         local sx, sy = screen_pos.x, screen_pos.y
 
         for i = 0, w - 1 do

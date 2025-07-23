@@ -19,37 +19,37 @@ local Ray = Entity:new({
         self.timer = Timer:new()
         self.cached_result = { nil, self.length }
         if self.parent then
-            self.world = self.parent.world
+            self.layer = self.parent.layer
         end
-        if self.world then
-            self.world:add(self)
+        if self.layer then
+            self.layer:add(self)
         end
     end,
-    rayToWorld = function(self, world_obj)
+    rayToLayer = function(self, layer_obj)
         local t_x_min, t_x_max
         local t_y_min, t_y_max
 
         if self.vec.x == 0 then
-            if self.pos.x < world_obj.x or self.pos.x > world_obj.x + world_obj.w then
+            if self.pos.x < layer_obj.x or self.pos.x > layer_obj.x + layer_obj.w then
                 return false
             end
             t_x_min = -32767
             t_x_max = 32767
         else
-            t_x_min = (world_obj.x - self.pos.x) / self.vec.x
-            t_x_max = (world_obj.x + world_obj.w - self.pos.x) / self.vec.x
+            t_x_min = (layer_obj.x - self.pos.x) / self.vec.x
+            t_x_max = (layer_obj.x + layer_obj.w - self.pos.x) / self.vec.x
             if t_x_min > t_x_max then t_x_min, t_x_max = t_x_max, t_x_min end
         end
 
         if self.vec.y == 0 then
-            if self.pos.y < world_obj.y or self.pos.y > world_obj.y + world_obj.h then
+            if self.pos.y < layer_obj.y or self.pos.y > layer_obj.y + layer_obj.h then
                 return false
             end
             t_y_min = -32767
             t_y_max = 32767
         else
-            t_y_min = (world_obj.y - self.pos.y) / self.vec.y
-            t_y_max = (world_obj.y + world_obj.h - self.pos.y) / self.vec.y
+            t_y_min = (layer_obj.y - self.pos.y) / self.vec.y
+            t_y_max = (layer_obj.y + layer_obj.h - self.pos.y) / self.vec.y
             if t_y_min > t_y_max then t_y_min, t_y_max = t_y_max, t_y_min end
         end
 
@@ -135,12 +135,12 @@ local Ray = Entity:new({
 
     -- Ray to tile collision using DDA (Digital Differential Analyzer) algorithm
     rayToTiles = function(self, map_id, tile_size)
-        if not map_id or not self.world or not self.world.collision then
+        if not map_id or not self.layer or not self.layer.collision then
             return false
         end
 
         tile_size = tile_size or 16
-        local collision_system = self.world.collision
+        local collision_system = self.layer.collision
 
         -- Starting position
         local start_x = self.pos.x
@@ -245,16 +245,16 @@ local Ray = Entity:new({
             local closest_hit_obj = nil
             local min_t = self.length
 
-            -- Check world bounds collision
-            local world_t = self:rayToWorld({ x = 0, y = 0, w = self.world.w, h = self.world.h })
-            if world_t ~= false and world_t >= 0 and world_t < min_t then
-                min_t = world_t
-                closest_hit_obj = "world"
+            -- Check layer bounds collision
+            local layer_t = self:rayToLayer({ x = 0, y = 0, w = self.layer.w, h = self.layer.h })
+            if layer_t ~= false and layer_t >= 0 and layer_t < min_t then
+                min_t = layer_t
+                closest_hit_obj = "layer"
             end
 
             -- Check tile collision
-            if self.world.map_id then
-                local tile_t = self:rayToTiles(self.world.map_id, self.world.tile_size or 16)
+            if self.layer.map_id then
+                local tile_t = self:rayToTiles(self.layer.map_id, self.layer.tile_size or 16)
                 if tile_t ~= false and tile_t >= 0 and tile_t < min_t then
                     min_t = tile_t
                     closest_hit_obj = "tile"
@@ -262,7 +262,7 @@ local Ray = Entity:new({
             end
 
             -- Check entity collision
-            for _, obj in pairs(self.world.entities) do
+            for _, obj in pairs(self.layer.entities) do
                 local t = false
                 if obj:is_a(Circle) then
                     t = self:rayToCircle(obj)
@@ -288,10 +288,10 @@ local Ray = Entity:new({
         return self.cached_result[1], self.cached_result[2]
     end,
     draw_debug = function(self)
-        local world_end_x = self.pos.x + self.vec.x * self.line_dist
-        local world_end_y = self.pos.y + self.vec.y * self.line_dist
+        local layer_end_x = self.pos.x + self.vec.x * self.line_dist
+        local layer_end_y = self.pos.y + self.vec.y * self.line_dist
 
-        self.world.gfx:line(self.pos.x, self.pos.y, world_end_x, world_end_y, 8)
+        self.layer.gfx:line(self.pos.x, self.pos.y, layer_end_x, layer_end_y, 8)
     end
 })
 

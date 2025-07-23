@@ -204,14 +204,14 @@ local Engine = {
 			self.master_camera:update()
 		end
 
-		for layer_id, world in pairs(self.layers) do
-			if world.camera ~= self.master_camera and world.camera.parallax_factor then
-				world.camera:linkToCamera(self.master_camera,
-					world.camera.parallax_factor.x,
-					world.camera.parallax_factor.y)
+		for layer_id, layer in pairs(self.layers) do
+			if layer.camera ~= self.master_camera and layer.camera.parallax_factor then
+				layer.camera:linkToCamera(self.master_camera,
+					layer.camera.parallax_factor.x,
+					layer.camera.parallax_factor.y)
 			end
 
-			world:update()
+			layer:update()
 		end
 	end,
 
@@ -219,7 +219,7 @@ local Engine = {
 		cls()
 
 		if self.master_camera then
-			local cam_screen = self.master_camera:worldToScreen({ x = 0, y = 0 })
+			local cam_screen = self.master_camera:layerToScreen({ x = 0, y = 0 })
 
 			if self.fill_color > -1 then
 				rectfill(cam_screen.x, cam_screen.y,
@@ -264,14 +264,14 @@ local Engine = {
 
 	start = function(self)
 		last_time = time()
-		for _, world in pairs(self.layers) do
-			world:start()
+		for _, layer in pairs(self.layers) do
+			layer:start()
 		end
 	end,
 
 	stop = function(self)
-		for _, world in pairs(self.layers) do
-			world:stop()
+		for _, layer in pairs(self.layers) do
+			layer:stop()
 		end
 	end,
 
@@ -282,7 +282,7 @@ local Engine = {
 		local state = {
 			layers = {},
 			master_camera = nil,
-			world_size = { w = self.w, h = self.h }
+			layer_size = { w = self.w, h = self.h }
 		}
 
 		-- Get layer info

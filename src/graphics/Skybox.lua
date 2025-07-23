@@ -4,14 +4,14 @@ local Timer = include("src/classes/timer.lua")
 local Skybox = Graphic:new({
 	_type = "Skybox",
 	cycle_duration = 60000, -- 60 seconds for full day/night cycle (in milliseconds)
-	world = nil,
+	layer = nil,
 	init = function(self)
 		Graphic.init(self)
-		if self.world then
-			self.w = self.world.w
-			self.h = self.world.h
-			self.pos.x = self.world.w / 2
-			self.pos.y = self.world.h / 2
+		if self.layer then
+			self.w = self.layer.w
+			self.h = self.layer.h
+			self.pos.x = self.layer.w / 2
+			self.pos.y = self.layer.h / 2
 		end
 		self.cycle_timer = Timer:new()
 	end,
@@ -89,8 +89,8 @@ local Skybox = Graphic:new({
 		local top_color, bottom_color = self:get_sky_colors()
 
 		-- Draw gradient from top to bottom
-		for y = 0, self.world.h - 1 do
-			local gradient_factor = y / self.world.h
+		for y = 0, self.layer.h - 1 do
+			local gradient_factor = y / self.layer.h
 			local current_color = top_color
 
 			-- Simple color interpolation - you might want to make this more sophisticated
@@ -99,7 +99,7 @@ local Skybox = Graphic:new({
 			end
 
 			-- Draw a horizontal line for this row
-			self.world.gfx:line(0, y, self.world.w - 1, y, current_color)
+			self.layer.gfx:line(0, y, self.layer.w - 1, y, current_color)
 		end
 
 		Graphic.draw(self)

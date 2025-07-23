@@ -12,8 +12,8 @@ local CoCo = Circle:new({
 		Circle.init(self)
 		self.graphics = Sprite:new({
 			parent = self,
-			sprite = 8,
-			end_sprite = 9,
+			sprite = 120,
+			end_sprite = 121,
 			speed = 1,
 		})
 		self.sleepEmitter = ParticleEmitter:new({

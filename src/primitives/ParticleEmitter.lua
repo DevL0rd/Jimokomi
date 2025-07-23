@@ -26,7 +26,7 @@ local ParticleEmitter = Rectangle:new({
         if self.state and self.spawn_timer:hasElapsed(self.waiting_time) then
             self.waiting_time = self.rate + random_int(-self.rate_variation, self.rate_variation)
             local p = self.Particle:new({
-                world = self.world,
+                layer = self.layer,
                 lifetime = self.particle_lifetime +
                     random_int(-self.particle_lifetime_variation, self.particle_lifetime_variation),
                 pos = Vector:new({
@@ -46,11 +46,11 @@ local ParticleEmitter = Rectangle:new({
     draw_debug = function(self)
         local x = self.pos.x - self.w / 2
         local y = self.pos.y - self.h / 2
-        self.world.gfx:rect(x, y, x + self.w - 1, y + self.h - 1, 16)
+        self.layer.gfx:rect(x, y, x + self.w - 1, y + self.h - 1, 16)
         -- Draw the vec
         local vec_end_x = self.pos.x + self.vec.x * 0.25
         local vec_end_y = self.pos.y + self.vec.y * 0.25
-        self.world.gfx:line(self.pos.x, self.pos.y, vec_end_x, vec_end_y, 16)
+        self.layer.gfx:line(self.pos.x, self.pos.y, vec_end_x, vec_end_y, 16)
     end,
     toggle = function(self)
         self.state = not self.state

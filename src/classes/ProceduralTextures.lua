@@ -92,7 +92,7 @@ local ProceduralTextures = Class:new({
         seed = seed or self.noise.current_seed
         use_cache = use_cache or false
 
-        local screen_pos = self.camera:worldToScreen({ x = x, y = y })
+        local screen_pos = self.camera:layerToScreen({ x = x, y = y })
         local sx, sy = screen_pos.x, screen_pos.y
 
         -- Check cache if enabled
