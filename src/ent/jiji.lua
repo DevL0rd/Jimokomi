@@ -6,7 +6,7 @@ local Ray = include("src/primitives/Ray.lua")
 local Timer = include("src/classes/Timer.lua")
 local ParticleEmitter = include("src/primitives/ParticleEmitter.lua")
 
-player_speed = 120
+player_accel = 160
 jump_speed = 120
 directions = {
 	up = 0,
@@ -110,12 +110,17 @@ local JIJI = Circle:new({
 	update = function(self)
 		local current_tile = self.layer.collision:getTileIDAt(self.pos.x, self.pos.y, 0)
 		print_debug("Current tile: " .. current_tile)
-		if current_tile ~= 0 and current_tile ~= 15 and self.state ~= States.Gliding then
+		if current_tile ~= 0 and current_tile ~= 15 and (btn(2) or btn(3)) then
 			self.state = States.Climbing
-		else
+		end
+		if self.state == States.Climbing and not (current_tile ~= 0 and current_tile ~= 15) then
+			self.state = States.Gliding
+			self.vel:drag(0.5) -- Apply some drag when leaving climbing state
+		end
+		if self.state ~= States.Climbing then
 			if self:is_close_to_ground() then
 				self.state = States.Running
-			else
+			elseif self.state then
 				self.state = States.Gliding
 			end
 		end
@@ -149,21 +154,21 @@ local JIJI = Circle:new({
 			self.vel.y = 0
 			self.vel.x = 0
 			if btn(0) then
-				self.vel.x = -player_speed
+				self.vel.x = -player_accel
 			elseif btn(1) then
-				self.vel.x = player_speed
+				self.vel.x = player_accel
 			end
 			if btn(2) then
-				self.vel.y = -player_speed
+				self.vel.y = -player_accel
 			elseif btn(3) then
-				self.vel.y = player_speed
+				self.vel.y = player_accel
 			end
 		elseif self.state == States.Running then
 			if is_moving then
 				if self.direction == directions.left then
-					self.vel.x = -player_speed
+					self.vel.x -= player_accel * _dt
 				elseif self.direction == directions.right then
-					self.vel.x = player_speed
+					self.vel.x += player_accel * _dt
 				end
 				if self:isOnGround() then
 					self.vel.y -= 8
@@ -174,11 +179,15 @@ local JIJI = Circle:new({
 			end
 		elseif self.state == States.Gliding then
 			self.did_ground_pound = false
-			self.vel.y -= 1
+			self.vel.y -= 2
+			if self.direction == directions.left then
+				self.vel.x -= player_accel * _dt
+			elseif self.direction == directions.right then
+				self.vel.x += player_accel * _dt
+			end
 		end
 
 
-		print_debug("state_has_changed: " .. tostring(state_has_changed))
 		if state_has_changed then
 			self.graphics:destroy()
 			if self.state == States.Running then

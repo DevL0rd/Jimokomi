@@ -1,5 +1,5 @@
 --[[pod_format="raw",created="2025-07-21 21:49:41",modified="2025-07-22 08:16:46",revision=4]]
-DEBUG = true
+DEBUG = false
 include("src/polyfills.lua")
 local Engine = include("src/classes/Engine.lua")
 local JIJI = include("src/ent/JIJI.lua")
