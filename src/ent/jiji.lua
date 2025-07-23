@@ -6,7 +6,8 @@ local Ray = include("src/primitives/Ray.lua")
 local Timer = include("src/classes/Timer.lua")
 local ParticleEmitter = include("src/primitives/ParticleEmitter.lua")
 
-player_accel = 160
+player_accel = 180
+climb_speed = 120
 jump_speed = 120
 directions = {
 	up = 0,
@@ -115,7 +116,6 @@ local JIJI = Circle:new({
 		end
 		if self.state == States.Climbing and not (current_tile ~= 0 and current_tile ~= 15) then
 			self.state = States.Gliding
-			self.vel:drag(0.5) -- Apply some drag when leaving climbing state
 		end
 		if self.state ~= States.Climbing then
 			if self:is_close_to_ground() then
@@ -154,14 +154,14 @@ local JIJI = Circle:new({
 			self.vel.y = 0
 			self.vel.x = 0
 			if btn(0) then
-				self.vel.x = -player_accel
+				self.vel.x = -climb_speed
 			elseif btn(1) then
-				self.vel.x = player_accel
+				self.vel.x = climb_speed
 			end
 			if btn(2) then
-				self.vel.y = -player_accel
+				self.vel.y = -climb_speed
 			elseif btn(3) then
-				self.vel.y = player_accel
+				self.vel.y = climb_speed
 			end
 		elseif self.state == States.Running then
 			if is_moving then
@@ -200,7 +200,7 @@ local JIJI = Circle:new({
 						parent = self,
 						sprite = 65,
 						end_sprite = 69,
-						speed = 6,
+						speed = 16,
 						flip_x = self.direction == directions.right
 					})
 				else
@@ -225,14 +225,14 @@ local JIJI = Circle:new({
 							parent = self,
 							sprite = 73,
 							end_sprite = 74,
-							speed = 6
+							speed = 12
 						})
 					elseif self.direction == directions.down then
 						self.graphics = Sprite:new({
 							parent = self,
 							sprite = 73,
 							end_sprite = 74,
-							speed = 6,
+							speed = 12,
 							flip_y = true,
 						})
 					elseif self.direction == directions.left then
@@ -240,14 +240,14 @@ local JIJI = Circle:new({
 							parent = self,
 							sprite = 81,
 							end_sprite = 82,
-							speed = 6
+							speed = 12
 						})
 					elseif self.direction == directions.right then
 						self.graphics = Sprite:new({
 							parent = self,
 							sprite = 81,
 							end_sprite = 82,
-							speed = 6,
+							speed = 12,
 							flip_x = true
 						})
 					end
