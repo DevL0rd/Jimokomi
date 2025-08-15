@@ -60,6 +60,14 @@ local Sprite = Graphic:new({
         self._timer = 0
         self._current_frame_idx = 0
         self.is_done = false
-    end
+    end,
+    stop = function(self)
+        self._timer = 0
+        self._current_frame_idx = 0
+        self.is_done = true
+    end,
+    start = function(self)
+        self.is_done = false
+    end,
 })
 return Sprite
