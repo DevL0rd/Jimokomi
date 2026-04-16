@@ -1,6 +1,6 @@
 --[[pod_format="raw",created="2025-07-22 15:55:50",modified="2025-07-22 15:55:50",revision=0]]
 local Particle = include("src/primitives/Particle.lua")
-local Vector = include("src/classes/vector.lua")
+local Vector = include("src/classes/Vector.lua")
 
 local zzz = Particle:new({
     _type = "Particle",

@@ -1,4 +1,4 @@
-local Class = include("src/classes/class.lua")
+local Class = include("src/classes/Class.lua")
 
 local Vector = Class:new({
     _type = "Vector",

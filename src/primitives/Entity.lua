@@ -1,5 +1,5 @@
 --[[pod_format="raw",created="2025-07-23 05:38:50",modified="2025-07-23 05:40:25",revision=1]]
-local Class = include("src/classes/class.lua")
+local Class = include("src/classes/Class.lua")
 local Vector = include("src/classes/Vector.lua")
 local Timer = include("src/classes/Timer.lua")
 

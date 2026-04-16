@@ -1837,9 +1837,8 @@ b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA4OjUxOjA4Iixtb2RpZmllZD0iMjAyNS0w
 Ny0yMyAxMjozMjo1MyJdXQ==
 :: main.lua
 --[[pod_format="raw",created="2025-07-18 07:37:32",modified="2025-07-23 05:26:45",revision=204]]
-cd("/Jimokomi")
+cd("/desktop/Jimokomi")
 include("main.lua")
-include("error_exporer.lua")
 :: .info.pod
 b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE4IDA4OjUxOjA1Iixtb2RpZmllZD0iMjAyNS0w
 Ny0yMyAxMjozMjo1MyIscnVudGltZT0xOSx3b3Jrc3BhY2VzPXt7bG9jYXRpb249Im1haW4ubHVh

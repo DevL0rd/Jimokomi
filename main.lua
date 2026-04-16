@@ -2,7 +2,7 @@
 DEBUG = false
 include("src/polyfills.lua")
 local Engine = include("src/classes/Engine.lua")
-local JIJI = include("src/ent/JIJI.lua")
+local JIJI = include("src/ent/jiji.lua")
 local CoCo = include("src/ent/CoCo.lua")
 local Vector = include("src/classes/Vector.lua")
 

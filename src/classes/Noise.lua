@@ -1,4 +1,4 @@
-local Class = include("src/classes/class.lua")
+local Class = include("src/classes/Class.lua")
 
 local Noise = Class:new({
     _type = "Noise",

@@ -1,5 +1,5 @@
-local Graphic = include("src/primitives/graphic.lua")
-local Timer = include("src/classes/timer.lua")
+local Graphic = include("src/primitives/Graphic.lua")
+local Timer = include("src/classes/Timer.lua")
 
 local Wood = Graphic:new({
 	_type = "Wood",

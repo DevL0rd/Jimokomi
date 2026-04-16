@@ -1,5 +1,5 @@
-local Graphic = include("src/classes/Graphic.lua")
-local Timer = include("src/classes/timer.lua")
+local Graphic = include("src/primitives/Graphic.lua")
+local Timer = include("src/classes/Timer.lua")
 
 local Fire = Graphic:new({
 	_type = "Fire",

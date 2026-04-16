@@ -1,4 +1,4 @@
-local Graphic = include("src/primitives/graphic.lua")
+local Graphic = include("src/primitives/Graphic.lua")
 local Vector = include("src/classes/Vector.lua")
 
 local Sprite = Graphic:new({
