@@ -51,6 +51,7 @@ local Layer = Class:new({
             tile_size = self.tile_size,
             layer_bounds = { x = 0, y = 0, w = self.w or 1024, h = self.h or 512 },
             tile_registry = self.tile_registry,
+            profiler = self.engine and self.engine.profiler or nil,
         })
 
         self.camera = Camera:new({
@@ -92,6 +93,13 @@ local Layer = Class:new({
     emit = function(self, name, payload)
         return self.events:emit(name, payload, true)
     end,
+    emitIfListening = function(self, name, payload_builder)
+        if not self.events or not self.events.hasListeners or not self.events:hasListeners(name, true) then
+            return nil
+        end
+        local payload = payload_builder and payload_builder() or nil
+        return self.events:emit(name, payload, true)
+    end,
 
     update = function(self)
         if not self.running then
@@ -114,6 +122,9 @@ local Layer = Class:new({
     end,
     refreshAttachmentBucket = function(self, ent)
         return LayerBuckets.refreshAttachment(self, ent)
+    end,
+    refreshEntityBuckets = function(self, ent)
+        return LayerBuckets.refreshEntity(self, ent)
     end,
     add = function(self, ent)
         return LayerObjects.add(self, ent)

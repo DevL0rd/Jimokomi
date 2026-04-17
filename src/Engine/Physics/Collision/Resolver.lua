@@ -8,6 +8,7 @@ CollisionResolver.new = function(config)
 end
 
 CollisionResolver.processCollisions = function(self, entities)
+	local profiler = self.profiler
 	for index = 1, #entities do
 		local entity = entities[index]
 		if entity.ignore_physics or entity.ignore_collisions or not entity.collisions then
@@ -25,6 +26,9 @@ CollisionResolver.processCollisions = function(self, entities)
 					(pass == 2 and object == "layer") or
 					(pass == 3 and object ~= "map" and object ~= "layer") then
 					entity.pos:add(collision.vector)
+					if profiler then
+						profiler:addCounter("collision.resolver.contacts_processed", 1)
+					end
 
 					if collision.vector.x ~= 0 then
 						has_x_collision = true

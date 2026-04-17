@@ -1,4 +1,6 @@
 local Mode = include("src/Game/Actors/Locomotion/Mode.lua")
+local Pathing = include("src/Game/Actors/Locomotion/Pathing.lua")
+local GroundPath = include("src/Game/Actors/Locomotion/Pathing/Ground.lua")
 
 local GroundPatrol = Mode:new({
 	_type = "GroundPatrol",
@@ -7,7 +9,21 @@ local GroundPatrol = Mode:new({
 	direction = -1,
 	front_probe_padding = 2,
 	ground_probe_padding = 4,
+	patrol_distance = 32,
 	randomize_on_spawn = true,
+	patrol_target = nil,
+	use_pathing_when_stuck = false,
+
+	init = function(self)
+		self.pathing = Pathing:new({
+			owner = self.owner,
+			policy = GroundPath,
+			repath_distance = 10,
+			repath_rate_hz = 2,
+			repath_fail_rate_hz = 1,
+		})
+		self.patrol_target = self.patrol_target or nil
+	end,
 
 	getOwnerRadius = function(self)
 		if not self.owner then
@@ -65,6 +81,22 @@ local GroundPatrol = Mode:new({
 		end
 		self.owner.vel.x = 0
 		self.owner.vel.y = 0
+		self.patrol_target = nil
+		self.pathing:invalidate()
+	end,
+
+	choosePatrolTarget = function(self)
+		local owner = self.owner
+		local world = self:getWorld()
+		if not owner or not world then
+			return nil
+		end
+		self.patrol_target = {
+			x = owner.pos.x + self.direction * self.patrol_distance,
+			y = owner.pos.y,
+		}
+		self.pathing:rebuild(self.patrol_target)
+		return self.patrol_target
 	end,
 
 	updateAutonomous = function(self)
@@ -75,6 +107,29 @@ local GroundPatrol = Mode:new({
 		if self:isOnGround() then
 			if self:isBlockedAhead() or not self:hasGroundAhead() then
 				self:reverseDirection()
+				self.patrol_target = nil
+				self.pathing:invalidate()
+			end
+
+			if self.use_pathing_when_stuck then
+				local target = self.patrol_target
+				if not target then
+					target = self:choosePatrolTarget()
+				end
+				local waypoint = target and self.pathing:getWaypoint(target, 10) or nil
+				if waypoint then
+					local dx = waypoint.x - self.owner.pos.x
+					if abs(dx) <= 8 then
+						target = self:choosePatrolTarget()
+						waypoint = target and self.pathing:getWaypoint(target, 10) or nil
+						dx = waypoint and (waypoint.x - self.owner.pos.x) or dx
+					end
+					if dx < 0 then
+						self:setDirection(-1)
+					elseif dx > 0 then
+						self:setDirection(1)
+					end
+				end
 			end
 
 			self.owner.vel.x += self.direction * self.move_accel * _dt

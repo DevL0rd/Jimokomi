@@ -2,6 +2,12 @@ local Vector = include("src/Engine/Math/Vector.lua")
 
 local WorldObjectCollider = {}
 
+local function refresh_entity_buckets(self)
+	if self.layer and self.layer.refreshEntityBuckets then
+		self.layer:refreshEntityBuckets(self)
+	end
+end
+
 WorldObjectCollider.getCollider = function(self)
 	return self.collider
 end
@@ -12,6 +18,7 @@ WorldObjectCollider.setShape = function(self, shape)
 	else
 		self.shape = shape
 	end
+	refresh_entity_buckets(self)
 end
 
 WorldObjectCollider.setCircleShape = function(self, radius)
@@ -78,6 +85,7 @@ WorldObjectCollider.setCollisionLayer = function(self, layer_name)
 	else
 		self.collision_layer = layer_name or "default"
 	end
+	refresh_entity_buckets(self)
 end
 
 WorldObjectCollider.allowsCollisionLayer = function(self, layer_name)
@@ -90,6 +98,7 @@ WorldObjectCollider.setCollisionMask = function(self, mask)
 	else
 		self.collision_mask = mask
 	end
+	refresh_entity_buckets(self)
 end
 
 WorldObjectCollider.isTrigger = function(self)

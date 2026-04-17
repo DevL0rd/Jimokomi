@@ -3,7 +3,7 @@ local Vector = include("src/Engine/Math/Vector.lua")
 local Ecology = include("src/Game/Ecology/Ecology.lua")
 local WorldObject = include("src/Engine/Objects/WorldObject.lua")
 local Creature = include("src/Game/Mixins/Creature.lua")
-local ParticleEmitter = include("src/Engine/Objects/ParticleEmitter.lua")
+local EmitterNode = include("src/Engine/Nodes/EmitterNode.lua")
 local zzz = include("src/Game/Effects/Particles/zzz.lua")
 
 local CoCo = WorldObject:new({
@@ -18,6 +18,11 @@ local CoCo = WorldObject:new({
 	faction = Ecology.Factions.Wildlife,
 	diet = Ecology.Diets.Herbivore,
 	temperament = Ecology.Temperaments.Passive,
+	vision_range = 64,
+	hearing_range = 80,
+	sound_idle_radius = 22,
+	sound_move_radius = 0,
+	sound_land_radius = 0,
 	visual_definitions = {
 		sleep = {
 			shape = { kind = "rect", w = 16, h = 16 },
@@ -31,7 +36,7 @@ local CoCo = WorldObject:new({
 		Creature.init(self)
 		local radius = self:getRadius()
 		self:playVisual("sleep")
-		self.sleepEmitter = ParticleEmitter:new({
+		self.sleepEmitter = EmitterNode:new({
 			parent = self,
 			parent_slot = "sleep",
 			rate = 2000,

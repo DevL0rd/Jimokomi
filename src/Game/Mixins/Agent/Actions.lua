@@ -23,14 +23,17 @@ AgentActions.restartAction = function(self, data)
 end
 
 AgentActions.selectAction = function(self)
-	local player = self:getPlayer()
-	if player and self.flee_radius and self:shouldFleeTarget(player, self.flee_radius) then
-		return Ecology.Actions.Flee, { target = player }
+	local flee_target = self:getPerceivedTargetForAction(Ecology.Actions.Flee)
+	if flee_target and self.flee_radius and self:shouldFleeTarget(flee_target, self.flee_radius) then
+		return Ecology.Actions.Flee, { target = flee_target }
 	end
 	return self.default_action, {}
 end
 
 AgentActions.updateActionPlan = function(self)
+	if self.action_plan_timer and not self.action_plan_timer:hasElapsed(self.action_plan_interval_ms or 250) then
+		return
+	end
 	local action, data = self:selectAction()
 	action = action or self.default_action or Ecology.Actions.Idle
 	self:setAction(action, data)

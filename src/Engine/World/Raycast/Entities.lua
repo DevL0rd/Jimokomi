@@ -24,8 +24,11 @@ RaycastEntities.rayToEntity = function(self, ray, obj)
 end
 
 RaycastEntities.cast = function(self, ray)
+	local profiler = self.layer and self.layer.engine and self.layer.engine.profiler or nil
+	local scope = profiler and profiler:start("world.raycast.cast") or nil
 	local closest_hit_obj = nil
 	local min_t = ray.length
+	local candidates_considered = 0
 
 	local layer_t = self:rayToLayer(ray, { x = 0, y = 0, w = self.layer.w, h = self.layer.h })
 	if layer_t ~= false and layer_t >= 0 and layer_t < min_t then
@@ -41,7 +44,10 @@ RaycastEntities.cast = function(self, ray)
 		end
 	end
 
-	for _, obj in pairs(self.layer.entities) do
+	local targets = self.layer.collidable_entities or self.layer.entities
+	for i = 1, #targets do
+		local obj = targets[i]
+		candidates_considered += 1
 		if not self:canRayHitEntity(ray, obj) then
 			goto continue
 		end
@@ -54,11 +60,17 @@ RaycastEntities.cast = function(self, ray)
 
 		::continue::
 	end
+	if profiler then
+		profiler:observe("world.raycast.candidates", candidates_considered)
+		profiler:observe("world.raycast.target_pool", #targets)
+	end
 
 	if closest_hit_obj ~= nil then
+		if profiler then profiler:stop(scope) end
 		return closest_hit_obj, min_t
 	end
 
+	if profiler then profiler:stop(scope) end
 	return nil, ray.length
 end
 

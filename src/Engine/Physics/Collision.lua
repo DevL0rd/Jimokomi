@@ -13,6 +13,7 @@ local Collision = Class:new({
 	tile_size = 16,
 	layer_bounds = nil,
 	tile_registry = nil,
+	profiler = nil,
 	tile_queries = nil,
 	shape_tests = nil,
 	broadphase = nil,
@@ -28,17 +29,25 @@ local Collision = Class:new({
 			tile_size = self.tile_size,
 			layer_bounds = self.layer_bounds or { x = 0, y = 0, w = 1024, h = 512 },
 			tile_registry = self.tile_registry,
+			profiler = self.profiler,
 		})
 
 		self.shape_tests = CollisionShapeTests
 		self.broadphase = CollisionBroadphase.new({
 			shape_tests = self.shape_tests,
+			profiler = self.profiler,
 		})
 		self.resolver = CollisionResolver.new({
 			collision_passes = self.collision_passes,
 			wall_friction = self.wall_friction,
+			profiler = self.profiler,
 		})
-		self.events = CollisionEvents
+		self.events = {
+			handleCollisionEvents = function(_, entities)
+				return CollisionEvents.handleCollisionEvents(self.events, entities)
+			end,
+			profiler = self.profiler,
+		}
 
 		self.tile_registry:applyToCollision(self)
 	end,
@@ -80,6 +89,10 @@ local Collision = Class:new({
 	end,
 
 	update = function(self, entities, map_id)
+		local profiler = self.profiler
+		if profiler then
+			profiler:observe("collision.entities", #entities)
+		end
 		self:resolveCollisions(entities, map_id)
 		self:handleCollisionEvents(entities)
 	end,

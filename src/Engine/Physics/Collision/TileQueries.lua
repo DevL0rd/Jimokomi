@@ -104,6 +104,7 @@ CollisionTileQueries.checkMapCollision = function(self, entity, map_id)
 
 	local push_x = 0
 	local push_y = 0
+	local profiler = self.profiler
 
 	if entity.isRectShape and entity:isRectShape() then
 		local left = entity.pos.x - entity:getHalfWidth()
@@ -117,6 +118,9 @@ CollisionTileQueries.checkMapCollision = function(self, entity, map_id)
 
 		for tile_x = left_tile, right_tile do
 			for tile_y = top_tile, bottom_tile do
+				if profiler then
+					profiler:addCounter("collision.tiles.rect_checks", 1)
+				end
 				local tile_id = self:getTileIDAt(tile_x * self.tile_size, tile_y * self.tile_size, map_id)
 				if self:isSolidTile(tile_id) then
 					local tile_left = tile_x * self.tile_size
@@ -146,15 +150,17 @@ CollisionTileQueries.checkMapCollision = function(self, entity, map_id)
 			end
 		end
 	elseif entity.isCircleShape and entity:isCircleShape() then
-		local center_tile_x = flr(entity.pos.x / self.tile_size)
-		local center_tile_y = flr(entity.pos.y / self.tile_size)
 		local radius = entity:getRadius()
-		local radius_in_tiles = ceil(radius / self.tile_size)
+		local left_tile = flr((entity.pos.x - radius) / self.tile_size)
+		local right_tile = flr((entity.pos.x + radius) / self.tile_size)
+		local top_tile = flr((entity.pos.y - radius) / self.tile_size)
+		local bottom_tile = flr((entity.pos.y + radius) / self.tile_size)
 
-		for dx = -radius_in_tiles, radius_in_tiles do
-			for dy = -radius_in_tiles, radius_in_tiles do
-				local tile_x = center_tile_x + dx
-				local tile_y = center_tile_y + dy
+		for tile_x = left_tile, right_tile do
+			for tile_y = top_tile, bottom_tile do
+				if profiler then
+					profiler:addCounter("collision.tiles.circle_checks", 1)
+				end
 				local tile_id = self:getTileIDAt(tile_x * self.tile_size, tile_y * self.tile_size, map_id)
 
 				if self:isSolidTile(tile_id) then

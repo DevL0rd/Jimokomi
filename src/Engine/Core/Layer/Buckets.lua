@@ -38,4 +38,9 @@ LayerBuckets.refreshAttachment = function(layer, ent)
 	end
 end
 
+LayerBuckets.refreshEntity = function(layer, ent)
+	LayerBuckets.unregisterEntity(layer, ent)
+	LayerBuckets.registerEntity(layer, ent)
+end
+
 return LayerBuckets

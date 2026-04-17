@@ -3,6 +3,7 @@ local DebugBuffer = include("src/Engine/Core/DebugBuffer.lua")
 local EventBus = include("src/Engine/Core/EventBus.lua")
 local DebugOverlay = include("src/Engine/Core/DebugOverlay.lua")
 local SaveSystem = include("src/Engine/Core/SaveSystem.lua")
+local Profiler = include("src/Engine/Core/Profiler.lua")
 
 local Services = {}
 
@@ -18,6 +19,9 @@ Services.ensureServices = function(self)
 	end
 	if not self.save_system then
 		self.save_system = SaveSystem:new()
+	end
+	if not self.profiler then
+		self.profiler = Profiler:new()
 	end
 	if self.debug and not self.debug_overlay then
 		self.debug_overlay = DebugOverlay:new()

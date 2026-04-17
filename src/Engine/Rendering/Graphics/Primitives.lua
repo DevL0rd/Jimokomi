@@ -1,41 +1,65 @@
 local GraphicsPrimitives = {}
 
+GraphicsPrimitives.screenLine = function(self, x1, y1, x2, y2, color)
+	line(x1, y1, x2, y2, color)
+end
+
+GraphicsPrimitives.screenCirc = function(self, x, y, r, color)
+	circ(x, y, r, color)
+end
+
+GraphicsPrimitives.screenCircfill = function(self, x, y, r, color)
+	circfill(x, y, r, color)
+end
+
+GraphicsPrimitives.screenRect = function(self, x1, y1, x2, y2, color)
+	rect(x1, y1, x2, y2, color)
+end
+
+GraphicsPrimitives.screenRectfill = function(self, x1, y1, x2, y2, color)
+	rectfill(x1, y1, x2, y2, color)
+end
+
+GraphicsPrimitives.screenPrint = function(self, text, x, y, color)
+	print(text, x, y, color)
+end
+
 GraphicsPrimitives.line = function(self, x1, y1, x2, y2, color)
-	local screen_pos1 = self.camera:layerToScreen({ x = x1, y = y1 })
-	local screen_pos2 = self.camera:layerToScreen({ x = x2, y = y2 })
-	line(screen_pos1.x, screen_pos1.y, screen_pos2.x, screen_pos2.y, color)
+	local sx1, sy1 = self.camera:layerToScreenXY(x1, y1)
+	local sx2, sy2 = self.camera:layerToScreenXY(x2, y2)
+	line(sx1, sy1, sx2, sy2, color)
 end
 
 GraphicsPrimitives.circ = function(self, x, y, r, color)
-	local screen_pos = self.camera:layerToScreen({ x = x, y = y })
-	circ(screen_pos.x, screen_pos.y, r, color)
+	local sx, sy = self.camera:layerToScreenXY(x, y)
+	circ(sx, sy, r, color)
 end
 
 GraphicsPrimitives.circfill = function(self, x, y, r, color)
-	local screen_pos = self.camera:layerToScreen({ x = x, y = y })
-	circfill(screen_pos.x, screen_pos.y, r, color)
+	local sx, sy = self.camera:layerToScreenXY(x, y)
+	circfill(sx, sy, r, color)
 end
 
 GraphicsPrimitives.rect = function(self, x1, y1, x2, y2, color)
-	local screen_pos1 = self.camera:layerToScreen({ x = x1, y = y1 })
-	local screen_pos2 = self.camera:layerToScreen({ x = x2, y = y2 })
-	rect(screen_pos1.x, screen_pos1.y, screen_pos2.x, screen_pos2.y, color)
+	local sx1, sy1 = self.camera:layerToScreenXY(x1, y1)
+	local sx2, sy2 = self.camera:layerToScreenXY(x2, y2)
+	rect(sx1, sy1, sx2, sy2, color)
 end
 
 GraphicsPrimitives.rectfill = function(self, x1, y1, x2, y2, color)
-	local screen_pos1 = self.camera:layerToScreen({ x = x1, y = y1 })
-	local screen_pos2 = self.camera:layerToScreen({ x = x2, y = y2 })
-	rectfill(screen_pos1.x, screen_pos1.y, screen_pos2.x, screen_pos2.y, color)
+	local sx1, sy1 = self.camera:layerToScreenXY(x1, y1)
+	local sx2, sy2 = self.camera:layerToScreenXY(x2, y2)
+	rectfill(sx1, sy1, sx2, sy2, color)
 end
 
 GraphicsPrimitives.spr = function(self, sprite_id, x, y, flip_x, flip_y)
-	local screen_pos = self.camera:layerToScreen({ x = x, y = y })
-	spr(sprite_id, screen_pos.x, screen_pos.y, flip_x, flip_y)
+	local sx, sy = self.camera:layerToScreenXY(x, y)
+	spr(sprite_id, sx, sy, flip_x, flip_y)
 end
 
 GraphicsPrimitives.print = function(self, text, x, y, color)
-	local screen_pos = self.camera:layerToScreen({ x = x, y = y })
-	print(text, screen_pos.x, screen_pos.y, color)
+	local sx, sy = self.camera:layerToScreenXY(x, y)
+	print(text, sx, sy, color)
 end
 
 return GraphicsPrimitives

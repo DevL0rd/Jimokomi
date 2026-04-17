@@ -42,6 +42,7 @@ Item.init = function(self)
 	self.heal_amount = self.heal_amount or 0
 	self.spawn_item_path = self.spawn_item_path or nil
 	self.inventory_sprite = self.inventory_sprite or nil
+	self.replace_on_pickup = self.replace_on_pickup == true
 end
 
 Item.update = function(self)
@@ -65,6 +66,7 @@ Item.onPickedUp = ItemInteractions.onPickedUp
 Item.onUsed = ItemInteractions.onUsed
 Item.onPlaced = ItemInteractions.onPlaced
 Item.onDropped = ItemInteractions.onDropped
+Item.spawnPickupReplacement = ItemInteractions.spawnPickupReplacement
 Item.pickup = ItemInteractions.pickup
 Item.use = ItemInteractions.use
 Item.place = ItemInteractions.place

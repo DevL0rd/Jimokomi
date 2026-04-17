@@ -1,6 +1,14 @@
-local Vector = include("src/Engine/Math/Vector.lua")
-
 local CollisionBroadphase = {}
+
+local function clear_array(values)
+	if not values then
+		return {}
+	end
+	for i = #values, 1, -1 do
+		values[i] = nil
+	end
+	return values
+end
 
 CollisionBroadphase.new = function(config)
 	local self = config or {}
@@ -33,21 +41,20 @@ end
 CollisionBroadphase.getEntityBounds = function(self, entity)
 	local half_width = entity.isCircleShape and entity:isCircleShape() and entity:getRadius() or entity:getHalfWidth()
 	local half_height = entity.isCircleShape and entity:isCircleShape() and entity:getRadius() or entity:getHalfHeight()
-	return {
-		left = entity.pos.x - half_width,
-		right = entity.pos.x + half_width,
-		top = entity.pos.y - half_height,
-		bottom = entity.pos.y + half_height,
-	}
+	return
+		entity.pos.x - half_width,
+		entity.pos.x + half_width,
+		entity.pos.y - half_height,
+		entity.pos.y + half_height
 end
 
 CollisionBroadphase.addEntityToBuckets = function(self, buckets, entity, index)
-	local bounds = self:getEntityBounds(entity)
 	local cell_size = self.cell_size or 32
-	local left = flr(bounds.left / cell_size)
-	local right = flr(bounds.right / cell_size)
-	local top = flr(bounds.top / cell_size)
-	local bottom = flr(bounds.bottom / cell_size)
+	local left_bound, right_bound, top_bound, bottom_bound = self:getEntityBounds(entity)
+	local left = flr(left_bound / cell_size)
+	local right = flr(right_bound / cell_size)
+	local top = flr(top_bound / cell_size)
+	local bottom = flr(bottom_bound / cell_size)
 
 	for cell_y = top, bottom do
 		for cell_x = left, right do
@@ -64,33 +71,68 @@ CollisionBroadphase.recordEntityInteraction = function(self, entity_a, entity_b,
 	local collider_a = entity_a.getCollider and entity_a:getCollider() or nil
 	local collider_b = entity_b.getCollider and entity_b:getCollider() or nil
 	local should_resolve = collider_a and collider_b and collider_a:canResolveWith(collider_b) or false
+	local collision_interest = (entity_a.hasAnyCollisionInterest and entity_a:hasAnyCollisionInterest() or false) or
+		(entity_b.hasAnyCollisionInterest and entity_b:hasAnyCollisionInterest() or false)
+	local overlap_interest = (entity_a.hasAnyOverlapInterest and entity_a:hasAnyOverlapInterest() or false) or
+		(entity_b.hasAnyOverlapInterest and entity_b:hasAnyOverlapInterest() or false)
 
 	if should_resolve then
 		add(entity_a.collisions, {
 			object = entity_b,
-			vector = Vector:new({ x = push.x * 0.5, y = push.y * 0.5 }),
+			vector = { x = push.x * 0.5, y = push.y * 0.5 },
 		})
 		add(entity_b.collisions, {
 			object = entity_a,
-			vector = Vector:new({ x = -push.x * 0.5, y = -push.y * 0.5 }),
+			vector = { x = -push.x * 0.5, y = -push.y * 0.5 },
 		})
 		return
 	end
 
 	local is_trigger = entity_a:isTrigger() or entity_b:isTrigger()
+	if not is_trigger and not overlap_interest and not collision_interest then
+		return
+	end
 	add(entity_a.overlaps, {
 		object = entity_b,
-		vector = Vector:new({ x = push.x, y = push.y }),
+		vector = { x = push.x, y = push.y },
 		trigger = is_trigger,
 	})
 	add(entity_b.overlaps, {
 		object = entity_a,
-		vector = Vector:new({ x = -push.x, y = -push.y }),
+		vector = { x = -push.x, y = -push.y },
 		trigger = is_trigger,
 	})
 end
 
+CollisionBroadphase.canEntitiesGenerateContact = function(self, entity_a, entity_b)
+	local collider_a = entity_a.getCollider and entity_a:getCollider() or nil
+	local collider_b = entity_b.getCollider and entity_b:getCollider() or nil
+	local should_resolve = collider_a and collider_b and collider_a:canResolveWith(collider_b) or false
+	if should_resolve then
+		return true
+	end
+
+	local is_trigger = entity_a.isTrigger and entity_a:isTrigger() or entity_b.isTrigger and entity_b:isTrigger() or false
+	if is_trigger then
+		return true
+	end
+
+	local collision_interest = (entity_a.hasAnyCollisionInterest and entity_a:hasAnyCollisionInterest() or false) or
+		(entity_b.hasAnyCollisionInterest and entity_b:hasAnyCollisionInterest() or false)
+	if collision_interest then
+		return true
+	end
+
+	local overlap_interest = (entity_a.hasAnyOverlapInterest and entity_a:hasAnyOverlapInterest() or false) or
+		(entity_b.hasAnyOverlapInterest and entity_b:hasAnyOverlapInterest() or false)
+	return overlap_interest
+end
+
 CollisionBroadphase.collectBucketPairs = function(self, entities, bucket, visited)
+	local profiler = self.profiler
+	if profiler then
+		profiler:observe("collision.broadphase.bucket_size", #bucket)
+	end
 	for i = 1, #bucket - 1 do
 		local entity_a_index = bucket[i]
 		local entity_a = entities[entity_a_index]
@@ -111,9 +153,15 @@ CollisionBroadphase.collectBucketPairs = function(self, entities, bucket, visite
 				goto continue_b
 			end
 			visited[pair_key] = true
+			if profiler then
+				profiler:addCounter("collision.broadphase.pairs_considered", 1)
+			end
 
 			local entity_b = entities[entity_b_index]
 			if not self:canEntitiesInteract(entity_a, entity_b) then
+				goto continue_b
+			end
+			if not self:canEntitiesGenerateContact(entity_a, entity_b) then
 				goto continue_b
 			end
 			if not self.shape_tests:boundsOverlap(entity_a, entity_b) then
@@ -123,6 +171,9 @@ CollisionBroadphase.collectBucketPairs = function(self, entities, bucket, visite
 			local push = self.shape_tests:entityToEntity(entity_a, entity_b)
 			if not push then
 				goto continue_b
+			end
+			if profiler then
+				profiler:addCounter("collision.broadphase.pairs_hit", 1)
 			end
 
 			self:recordEntityInteraction(entity_a, entity_b, push)
@@ -137,12 +188,21 @@ end
 CollisionBroadphase.collectEntityCollisions = function(self, entities)
 	local buckets = {}
 	local visited = {}
+	local profiler = self.profiler
 
 	for index = 1, #entities do
 		local entity = entities[index]
 		if not entity.ignore_collisions then
 			self:addEntityToBuckets(buckets, entity, index)
 		end
+	end
+	if profiler then
+		local bucket_count = 0
+		for _ in pairs(buckets) do
+			bucket_count += 1
+		end
+		profiler:observe("collision.broadphase.bucket_count", bucket_count)
+		profiler:observe("collision.broadphase.entities", #entities)
 	end
 
 	for _, bucket in pairs(buckets) do
@@ -155,8 +215,8 @@ end
 CollisionBroadphase.collectCollisions = function(self, entities, map_id, tile_queries)
 	for index = 1, #entities do
 		local entity = entities[index]
-		entity.collisions = {}
-		entity.overlaps = {}
+		entity.collisions = clear_array(entity.collisions)
+		entity.overlaps = clear_array(entity.overlaps)
 
 		if entity.ignore_physics or entity.ignore_collisions then
 			goto skip

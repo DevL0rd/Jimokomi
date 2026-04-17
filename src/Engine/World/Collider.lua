@@ -96,6 +96,10 @@ local Collider = Class:new({
 
 	setEnabled = function(self, enabled)
 		self.enabled = enabled ~= false
+		local owner = self.owner
+		if owner and owner.layer and owner.layer.refreshEntityBuckets then
+			owner.layer:refreshEntityBuckets(owner)
+		end
 	end,
 
 	isEnabled = function(self)

@@ -1,5 +1,3 @@
-local Vector = include("src/Engine/Math/Vector.lua")
-
 local CollisionShapeTests = {}
 
 CollisionShapeTests.boundsOverlap = function(self, entity_a, entity_b)
@@ -23,15 +21,15 @@ CollisionShapeTests.circleToCircle = function(self, entity_a, entity_b)
 		return false
 	end
 	if distance_sq == 0 then
-		return Vector:new({ x = min_distance, y = 0 })
+		return { x = min_distance, y = 0 }
 	end
 
 	local distance = sqrt(distance_sq)
 	local overlap = min_distance - distance
-	return Vector:new({
+	return {
 		x = (dx / distance) * overlap,
 		y = (dy / distance) * overlap,
-	})
+	}
 end
 
 CollisionShapeTests.rectToRect = function(self, entity_a, entity_b)
@@ -44,15 +42,15 @@ CollisionShapeTests.rectToRect = function(self, entity_a, entity_b)
 		return false
 	end
 	if overlap_x < overlap_y then
-		return Vector:new({
+		return {
 			x = dx >= 0 and overlap_x or -overlap_x,
 			y = 0,
-		})
+		}
 	end
-	return Vector:new({
+	return {
 		x = 0,
 		y = dy >= 0 and overlap_y or -overlap_y,
-	})
+	}
 end
 
 CollisionShapeTests.circleToRect = function(self, circle, rect)
@@ -78,21 +76,21 @@ CollisionShapeTests.circleToRect = function(self, circle, rect)
 		local min_push = min(min(push_left, push_right), min(push_up, push_down))
 
 		if min_push == push_left then
-			return Vector:new({ x = radius, y = 0 })
+			return { x = radius, y = 0 }
 		elseif min_push == push_right then
-			return Vector:new({ x = -radius, y = 0 })
+			return { x = -radius, y = 0 }
 		elseif min_push == push_up then
-			return Vector:new({ x = 0, y = radius })
+			return { x = 0, y = radius }
 		end
-		return Vector:new({ x = 0, y = -radius })
+		return { x = 0, y = -radius }
 	end
 
 	local distance = sqrt(distance_sq)
 	local overlap = radius - distance
-	return Vector:new({
+	return {
 		x = (dx / distance) * overlap,
 		y = (dy / distance) * overlap,
-	})
+	}
 end
 
 CollisionShapeTests.entityToEntity = function(self, entity_a, entity_b)
@@ -110,7 +108,7 @@ CollisionShapeTests.entityToEntity = function(self, entity_a, entity_b)
 		if entity_b:isCircleShape() then
 			local push = self:circleToRect(entity_b, entity_a)
 			if push then
-				return Vector:new({ x = -push.x, y = -push.y })
+				return { x = -push.x, y = -push.y }
 			end
 		end
 	end

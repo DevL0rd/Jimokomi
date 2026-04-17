@@ -3,11 +3,13 @@ local Vector = include("src/Engine/Math/Vector.lua")
 local WorldObjectLifecycle = include("src/Engine/Objects/WorldObject/Lifecycle.lua")
 local WorldObjectTransform = include("src/Engine/Objects/WorldObject/Transform.lua")
 local WorldObjectCollider = include("src/Engine/Objects/WorldObject/Collider.lua")
+local WorldObjectNodes = include("src/Engine/Objects/WorldObject/Nodes.lua")
 local WorldObjectSnapshot = include("src/Engine/Objects/WorldObject/Snapshot.lua")
 local WorldObjectEvents = include("src/Engine/Objects/WorldObject/Events.lua")
 
 local WorldObject = Class:new({
 	_type = "WorldObject",
+	is_world_object = true,
 	name = "WorldObject",
 	object_id = nil,
 	shape = nil,
@@ -58,6 +60,14 @@ local WorldObject = Class:new({
 	translate = WorldObjectTransform.translate,
 
 	emitEvent = WorldObjectEvents.emitEvent,
+	hasCollisionEnterInterest = WorldObjectEvents.hasCollisionEnterInterest,
+	hasCollisionStayInterest = WorldObjectEvents.hasCollisionStayInterest,
+	hasCollisionExitInterest = WorldObjectEvents.hasCollisionExitInterest,
+	hasAnyCollisionInterest = WorldObjectEvents.hasAnyCollisionInterest,
+	hasOverlapEnterInterest = WorldObjectEvents.hasOverlapEnterInterest,
+	hasOverlapStayInterest = WorldObjectEvents.hasOverlapStayInterest,
+	hasOverlapExitInterest = WorldObjectEvents.hasOverlapExitInterest,
+	hasAnyOverlapInterest = WorldObjectEvents.hasAnyOverlapInterest,
 
 	getCollisionLayer = WorldObjectCollider.getCollisionLayer,
 	setCollisionLayer = WorldObjectCollider.setCollisionLayer,
@@ -92,6 +102,11 @@ local WorldObject = Class:new({
 	destroySlots = WorldObjectTransform.destroySlots,
 
 	getAssets = WorldObjectLifecycle.getAssets,
+	addAttachmentNode = WorldObjectNodes.addAttachmentNode,
+	removeAttachmentNode = WorldObjectNodes.removeAttachmentNode,
+	updateAttachmentNodes = WorldObjectNodes.updateAttachmentNodes,
+	drawAttachmentNodes = WorldObjectNodes.drawAttachmentNodes,
+	destroyAttachmentNodes = WorldObjectNodes.destroyAttachmentNodes,
 
 	isSnapshotEnabled = function(self)
 		return self.snapshot_enabled ~= false
@@ -126,7 +141,13 @@ local WorldObject = Class:new({
 	draw_debug = WorldObjectCollider.draw_debug,
 
 	on_collision = WorldObjectEvents.on_collision,
+	on_collision_enter = WorldObjectEvents.on_collision_enter,
+	on_collision_stay = WorldObjectEvents.on_collision_stay,
+	on_collision_exit = WorldObjectEvents.on_collision_exit,
 	on_overlap = WorldObjectEvents.on_overlap,
+	on_overlap_enter = WorldObjectEvents.on_overlap_enter,
+	on_overlap_stay = WorldObjectEvents.on_overlap_stay,
+	on_overlap_exit = WorldObjectEvents.on_overlap_exit,
 	destroy = WorldObjectEvents.destroy,
 
 	unInit = WorldObjectLifecycle.unInit,

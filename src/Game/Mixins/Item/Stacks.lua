@@ -1,5 +1,16 @@
 local ItemStacks = {}
 
+local function clone_table(source)
+	if type(source) ~= "table" then
+		return source
+	end
+	local copy = {}
+	for key, value in pairs(source) do
+		copy[key] = clone_table(value)
+	end
+	return copy
+end
+
 ItemStacks.getStackSize = function(self)
 	return self.stack_size or 0
 end
@@ -41,6 +52,10 @@ ItemStacks.toItemStack = function(self, amount)
 	if inventory_sprite == nil and self.visual_definitions and self.visual_definitions.idle then
 		inventory_sprite = self.visual_definitions.idle.sprite
 	end
+	local captured_snapshot = nil
+	if amount == 1 and self.toSnapshot and self.isSnapshotEnabled and self:isSnapshotEnabled() then
+		captured_snapshot = clone_table(self:toSnapshot())
+	end
 	return {
 		item_id = self.item_id,
 		display_name = self.display_name,
@@ -57,6 +72,7 @@ ItemStacks.toItemStack = function(self, amount)
 		heal_amount = self.heal_amount or 0,
 		spawn_item_path = self.spawn_item_path,
 		inventory_sprite = inventory_sprite,
+		captured_snapshot = captured_snapshot,
 	}
 end
 

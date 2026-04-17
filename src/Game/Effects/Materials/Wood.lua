@@ -19,8 +19,7 @@ local Wood = Material:new({
 		gfx:drawHorizontalGradient(x, y, w, h, 4, 9)
 		gfx:drawDitheredGradient(x, y, w, h, 4, 15, 0x6666)
 		for i = 2, w - 1, 4 do
-			local sx = gfx.camera:layerToScreen({ x = x + i, y = y }).x
-			local sy = gfx.camera:layerToScreen({ x = x + i, y = y }).y
+			local sx, sy = gfx.camera:layerToScreenXY(x + i, y)
 			line(sx, sy, sx, sy + h - 1, 1)
 		end
 	end

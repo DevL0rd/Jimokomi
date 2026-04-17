@@ -5,7 +5,7 @@ local Controller = Class:new({
 	owner = nil,
 	directions = nil,
 
-	getInputState = function(self)
+	getPlayerInputState = function(self)
 		return {
 			left = btn(0),
 			right = btn(1),
@@ -13,6 +13,14 @@ local Controller = Class:new({
 			down = btn(3),
 			jump = btn(4),
 		}
+	end,
+
+	getInputState = function(self)
+		if self.owner and self.owner:isAutonomous() and self.owner.autonomy then
+			return self.owner.autonomy:getInputState()
+		end
+
+		return self:getPlayerInputState()
 	end,
 
 	updateDirection = function(self, input)

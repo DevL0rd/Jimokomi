@@ -11,6 +11,8 @@ local Spawner = Class:new({
 			return nil
 		end
 
+		rule = rule or ObjectClass.spawn_rule
+
 		local spawn_pos = nil
 		if rule and self.world then
 			spawn_pos = self.world:resolveRule(rule, require_offscreen, radius)
@@ -24,7 +26,20 @@ local Spawner = Class:new({
 			params.pos = spawn_pos
 		end
 
-		return ObjectClass:new(params)
+		local ent = ObjectClass:new(params)
+		if ent and spawn_pos then
+			if ent.setSpawnPosition then
+				ent:setSpawnPosition(spawn_pos)
+			end
+			if ent.is_spawned == false then
+				ent.is_spawned = true
+			end
+			if ent.afterSpawn then
+				ent:afterSpawn(spawn_pos, require_offscreen)
+			end
+		end
+
+		return ent
 	end,
 
 	spawnMany = function(self, count, ObjectClass, params, rule, require_offscreen, radius)

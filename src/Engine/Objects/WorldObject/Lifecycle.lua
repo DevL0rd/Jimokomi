@@ -47,6 +47,8 @@ WorldObjectLifecycle.init = function(self)
 	self.accel = WorldObjectLifecycle.cloneVector(self.accel)
 	self.timer = Timer:new()
 	self.percent_expired = 0
+	self.attachment_nodes = self.attachment_nodes or {}
+	self._visual_runtime_initialized = false
 
 	if self.layer and self.layer.engine and self.object_id == nil and self.layer.engine.nextObjectId then
 		self.object_id = self.layer.engine:nextObjectId()
@@ -68,6 +70,9 @@ WorldObjectLifecycle.update = function(self)
 		if self.timer:hasElapsed(self.lifetime) then
 			self:destroy()
 		end
+	end
+	if self.updateAttachmentNodes then
+		self:updateAttachmentNodes()
 	end
 end
 
@@ -92,14 +97,22 @@ WorldObjectLifecycle.draw = function(self)
 		local vy = self.vel.y * 0.25
 		self.layer.gfx:line(self.pos.x, self.pos.y, self.pos.x + vx, self.pos.y + vy, 8)
 	end
+	if self.drawAttachmentNodes then
+		self:drawAttachmentNodes()
+	end
 end
 
 WorldObjectLifecycle.needsDraw = function(self)
+	local has_attachment_nodes = self.attachment_nodes and #self.attachment_nodes > 0
+	local has_visual_sprite = self.visual and self.visual.getSprite and self.visual:getSprite() ~= nil
 	return self.draw ~= WorldObjectLifecycle.draw or self.fill ~= nil or self.stroke ~= nil or
-		self.fill_color > -1 or self.stroke_color > -1 or self.debug
+		self.fill_color > -1 or self.stroke_color > -1 or self.debug or has_attachment_nodes or has_visual_sprite
 end
 
 WorldObjectLifecycle.unInit = function(self)
+	if self.destroyAttachmentNodes then
+		self:destroyAttachmentNodes()
+	end
 end
 
 return WorldObjectLifecycle

@@ -93,13 +93,15 @@ AgentSpawning.update = function(self)
 		end
 	end
 
-	if self.edible and self:isEatenByPlayer() then
+	if self.edible and self.can_pickup ~= true and self:isEatenByPlayer() then
 		if self:trySpawn(true) and self.onEaten then
 			self:onEaten()
 		end
 		return false
 	end
 
+	self:updatePerception()
+	self:updateSounding()
 	self:updateActionPlan()
 
 	if self.update_agent then

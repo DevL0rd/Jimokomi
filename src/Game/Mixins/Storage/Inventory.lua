@@ -1,6 +1,71 @@
 local Container = include("src/Game/Mixins/Storage/Container.lua")
 local Vector = include("src/Engine/Math/Vector.lua")
 
+local function clone_table(source)
+	if type(source) ~= "table" then
+		return source
+	end
+	local copy = {}
+	for key, value in pairs(source) do
+		copy[key] = clone_table(value)
+	end
+	return copy
+end
+
+local function get_drop_position(owner)
+	if not owner or not owner.layer or not owner.pos then
+		return nil
+	end
+
+	local direction_offset_x = 0
+	if owner.direction == 2 then
+		direction_offset_x = -18
+	elseif owner.direction == 3 then
+		direction_offset_x = 18
+	end
+
+	return Vector:new({
+		x = owner.pos.x + direction_offset_x,
+		y = owner.pos.y,
+	})
+end
+
+local function instantiate_world_item_from_stack(stack, owner, drop_pos)
+	if not stack or not stack.spawn_item_path or not owner or not owner.layer then
+		return nil
+	end
+
+	local ItemClass = include(stack.spawn_item_path)
+	local item = ItemClass:new({
+		layer = owner.layer,
+		pos = drop_pos,
+		stack_size = 1,
+	})
+
+	if stack.captured_snapshot and item.applySnapshot then
+		local snapshot = clone_table(stack.captured_snapshot)
+		snapshot.object_id = nil
+		if snapshot.transform then
+			snapshot.transform.attachment = nil
+			snapshot.transform.local_position = {
+				x = drop_pos.x,
+				y = drop_pos.y,
+			}
+			snapshot.transform.position = {
+				x = drop_pos.x,
+				y = drop_pos.y,
+			}
+		end
+		item:applySnapshot(snapshot)
+	end
+
+	if item.stack_size ~= nil then
+		item.stack_size = 1
+	end
+
+	return item
+end
+
 local Inventory = Container:new({
 	_type = "Inventory",
 
@@ -45,26 +110,15 @@ local Inventory = Container:new({
 		if not stack or not stack.can_drop or not stack.spawn_item_path then
 			return false
 		end
-		if not owner or not owner.layer or not owner.pos then
+		local drop_pos = get_drop_position(owner)
+		if not drop_pos then
 			return false
 		end
 
-		local direction_offset_x = 0
-		if owner.direction == 2 then
-			direction_offset_x = -18
-		elseif owner.direction == 3 then
-			direction_offset_x = 18
+		local item = instantiate_world_item_from_stack(stack, owner, drop_pos)
+		if not item then
+			return false
 		end
-
-		local ItemClass = include(stack.spawn_item_path)
-		ItemClass:new({
-			layer = owner.layer,
-			pos = Vector:new({
-				x = owner.pos.x + direction_offset_x,
-				y = owner.pos.y,
-			}),
-			stack_size = 1,
-		})
 		self:removeAmount(slot_key, 1)
 		return true
 	end,

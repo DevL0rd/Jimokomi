@@ -1,5 +1,5 @@
 local Class = include("src/Engine/Core/Class.lua")
-local Sprite = include("src/Engine/Objects/Sprite.lua")
+local SpriteNode = include("src/Engine/Nodes/SpriteNode.lua")
 
 local function clone_table(source)
 	if type(source) ~= "table" then
@@ -37,7 +37,7 @@ local AnimationController = Class:new({
 		if self.sprite or not self.owner then
 			return self.sprite
 		end
-		self.sprite = Sprite:new({
+		self.sprite = SpriteNode:new({
 			parent = self.owner,
 			parent_slot = self.slot_name,
 		})

@@ -1,6 +1,7 @@
 local Ecology = include("src/Game/Ecology/Ecology.lua")
 local WorldObject = include("src/Engine/Objects/WorldObject.lua")
 local Creature = include("src/Game/Mixins/Creature.lua")
+local Item = include("src/Game/Mixins/Item.lua")
 local Flight = include("src/Game/Actors/Locomotion/Flight.lua")
 
 local Fly = WorldObject:new({
@@ -10,13 +11,37 @@ local Fly = WorldObject:new({
 		r = 2,
 	},
 	edible = true,
+	item_id = "fly",
+	display_name = "Fly",
 	ignore_physics = true,
 	ignore_gravity = true,
 	ignore_friction = true,
+	ignore_collisions = true,
+	can_pickup = true,
+	can_use = true,
+	can_drop = true,
+	pickup_on_touch = true,
+	pickup_radius_padding = 2,
+	use_action_name = "eat",
+	heal_amount = 1,
+	max_stack_size = 1,
+	spawn_item_path = "src/Game/Actors/Creatures/Fly.lua",
+	replace_on_pickup = true,
+	inventory_sprite = 0x19,
 	faction = Ecology.Factions.Wildlife,
 	diet = Ecology.Diets.Omnivore,
 	temperament = Ecology.Temperaments.Timid,
 	default_action = Ecology.Actions.Wander,
+	vision_range = 84,
+	hearing_range = 96,
+	action_plan_interval_ms = 250,
+	perception_interval_ms = 500,
+	sound_update_interval_ms = 500,
+	sound_idle_radius = 12,
+	sound_move_radius = 36,
+	sound_land_radius = 64,
+	sound_move_interval_ms = 900,
+	sound_idle_interval_ms = 2600,
 	faction_actions = {
 		player = Ecology.Actions.Flee,
 	},
@@ -63,6 +88,7 @@ local Fly = WorldObject:new({
 		self.explore_retarget_max = self.explore_retarget_max or 3200
 		WorldObject.init(self)
 		Creature.init(self)
+		Item.init(self)
 		self.flight_locomotion = Flight:new({
 			owner = self,
 			explore_speed = self.explore_speed,
@@ -96,13 +122,17 @@ local Fly = WorldObject:new({
 	end,
 
 	afterSpawn = function(self)
+		self:playVisual("flying")
+		if self.layer and self.layer.refreshEntityBuckets then
+			self.layer:refreshEntityBuckets(self)
+		end
 		self.flight_locomotion:afterSpawn()
 	end,
 
 	selectAction = function(self)
-		local player = self:getPlayer()
-		if player and self:shouldFleeTarget(player, self.flee_radius) then
-			return Ecology.Actions.Flee, { target = player }
+		local threat = self:getPerceivedTargetForAction(Ecology.Actions.Flee)
+		if threat and self:shouldFleeTarget(threat, self.flee_radius) then
+			return Ecology.Actions.Flee, { target = threat }
 		end
 		if self:isState("landing") or self:isState("landed") then
 			return Ecology.Actions.Perch, { target = self.flight_locomotion.landing_target }
@@ -116,6 +146,9 @@ local Fly = WorldObject:new({
 
 	update = function(self)
 		if Creature.update(self) == false then
+			return
+		end
+		if Item.update(self) == false then
 			return
 		end
 		WorldObject.update(self)

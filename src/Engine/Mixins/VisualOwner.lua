@@ -2,6 +2,12 @@ local AnimationController = include("src/Engine/Rendering/AnimationController.lu
 
 local VisualOwner = {}
 
+local function refresh_visual_buckets(self)
+	if self and self.layer and self.layer.refreshEntityBuckets then
+		self.layer:refreshEntityBuckets(self)
+	end
+end
+
 VisualOwner.mixin = function(self)
 	if self._visual_owner_mixin_applied then
 		return
@@ -16,6 +22,15 @@ end
 
 VisualOwner.init = function(self)
 	VisualOwner.mixin(self)
+	if self._visual_runtime_initialized then
+		if self.visual and self.visual.setDefinitions then
+			self.visual:setDefinitions(self.visual_definitions or {})
+		end
+		refresh_visual_buckets(self)
+		return
+	end
+	self._visual_runtime_initialized = true
+	self.visual = nil
 	if self.defineSlot and not self:hasSlot("visual") then
 		self:defineSlot("visual", {
 			x = 0,
@@ -34,6 +49,7 @@ VisualOwner.init = function(self)
 		slot_name = self.visual_slot or "visual",
 		definitions = self.visual_definitions or {},
 	})
+	refresh_visual_buckets(self)
 end
 
 VisualOwner.setVisualDefinitions = function(self, definitions)
@@ -41,13 +57,16 @@ VisualOwner.setVisualDefinitions = function(self, definitions)
 		VisualOwner.init(self)
 	end
 	self.visual:setDefinitions(definitions or {})
+	refresh_visual_buckets(self)
 end
 
 VisualOwner.playVisual = function(self, state, overrides)
 	if not self.visual then
 		VisualOwner.init(self)
 	end
-	return self.visual:play(state, overrides)
+	local sprite = self.visual:play(state, overrides)
+	refresh_visual_buckets(self)
+	return sprite
 end
 
 VisualOwner.setVisualFlip = function(self, flip_x, flip_y)
@@ -63,6 +82,7 @@ end
 VisualOwner.clearVisual = function(self)
 	if self.visual then
 		self.visual:clear()
+		refresh_visual_buckets(self)
 	end
 end
 

@@ -65,7 +65,11 @@ TransformSlots.getSlotNames = function(self)
 end
 
 TransformSlots.hasSlot = function(self, name)
-	return self:getSlot(name) ~= nil
+	self:ensureSlots()
+	if name == nil then
+		return self.slots.origin ~= nil
+	end
+	return self.slots[name] ~= nil
 end
 
 TransformSlots.setSlotPosition = function(self, name, pos)

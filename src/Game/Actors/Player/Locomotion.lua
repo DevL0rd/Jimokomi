@@ -5,6 +5,8 @@ local Locomotion = Class:new({
 	owner = nil,
 	states = nil,
 	directions = nil,
+	ground_probe_frame = nil,
+	ground_probe_dist = nil,
 
 	getCurrentTile = function(self)
 		local world = self.owner:getWorld()
@@ -15,8 +17,22 @@ local Locomotion = Class:new({
 		return tile_id ~= 0 and tile_id ~= 15
 	end,
 
+	getGroundProbeFrame = function(self)
+		local world = self.owner and self.owner.getWorld and self.owner:getWorld() or nil
+		if world and world.getFrameId then
+			return world:getFrameId()
+		end
+		return flr(time() * 60)
+	end,
+
 	distToGround = function(self)
+		local frame_id = self:getGroundProbeFrame()
+		if self.ground_probe_frame == frame_id and self.ground_probe_dist ~= nil then
+			return self.ground_probe_dist
+		end
 		local _, dist = self.owner.down_ray:cast()
+		self.ground_probe_frame = frame_id
+		self.ground_probe_dist = dist
 		return dist
 	end,
 

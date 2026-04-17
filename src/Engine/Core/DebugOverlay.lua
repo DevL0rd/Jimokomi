@@ -9,8 +9,15 @@ local DebugOverlay = Class:new({
 
 	appendLine = DebugOverlayLines.appendLine,
 	drawLines = DebugOverlayLines.drawLines,
+	getObjectPathing = DebugOverlayObjects.getObjectPathing,
 	getObjectLine = DebugOverlayObjects.getObjectLine,
+	drawMarker = DebugOverlayObjects.drawMarker,
+	drawPath = DebugOverlayObjects.drawPath,
+	drawCircleApprox = DebugOverlayObjects.drawCircleApprox,
+	drawVisionCone = DebugOverlayObjects.drawVisionCone,
+	drawObjectGuides = DebugOverlayObjects.drawObjectGuides,
 	collectLayerLines = DebugOverlayObjects.collectLayerLines,
+	drawLayerGuides = DebugOverlayObjects.drawLayerGuides,
 	draw = DebugOverlaySummary.draw,
 })
 

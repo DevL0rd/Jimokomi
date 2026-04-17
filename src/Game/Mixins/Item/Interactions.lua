@@ -2,6 +2,23 @@ local WorldObject = include("src/Engine/Objects/WorldObject.lua")
 
 local ItemInteractions = {}
 
+ItemInteractions.spawnPickupReplacement = function(self)
+	if self.replace_on_pickup ~= true or not self.spawn_item_path or not self.spawn_rule then
+		return false
+	end
+	local world = self.getWorld and self:getWorld() or nil
+	if not world then
+		return false
+	end
+	local ItemClass = include(self.spawn_item_path)
+	if not ItemClass then
+		return false
+	end
+	return world:spawn(ItemClass, {
+		layer = self.layer,
+	}, self.spawn_rule, true, self.getPickupRadius and self:getPickupRadius() or nil) ~= nil
+end
+
 ItemInteractions.getAvailableInteractions = function(self)
 	local interactions = {}
 	if self.can_pickup then
@@ -21,6 +38,7 @@ end
 
 ItemInteractions.onPickedUp = function(self, collector, picked_up)
 	picked_up = picked_up or self:getStackSize()
+	self:spawnPickupReplacement()
 	if picked_up >= self:getStackSize() then
 		self:destroy()
 	else

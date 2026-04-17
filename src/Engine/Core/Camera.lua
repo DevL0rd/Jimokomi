@@ -40,6 +40,10 @@ local Camera = {
             width = Screen.w,
             height = Screen.h
         }
+        camera.render_transform = {
+            x = 0,
+            y = 0,
+        }
         camera:updateViewBounds()
 
         return camera
@@ -47,14 +51,18 @@ local Camera = {
 
     updateViewBounds = function(self)
         local shake = self.shake.offset
-        local left = (self.pos.x * self.parallax_factor.x) - shake.x
-        local top = (self.pos.y * self.parallax_factor.y) - shake.y
+        local transform_x = (self.pos.x * self.parallax_factor.x) - shake.x
+        local transform_y = (self.pos.y * self.parallax_factor.y) - shake.y
+        local left = transform_x
+        local top = transform_y
         self.view_bounds.left = left
         self.view_bounds.top = top
         self.view_bounds.right = left + Screen.w
         self.view_bounds.bottom = top + Screen.h
         self.view_bounds.width = Screen.w
         self.view_bounds.height = Screen.h
+        self.render_transform.x = transform_x
+        self.render_transform.y = transform_y
         return self.view_bounds
     end,
 
@@ -110,6 +118,10 @@ local Camera = {
         return self.shake.offset
     end,
 
+    getRenderTransform = function(self)
+        return self.render_transform
+    end,
+
     -- Start screen shake effect
     startShaking = function(self, intensity, duration)
         intensity = intensity or 5
@@ -143,19 +155,24 @@ local Camera = {
 
     -- Convert layer coordinates to screen coordinates
     layerToScreen = function(self, layer_pos)
-        local shake = self:getShakeOffset()
+        local transform = self.render_transform
         return {
-            x = layer_pos.x - (self.pos.x * self.parallax_factor.x) + shake.x,
-            y = layer_pos.y - (self.pos.y * self.parallax_factor.y) + shake.y
+            x = layer_pos.x - transform.x,
+            y = layer_pos.y - transform.y
         }
+    end,
+
+    layerToScreenXY = function(self, x, y)
+        local transform = self.render_transform
+        return x - transform.x, y - transform.y
     end,
 
     -- Convert screen coordinates to layer coordinates
     screenToLayer = function(self, screen_pos)
-        local shake = self:getShakeOffset()
+        local transform = self.render_transform
         return {
-            x = screen_pos.x + (self.pos.x * self.parallax_factor.x) - shake.x,
-            y = screen_pos.y + (self.pos.y * self.parallax_factor.y) - shake.y
+            x = screen_pos.x + transform.x,
+            y = screen_pos.y + transform.y
         }
     end,
 

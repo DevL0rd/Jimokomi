@@ -1,9 +1,11 @@
 local State = include("src/Game/Mixins/Agent/State.lua")
 local Planner = include("src/Game/Mixins/Agent/Planner.lua")
 local Ecology = include("src/Game/Ecology/Ecology.lua")
+local Timer = include("src/Engine/Core/Timer.lua")
 local AgentRelations = include("src/Game/Mixins/Agent/Relations.lua")
 local AgentActions = include("src/Game/Mixins/Agent/Actions.lua")
 local AgentSpawning = include("src/Game/Mixins/Agent/Spawning.lua")
+local AgentPerception = include("src/Game/Mixins/Agent/Perception.lua")
 
 local Agent = {}
 
@@ -37,6 +39,10 @@ Agent.init = function(self)
 	})
 	self.faction_actions = self.faction_actions or {}
 	self.is_spawned = self.spawn_rule == nil
+	self.action_plan_interval_ms = self.action_plan_interval_ms or 250
+	self.action_plan_timer = self.action_plan_timer or Timer:new()
+	self.action_plan_timer.start_time -= random_int(0, self.action_plan_interval_ms) / 1000
+	self:initPerception()
 end
 
 Agent.getFaction = AgentRelations.getFaction
@@ -61,6 +67,18 @@ Agent.isTargetWithinRange = AgentRelations.isTargetWithinRange
 Agent.getAwayVector = AgentRelations.getAwayVector
 Agent.shouldFleeTarget = AgentRelations.shouldFleeTarget
 Agent.shouldFleePlayer = AgentRelations.shouldFleePlayer
+Agent.initPerception = AgentPerception.initPerception
+Agent.canPerceiveFaction = AgentPerception.canPerceiveFaction
+Agent.canSeeTarget = AgentPerception.canSeeTarget
+Agent.getSeenTarget = AgentPerception.getSeenTarget
+Agent.getHeardSound = AgentPerception.getHeardSound
+Agent.updatePerception = AgentPerception.updatePerception
+Agent.getPerceivedTarget = AgentPerception.getPerceivedTarget
+Agent.getPerceivedTargetForAction = AgentPerception.getPerceivedTargetForAction
+Agent.getFacingVector = AgentPerception.getFacingVector
+Agent.isOnGroundForSound = AgentPerception.isOnGroundForSound
+Agent.emitSound = AgentPerception.emitSound
+Agent.updateSounding = AgentPerception.updateSounding
 Agent.selectAction = AgentActions.selectAction
 Agent.updateActionPlan = AgentActions.updateActionPlan
 Agent.getSpawnRadius = AgentSpawning.getSpawnRadius

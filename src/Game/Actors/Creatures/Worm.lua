@@ -2,6 +2,7 @@ local Vector = include("src/Engine/Math/Vector.lua")
 local Ecology = include("src/Game/Ecology/Ecology.lua")
 local WorldObject = include("src/Engine/Objects/WorldObject.lua")
 local Creature = include("src/Game/Mixins/Creature.lua")
+local Item = include("src/Game/Mixins/Item.lua")
 local GroundPatrol = include("src/Game/Actors/Locomotion/GroundPatrol.lua")
 
 local Worm = WorldObject:new({
@@ -11,10 +12,33 @@ local Worm = WorldObject:new({
 		r = 3,
 	},
 	edible = true,
+	item_id = "worm",
+	display_name = "Worm",
+	can_pickup = true,
+	can_use = true,
+	can_drop = true,
+	pickup_on_touch = true,
+	pickup_radius_padding = 2,
+	use_action_name = "eat",
+	heal_amount = 1,
+	max_stack_size = 1,
+	spawn_item_path = "src/Game/Actors/Creatures/Worm.lua",
+	replace_on_pickup = true,
+	inventory_sprite = 0x1b,
 	faction = Ecology.Factions.Wildlife,
 	diet = Ecology.Diets.Herbivore,
 	temperament = Ecology.Temperaments.Neutral,
 	default_action = Ecology.Actions.Patrol,
+	vision_range = 72,
+	hearing_range = 84,
+	action_plan_interval_ms = 250,
+	perception_interval_ms = 500,
+	sound_update_interval_ms = 500,
+	sound_idle_radius = 10,
+	sound_move_radius = 28,
+	sound_land_radius = 18,
+	sound_move_interval_ms = 900,
+	sound_idle_interval_ms = 2600,
 	faction_actions = {
 		player = Ecology.Actions.Watch,
 	},
@@ -43,6 +67,7 @@ local Worm = WorldObject:new({
 		self.max_speed = self.max_speed or 18
 		WorldObject.init(self)
 		Creature.init(self)
+		Item.init(self)
 		self.ignore_gravity = false
 		self.ignore_friction = false
 		self.ground_patrol_locomotion = GroundPatrol:new({
@@ -81,10 +106,18 @@ local Worm = WorldObject:new({
 		self:setVisualFlip(direction > 0, false)
 	end,
 	afterSpawn = function(self)
+		self:playVisual("crawl")
+		if self.layer and self.layer.refreshEntityBuckets then
+			self.layer:refreshEntityBuckets(self)
+		end
 		self:setState("patrol")
 		self.ground_patrol_locomotion:afterSpawn()
 	end,
 	selectAction = function(self)
+		local perceived = self:getPerceivedTargetForAction(Ecology.Actions.Watch)
+		if perceived then
+			return Ecology.Actions.Watch, { target = perceived }
+		end
 		return Ecology.Actions.Patrol, {}
 	end,
 	update_agent = function(self)
@@ -92,6 +125,9 @@ local Worm = WorldObject:new({
 	end,
 	update = function(self)
 		if Creature.update(self) == false then
+			return
+		end
+		if Item.update(self) == false then
 			return
 		end
 		WorldObject.update(self)

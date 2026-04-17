@@ -12,22 +12,30 @@ local Renderer = Class:new({
 
 		local layer = self.layer
 		local grid_size = 16
-		local view_bounds = layer.camera:getViewBounds()
+		local camera_obj = layer.camera
+		local view_bounds = self.view_bounds or camera_obj:getViewBounds()
 
 		local start_x = flr(view_bounds.left / grid_size) * grid_size
 		local start_y = flr(view_bounds.top / grid_size) * grid_size
 		local grid_color = layer.layer_id + 5
+		local profiler = layer and layer.engine and layer.engine.profiler or nil
+		local line_count = 0
 
 		for x = start_x, view_bounds.right, grid_size do
-			local start_pos = layer.camera:layerToScreen({ x = x, y = view_bounds.top })
-			local end_pos = layer.camera:layerToScreen({ x = x, y = view_bounds.bottom })
-			line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, grid_color)
+			local sx1, sy1 = camera_obj:layerToScreenXY(x, view_bounds.top)
+			local sx2, sy2 = camera_obj:layerToScreenXY(x, view_bounds.bottom)
+			line(sx1, sy1, sx2, sy2, grid_color)
+			line_count += 1
 		end
 
 		for y = start_y, view_bounds.bottom, grid_size do
-			local start_pos = layer.camera:layerToScreen({ x = view_bounds.left, y = y })
-			local end_pos = layer.camera:layerToScreen({ x = view_bounds.right, y = y })
-			line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, grid_color)
+			local sx1, sy1 = camera_obj:layerToScreenXY(view_bounds.left, y)
+			local sx2, sy2 = camera_obj:layerToScreenXY(view_bounds.right, y)
+			line(sx1, sy1, sx2, sy2, grid_color)
+			line_count += 1
+		end
+		if profiler then
+			profiler:observe("layer.render.debug_grid_lines", line_count)
 		end
 	end,
 
@@ -38,17 +46,22 @@ local Renderer = Class:new({
 		end
 
 		local tile_size = layer.tile_size
-		local view_bounds = layer.camera:getViewBounds()
+		local camera_obj = layer.camera
+		local view_bounds = self.view_bounds or camera_obj:getViewBounds()
 		local start_tile_x = max(0, flr(view_bounds.left / tile_size))
 		local end_tile_x = max(start_tile_x, ceil(view_bounds.right / tile_size))
 		local start_tile_y = max(0, flr(view_bounds.top / tile_size))
 		local end_tile_y = max(start_tile_y, ceil(view_bounds.bottom / tile_size))
 		local visible_tiles_w = end_tile_x - start_tile_x + 1
 		local visible_tiles_h = end_tile_y - start_tile_y + 1
+		local profiler = layer and layer.engine and layer.engine.profiler or nil
+		if profiler then
+			profiler:observe("layer.render.visible_tiles", visible_tiles_w * visible_tiles_h)
+		end
 
-		local shake = layer.camera:getShakeOffset()
-		local cam_x = flr(layer.camera.pos.x * layer.camera.parallax_factor.x + shake.x)
-		local cam_y = flr(layer.camera.pos.y * layer.camera.parallax_factor.y + shake.y)
+		local transform = camera_obj:getRenderTransform()
+		local cam_x = flr(transform.x)
+		local cam_y = flr(transform.y)
 
 		camera(cam_x, cam_y)
 		map(
@@ -71,9 +84,9 @@ local Renderer = Class:new({
 				if tile_id ~= 0 then
 					local layer_x = tx * tile_size + tile_size / 2
 					local layer_y = ty * tile_size + tile_size / 2
-					local screen_pos = layer.camera:layerToScreen({ x = layer_x, y = layer_y })
-					if screen_pos.x >= 0 and screen_pos.x < Screen.w and screen_pos.y >= 0 and screen_pos.y < Screen.h then
-						print(tile_id, screen_pos.x - 6, screen_pos.y - 4, 7)
+					local sx, sy = camera_obj:layerToScreenXY(layer_x, layer_y)
+					if sx >= 0 and sx < Screen.w and sy >= 0 and sy < Screen.h then
+						print(tile_id, sx - 6, sy - 4, 7)
 					end
 				end
 			end
@@ -81,9 +94,13 @@ local Renderer = Class:new({
 	end,
 
 	drawEntities = function(self)
-		local view_bounds = self.layer.camera:getViewBounds()
-		for i = 1, #self.layer.drawable_entities do
-			local ent = self.layer.drawable_entities[i]
+		local view_bounds = self.view_bounds or self.layer.camera:getViewBounds()
+		local profiler = self.layer and self.layer.engine and self.layer.engine.profiler or nil
+		local drawable_entities = self.layer.drawable_entities
+		local visible_count = 0
+		local culled_count = 0
+		for i = 1, #drawable_entities do
+			local ent = drawable_entities[i]
 			local width = ent.getWidth and ent:getWidth() or 0
 			local height = ent.getHeight and ent:getHeight() or 0
 			local x = ent.pos and ent.pos.x or 0
@@ -92,14 +109,31 @@ local Renderer = Class:new({
 				not (x + width * 0.5 < view_bounds.left or x - width * 0.5 > view_bounds.right or
 					y + height * 0.5 < view_bounds.top or y - height * 0.5 > view_bounds.bottom) then
 				ent:draw()
+				visible_count += 1
+			else
+				culled_count += 1
 			end
+		end
+		if profiler then
+			profiler:observe("layer.render.drawable_entities", #drawable_entities)
+			profiler:observe("layer.render.visible_entities", visible_count)
+			profiler:observe("layer.render.culled_entities", culled_count)
 		end
 	end,
 
 	draw = function(self)
+		self.view_bounds = self.layer.camera:getViewBounds()
+		local profiler = self.layer and self.layer.engine and self.layer.engine.profiler or nil
+		local grid_scope = profiler and profiler:start("layer.render.debug_grid") or nil
 		self:drawDebugGrid()
+		if profiler then profiler:stop(grid_scope) end
+		local map_scope = profiler and profiler:start("layer.render.map") or nil
 		self:drawMap()
+		if profiler then profiler:stop(map_scope) end
+		local entities_scope = profiler and profiler:start("layer.render.entities") or nil
 		self:drawEntities()
+		if profiler then profiler:stop(entities_scope) end
+		self.view_bounds = nil
 	end,
 })
 

@@ -90,7 +90,7 @@ TransformAttachments.attachTo = function(self, parent_transform, slot_name, conf
 		if parent_owner.layer then
 			self.owner.layer = parent_owner.layer
 		end
-		if self.owner.layer and self.owner.layer.refreshAttachmentBucket then
+		if self.owner.is_world_object and self.owner.layer and self.owner.layer.refreshAttachmentBucket then
 			self.owner.layer:refreshAttachmentBucket(self.owner)
 		end
 	end
@@ -136,7 +136,7 @@ TransformAttachments.detach = function(self)
 	if self.owner then
 		self.owner.parent = nil
 		self.owner.parent_slot = nil
-		if self.owner.layer and self.owner.layer.refreshAttachmentBucket then
+		if self.owner.is_world_object and self.owner.layer and self.owner.layer.refreshAttachmentBucket then
 			self.owner.layer:refreshAttachmentBucket(self.owner)
 		end
 	end
