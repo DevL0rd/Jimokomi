@@ -9,7 +9,9 @@ local Timer = Class:new({
 		return (time() - self.start_time) * 1000
 	end,
 	hasElapsed = function(self, targetTime, shouldReset)
-		shouldReset = shouldReset or true
+		if shouldReset == nil then
+			shouldReset = true
+		end
 		local res = self:elapsed() >= targetTime
 		if res and shouldReset then
 			self:reset()

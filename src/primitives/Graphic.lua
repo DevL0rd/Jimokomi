@@ -1,15 +1,20 @@
-local Rectangle = include("src/primitives/Rectangle.lua")
-local Vector = include("src/classes/Vector.lua")
+local WorldObject = include("src/primitives/WorldObject.lua")
 
-local Graphic = Rectangle:new({
+local Graphic = WorldObject:new({
     _type = "Graphic",
+    shape = {
+        kind = "rect",
+        w = 16,
+        h = 16,
+    },
     flip_x = false,
     flip_y = false,
     ignore_physics = true,
+    init = function(self)
+        WorldObject.init(self)
+    end,
     draw_debug = function(self)
-        local x = self.pos.x - self.w / 2
-        local y = self.pos.y - self.h / 2
-        self.layer.gfx:rect(x, y, x + self.w - 1, y + self.h - 1, 32)
+        self:strokeShape(32)
     end,
 })
 

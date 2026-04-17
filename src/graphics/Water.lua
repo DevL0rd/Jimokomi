@@ -12,14 +12,14 @@ local Water = Graphic:new({
 		Graphic.update(self)
 	end,
 	draw = function(self)
-		local x = self.pos.x - self.w / 2
-		local y = self.pos.y - self.h / 2
+		local top_left = self:getTopLeft()
+		local width = self:getWidth()
+		local height = self:getHeight()
 		local time_elapsed_seconds = round(self.animtion_timer:elapsed() / 1000) -- Convert to seconds
 		if time_elapsed_seconds > 5 then
 			self.animtion_timer:reset()                                    -- Reset timer if it exceeds 5 seconds
 		end
-		self.layer.gfx.ProceduralTextures:water(x, y, self.w, self.h, self.seed, time_elapsed_seconds,
-			true)
+		self.layer.gfx:water(top_left.x, top_left.y, width, height, self.seed, time_elapsed_seconds, true)
 		Graphic.draw(self)
 	end
 })

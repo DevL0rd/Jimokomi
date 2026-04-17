@@ -26,13 +26,36 @@ local Camera = {
             initial_intensity = 0,
             intensity = 0,
             duration = -1,
-            timer = Timer:new()
+            timer = Timer:new(),
+            offset = { x = 0, y = 0 }
         }
 
         -- Parallax support
         camera.parallax_factor = config.parallax_factor or Vector:new({ x = 1, y = 1 })
+        camera.view_bounds = {
+            left = 0,
+            top = 0,
+            right = 0,
+            bottom = 0,
+            width = Screen.w,
+            height = Screen.h
+        }
+        camera:updateViewBounds()
 
         return camera
+    end,
+
+    updateViewBounds = function(self)
+        local shake = self.shake.offset
+        local left = (self.pos.x * self.parallax_factor.x) - shake.x
+        local top = (self.pos.y * self.parallax_factor.y) - shake.y
+        self.view_bounds.left = left
+        self.view_bounds.top = top
+        self.view_bounds.right = left + Screen.w
+        self.view_bounds.bottom = top + Screen.h
+        self.view_bounds.width = Screen.w
+        self.view_bounds.height = Screen.h
+        return self.view_bounds
     end,
 
     -- Update camera position and effects
@@ -70,17 +93,21 @@ local Camera = {
                 self.shake.duration = -1
             end
         end
+
+        if self.shake.intensity > 0 then
+            self.shake.offset.x = (rnd(2) - 1) * self.shake.intensity
+            self.shake.offset.y = (rnd(2) - 1) * self.shake.intensity
+        else
+            self.shake.offset.x = 0
+            self.shake.offset.y = 0
+        end
+
+        self:updateViewBounds()
     end,
 
     -- Get current shake offset
     getShakeOffset = function(self)
-        if self.shake.intensity <= 0 then
-            return { x = 0, y = 0 }
-        end
-        return {
-            x = (rnd(2) - 1) * self.shake.intensity,
-            y = (rnd(2) - 1) * self.shake.intensity
-        }
+        return self.shake.offset
     end,
 
     -- Start screen shake effect
@@ -88,6 +115,7 @@ local Camera = {
         intensity = intensity or 5
         duration = duration or -1
         self.shake.initial_intensity = intensity
+        self.shake.intensity = intensity
         self.shake.duration = duration
         if duration ~= -1 then
             self.shake.timer:reset()
@@ -174,28 +202,19 @@ local Camera = {
 
     -- Get camera viewport bounds in layer coordinates
     getViewBounds = function(self)
-        local top_left = self:screenToLayer({ x = 0, y = 0 })
-        local bottom_right = self:screenToLayer({ x = Screen.w, y = Screen.h })
-        return {
-            left = top_left.x,
-            top = top_left.y,
-            right = bottom_right.x,
-            bottom = bottom_right.y,
-            width = bottom_right.x - top_left.x,
-            height = bottom_right.y - top_left.y
-        }
+        return self.view_bounds
     end,
 
     -- Check if a point is visible in the camera viewport
     isPointVisible = function(self, x, y)
-        local bounds = self:getViewBounds()
+        local bounds = self.view_bounds
         return x >= bounds.left and x <= bounds.right and
             y >= bounds.top and y <= bounds.bottom
     end,
 
     -- Check if a rectangle is visible in the camera viewport
     isRectVisible = function(self, x, y, w, h)
-        local bounds = self:getViewBounds()
+        local bounds = self.view_bounds
         return not (x + w < bounds.left or x > bounds.right or
             y + h < bounds.top or y > bounds.bottom)
     end

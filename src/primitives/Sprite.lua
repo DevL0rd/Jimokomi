@@ -3,16 +3,17 @@ local Vector = include("src/classes/Vector.lua")
 
 local Sprite = Graphic:new({
     _type = "Sprite",
+    ignore_collisions = true,
     sprite = -1,
     end_sprite = -1,
     speed = 30,
     loop = true,
+    snapshot_enabled = false,
     _timer = 0,
     _current_frame_idx = 0,
     is_done = false,
     init = function(self)
         Graphic.init(self)
-        self.pos = Vector:new()
     end,
     update = function(self)
         if self.end_sprite < 0 then
@@ -42,6 +43,9 @@ local Sprite = Graphic:new({
         end
         Graphic.update(self)
     end,
+    needsUpdate = function(self)
+        return self.end_sprite >= 0 or self.lifetime ~= -1
+    end,
 
     get_sprite_id = function(self)
         if self.end_sprite < 0 then
@@ -51,8 +55,8 @@ local Sprite = Graphic:new({
     end,
 
     draw = function(self)
-        local x = self.pos.x - self.w / 2
-        local y = self.pos.y - self.h / 2
+        local x = self.pos.x - self:getHalfWidth()
+        local y = self.pos.y - self:getHalfHeight()
         self.layer.gfx:spr(self:get_sprite_id(), x, y, self.flip_x, self.flip_y)
         Graphic.draw(self)
     end,

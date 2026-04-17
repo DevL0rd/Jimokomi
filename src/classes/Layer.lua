@@ -4,46 +4,57 @@ local Screen = include("src/classes/Screen.lua")
 local Graphics = include("src/classes/Graphics.lua")
 local Collision = include("src/classes/Collision.lua")
 local Camera = include("src/classes/Camera.lua")
+local WorldQuery = include("src/classes/WorldQuery.lua")
+local Spawner = include("src/classes/Spawner.lua")
+local TileRegistry = include("src/classes/TileRegistry.lua")
+local Raycast = include("src/classes/Raycast.lua")
+local EventBus = include("src/classes/EventBus.lua")
+local LayerRenderer = include("src/classes/LayerRenderer.lua")
+local LayerSimulation = include("src/classes/LayerSimulation.lua")
+local LayerBuckets = include("src/classes/layer/LayerBuckets.lua")
+local LayerObjects = include("src/classes/layer/LayerObjects.lua")
+local LayerSnapshot = include("src/classes/layer/LayerSnapshot.lua")
 
 local Layer = Class:new({
     _type = "Layer",
     debug = false,
     entities = {},
+    attached_entities = {},
+    physics_entities = {},
+    collidable_entities = {},
+    drawable_entities = {},
     gravity = Vector:new({ y = 200 }),
     friction = 0.5,
     wall_friction = 2,
-    collision_passes = 2,
+    collision_passes = 1,
     running = false,
     layer_id = 0,
     physics_enabled = true,
     map_id = nil,
+    player = nil,
     tile_size = 16, -- Fixed: Match actual map tile size
-    tile_properties = {
-        [0] = { solid = false, name = "empty" },
-        [23] = { solid = true, name = "ground" },
-        [63] = { solid = true, name = "wood" },
-        [53] = { solid = true, name = "wood" },
-        [54] = { solid = true, name = "wood" },
-        [55] = { solid = true, name = "wood" },
-    },
 
     init = function(self)
         self.entities = {}
+        LayerBuckets.reset(self)
+        self.tile_registry = TileRegistry:new()
+        self.tile_registry:registerMany({
+            [0] = { solid = false, name = "empty" },
+            [23] = { solid = true, name = "ground" },
+            [53] = { solid = true, name = "wood" },
+            [54] = { solid = true, name = "wood" },
+            [55] = { solid = true, name = "wood" },
+            [63] = { solid = true, name = "wood" },
+        })
 
-        -- Initialize collision system
         self.collision = Collision:new({
             collision_passes = self.collision_passes,
             wall_friction = self.wall_friction,
             tile_size = self.tile_size,
-            layer_bounds = { x = 0, y = 0, w = self.w or 1024, h = self.h or 512 }
+            layer_bounds = { x = 0, y = 0, w = self.w or 1024, h = self.h or 512 },
+            tile_registry = self.tile_registry,
         })
 
-        -- Transfer tile properties to collision system
-        for tile_id, properties in pairs(self.tile_properties) do
-            self.collision:addTileType(tile_id, properties)
-        end
-
-        -- Initialize camera system
         self.camera = Camera:new({
             pos = Vector:new({ x = 0, y = 0 }),
             offset = Vector:new({ x = Screen.w / 2, y = Screen.h / 2 }),
@@ -54,125 +65,72 @@ local Layer = Class:new({
         self.gfx = Graphics:new({
             camera = self.camera
         })
+
+        self.world = WorldQuery:new({
+            layer = self
+        })
+
+        self.raycast = Raycast:new({
+            layer = self
+        })
+
+        self.spawner = Spawner:new({
+            layer = self,
+            world = self.world
+        })
+
+        self.events = EventBus:new({
+            parent_bus = self.engine and self.engine.events or nil
+        })
+
+        self.renderer = LayerRenderer:new({
+            layer = self
+        })
+
+        self.simulation = LayerSimulation:new({
+            layer = self
+        })
+    end,
+    on = function(self, name, handler)
+        return self.events:on(name, handler)
+    end,
+    once = function(self, name, handler)
+        return self.events:once(name, handler)
+    end,
+    off = function(self, name, handler)
+        return self.events:off(name, handler)
+    end,
+    emit = function(self, name, payload)
+        return self.events:emit(name, payload, true)
     end,
 
     update = function(self)
         if not self.running then
             return
         end
-
-        for i = #self.entities, 1, -1 do
-            local ent = self.entities[i]
-            if not ent._delete then
-                ent:update()
-                if not ent.ignore_physics then
-                    if not ent.ignore_gravity then
-                        ent.vel:add(self.gravity, true)
-                        ent.vel:add(ent.accel, true)
-                    end
-                    if not ent.ignore_friction then
-                        ent.vel:drag(self.friction, true)
-                    end
-                    ent.pos:add(ent.vel, true)
-                end
-            else
-                if ent.unInit then
-                    ent:unInit()
-                end
-                del(self.entities, ent)
-            end
-        end
-
-        -- Update collision system IMMEDIATELY after physics
-        self.collision:setLayerBounds(0, 0, self.w, self.h)
-        self.collision:update(self.entities, self.map_id)
-
-        -- Update camera after collision resolution
-        self.camera:update()
-
-        for _, ent in pairs(self.entities) do
-            if ent.parent then
-                ent.pos.x = ent.parent.pos.x + ent.init_pos.x
-                ent.pos.y = ent.parent.pos.y + ent.init_pos.y
-            end
-        end
+        self.simulation:update()
     end,
 
     draw = function(self)
         if not self.running then
             return
         end
-
-
-        -- Draw grid for this layer if DEBUG is enabled
-        if DEBUG then
-            local grid_size = 16
-            local view_top_left = self.camera:screenToLayer({ x = 0, y = 0 })
-            local view_bottom_right = self.camera:screenToLayer({ x = Screen.w, y = Screen.h })
-
-            local start_x = flr(view_top_left.x / grid_size) * grid_size
-            local start_y = flr(view_top_left.y / grid_size) * grid_size
-
-            -- Use different colors for different layers
-            local grid_color = self.layer_id + 5 -- Different color per layer
-
-            -- Vertical lines
-            for x = start_x, view_bottom_right.x, grid_size do
-                local start_pos = self.camera:layerToScreen({ x = x, y = view_top_left.y })
-                local end_pos = self.camera:layerToScreen({ x = x, y = view_bottom_right.y })
-                line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, grid_color)
-            end
-
-            -- Horizontal lines
-            for y = start_y, view_bottom_right.y, grid_size do
-                local start_pos = self.camera:layerToScreen({ x = view_top_left.x, y = y })
-                local end_pos = self.camera:layerToScreen({ x = view_bottom_right.x, y = y })
-                line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, grid_color)
-            end
-        end
-
-        if self.map_id ~= nil then
-            -- Apply camera transformation for map rendering
-            local shake = self.camera:getShakeOffset()
-            local cam_x = flr(self.camera.pos.x * self.camera.parallax_factor.x + shake.x)
-            local cam_y = flr(self.camera.pos.y * self.camera.parallax_factor.y + shake.y)
-            -- Set camera for map rendering (positive values to scroll map opposite to camera)
-            camera(cam_x, cam_y)
-            map(nil, 0, 0)
-            camera() -- Reset camera
-            -- Debug: Render tile IDs on each visible tile
-            if DEBUG then
-                local view_top_left = self.camera:screenToLayer({ x = 0, y = 0 })
-                local view_bottom_right = self.camera:screenToLayer({ x = Screen.w, y = Screen.h })
-                local tile_size = self.tile_size
-                local start_tile_x = flr(view_top_left.x / tile_size)
-                local end_tile_x = ceil(view_bottom_right.x / tile_size)
-                local start_tile_y = flr(view_top_left.y / tile_size)
-                local end_tile_y = ceil(view_bottom_right.y / tile_size)
-                for tx = start_tile_x, end_tile_x do
-                    for ty = start_tile_y, end_tile_y do
-                        local tile_id = mget(tx, ty)
-                        if tile_id ~= 0 then
-                            local layer_x = tx * tile_size + tile_size / 2
-                            local layer_y = ty * tile_size + tile_size / 2
-                            local screen_pos = self.camera:layerToScreen({ x = layer_x, y = layer_y })
-                            if screen_pos.x >= 0 and screen_pos.x < Screen.w and screen_pos.y >= 0 and screen_pos.y < Screen.h then
-                                print(tile_id, screen_pos.x - 6, screen_pos.y - 4, 7)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-
-        for _, ent in pairs(self.entities) do
-            ent:draw()
-        end
+        self.renderer:draw()
+    end,
+    registerEntityBuckets = function(self, ent)
+        return LayerBuckets.registerEntity(self, ent)
+    end,
+    unregisterEntityBuckets = function(self, ent)
+        return LayerBuckets.unregisterEntity(self, ent)
+    end,
+    refreshAttachmentBucket = function(self, ent)
+        return LayerBuckets.refreshAttachment(self, ent)
     end,
     add = function(self, ent)
-        add(self.entities, ent)
-        ent.debug = ent.debug or self.debug
-        ent.layer = self
+        return LayerObjects.add(self, ent)
+    end,
+    clearObjects = function(self)
+        return LayerObjects.clear(self)
     end,
 
     start = function(self)
@@ -185,6 +143,23 @@ local Layer = Class:new({
 
     setMap = function(self, map_id)
         self.map_id = map_id
+    end,
+
+    setPlayer = function(self, ent)
+        self.player = ent
+    end,
+
+    getPlayer = function(self)
+        return self.player
+    end,
+    getAssets = function(self)
+        return self.engine and self.engine.assets or nil
+    end,
+    toSnapshot = function(self)
+        return LayerSnapshot.toSnapshot(self)
+    end,
+    applySnapshot = function(self, snapshot, registry)
+        return LayerSnapshot.applySnapshot(self, snapshot, registry)
     end,
 })
 

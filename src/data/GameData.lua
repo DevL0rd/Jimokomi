@@ -1,0 +1,202 @@
+local Ecology = include("src/classes/Ecology.lua")
+local WorldQuery = include("src/classes/WorldQuery.lua")
+
+return {
+	world = {
+		size = {
+			w = 16 * 64,
+			h = 16 * 32,
+		},
+		layer = {
+			id = 0,
+			map_id = 0,
+			physics_enabled = true,
+		},
+		spawns = {
+			player = { x = 420, y = 220 },
+			coco = { x = 470, y = 328 },
+			Fly = 6,
+			Worm = 5,
+			Cherry = 8,
+		},
+	},
+	visuals = {
+		Jiji = {
+			run_idle = {
+				shape = { kind = "rect", w = 16, h = 16 },
+				sprite = 64,
+			},
+			run_move = {
+				shape = { kind = "rect", w = 16, h = 16 },
+				sprite = 65,
+				end_sprite = 69,
+				speed = 16,
+			},
+			glide = {
+				shape = { kind = "rect", w = 16, h = 16 },
+				sprite = 70,
+				end_sprite = 71,
+				speed = 6,
+			},
+			climb_vertical_idle = {
+				shape = { kind = "rect", w = 16, h = 16 },
+				sprite = 72,
+			},
+			climb_vertical_move = {
+				shape = { kind = "rect", w = 16, h = 16 },
+				sprite = 73,
+				end_sprite = 74,
+				speed = 12,
+			},
+			climb_horizontal_idle = {
+				shape = { kind = "rect", w = 16, h = 16 },
+				sprite = 80,
+			},
+			climb_horizontal_move = {
+				shape = { kind = "rect", w = 16, h = 16 },
+				sprite = 81,
+				end_sprite = 82,
+				speed = 12,
+			},
+		},
+		Fly = {
+			flying = {
+				shape = { kind = "rect", w = 6, h = 3 },
+				sprite = 0x19,
+				end_sprite = 0x1a,
+				speed = 14,
+			},
+			landed = {
+				shape = { kind = "rect", w = 6, h = 3 },
+				sprite = 24,
+			},
+		},
+		Worm = {
+			crawl = {
+				shape = { kind = "rect", w = 6, h = 1 },
+				offset = { x = 0, y = 6 },
+				sprite = 0x1b,
+				end_sprite = 0x1c,
+				speed = 6,
+			},
+		},
+		CoCo = {
+			sleep = {
+				shape = { kind = "rect", w = 16, h = 16 },
+				sprite = 120,
+				end_sprite = 121,
+				speed = 1,
+			},
+		},
+		Cherry = {
+			idle = {
+				shape = { kind = "rect", w = 10, h = 10 },
+				sprite = 47,
+			},
+		},
+	},
+	entity_config = {
+		Jiji = {
+			visual_key = "Jiji",
+			shape = { kind = "circle", r = 8 },
+			faction = Ecology.Factions.Player,
+			diet = Ecology.Diets.Omnivore,
+			temperament = Ecology.Temperaments.Defensive,
+			player_accel = 180,
+			climb_speed = 120,
+			jump_speed = 120,
+			inventory_size = 16,
+			equipment_slots = { "head", "mouth", "back", "feet", "hands" },
+		},
+		Fly = {
+			visual_key = "Fly",
+			shape = { kind = "circle", r = 2 },
+			edible = true,
+			ignore_physics = true,
+			ignore_gravity = true,
+			ignore_friction = true,
+			faction = Ecology.Factions.Wildlife,
+			diet = Ecology.Diets.Omnivore,
+			temperament = Ecology.Temperaments.Timid,
+			default_action = Ecology.Actions.Wander,
+			faction_actions = {
+				player = Ecology.Actions.Flee,
+			},
+			initial_state = "flying",
+			flight_duration_min = 4800,
+			flight_duration_max = 9600,
+			landed_duration_min = 2400,
+			landed_duration_max = 5200,
+			landing_speed = 85,
+			explore_speed = 32,
+			landing_radius_x = 240,
+			landing_radius_y = 160,
+			flee_radius = 56,
+			flee_speed = 120,
+			flee_anchor_distance = 96,
+			explore_retarget_min = 1200,
+			explore_retarget_max = 3200,
+			eat_radius_padding = 2,
+			spawn_rule = WorldQuery.rules.randomMap({
+				scope = "map",
+				margin = 16,
+				padding = 24,
+				attempts = 24,
+			}),
+			landing_rule = WorldQuery.rules.randomSurface({
+				margin = 16,
+				attempts = 48,
+			}),
+		},
+		Worm = {
+			visual_key = "Worm",
+			shape = { kind = "circle", r = 3 },
+			edible = true,
+			faction = Ecology.Factions.Wildlife,
+			diet = Ecology.Diets.Herbivore,
+			temperament = Ecology.Temperaments.Neutral,
+			default_action = Ecology.Actions.Patrol,
+			faction_actions = {
+				player = Ecology.Actions.Watch,
+			},
+			initial_state = "patrol",
+			move_accel = 70,
+			max_speed = 18,
+			eat_radius_padding = 2,
+			spawn_rule = WorldQuery.rules.randomSurface({
+				scope = "map",
+				margin = 16,
+				padding = 24,
+				attempts = 24,
+			}),
+		},
+		CoCo = {
+			visual_key = "CoCo",
+			shape = { kind = "circle", r = 8 },
+			faction = Ecology.Factions.Wildlife,
+			diet = Ecology.Diets.Herbivore,
+			temperament = Ecology.Temperaments.Passive,
+		},
+		Cherry = {
+			visual_key = "Cherry",
+			shape = { kind = "circle", r = 5 },
+			item_id = "cherry",
+			display_name = "Cherry",
+			ignore_physics = true,
+			ignore_gravity = true,
+			ignore_friction = true,
+			ignore_collisions = true,
+			can_pickup = true,
+			can_use = true,
+			consume_action_name = "eat",
+			max_stack_size = 12,
+			consume_radius_padding = 2,
+			spawn_rule = WorldQuery.rules.randomTile({
+				scope = "map",
+				tile_ids = { 32, 44 },
+				padding = 24,
+				attempts = 24,
+			}),
+		},
+	},
+}

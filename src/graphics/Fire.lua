@@ -15,10 +15,11 @@ local Fire = Graphic:new({
 		Graphic.update(self)
 	end,
 	draw = function(self)
-		local x = self.pos.x - self.w / 2
-		local y = self.pos.y - self.h / 2
+		local top_left = self:getTopLeft()
+		local width = self:getWidth()
+		local height = self:getHeight()
 
-		self.layer.gfx.ProceduralTextures:fire(x, y, self.w, self.h, self.seed, self.time_offset)
+		self.layer.gfx:fire(top_left.x, top_left.y, width, height, self.seed, self.time_offset)
 
 		Graphic.draw(self)
 	end

@@ -8,8 +8,7 @@ local Skybox = Graphic:new({
 	init = function(self)
 		Graphic.init(self)
 		if self.layer then
-			self.w = self.layer.w
-			self.h = self.layer.h
+			self:setRectShape(self.layer.w, self.layer.h)
 			self.pos.x = self.layer.w / 2
 			self.pos.y = self.layer.h / 2
 		end
