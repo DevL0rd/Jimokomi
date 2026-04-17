@@ -1,7 +1,7 @@
 local Ecology = include("src/Game/Ecology/Ecology.lua")
 local WorldObject = include("src/Engine/Objects/WorldObject.lua")
 local Creature = include("src/Game/Mixins/Creature.lua")
-local FlightBehavior = include("src/Game/Locomotion/Autonomous/Flight.lua")
+local Flight = include("src/Game/Actors/Locomotion/Flight.lua")
 
 local Fly = WorldObject:new({
 	_type = "Fly",
@@ -63,7 +63,7 @@ local Fly = WorldObject:new({
 		self.explore_retarget_max = self.explore_retarget_max or 3200
 		WorldObject.init(self)
 		Creature.init(self)
-		self.flight = FlightBehavior:new({
+		self.flight_locomotion = Flight:new({
 			owner = self,
 			explore_speed = self.explore_speed,
 			landing_speed = self.landing_speed,
@@ -83,7 +83,7 @@ local Fly = WorldObject:new({
 		self:playVisual("flying")
 	end,
 
-	onFlightModeChanged = function(self, behavior, mode)
+	onFlightModeChanged = function(self, locomotion, mode)
 		if mode == "landed" then
 			self:playVisual("landed")
 		else
@@ -91,12 +91,12 @@ local Fly = WorldObject:new({
 		end
 	end,
 
-	onFlightFacingChanged = function(self, behavior, facing_right)
+	onFlightFacingChanged = function(self, locomotion, facing_right)
 		self:setVisualFlip(facing_right, false)
 	end,
 
 	afterSpawn = function(self)
-		self.flight:afterSpawn()
+		self.flight_locomotion:afterSpawn()
 	end,
 
 	selectAction = function(self)
@@ -105,13 +105,13 @@ local Fly = WorldObject:new({
 			return Ecology.Actions.Flee, { target = player }
 		end
 		if self:isState("landing") or self:isState("landed") then
-			return Ecology.Actions.Perch, { target = self.flight.landing_target }
+			return Ecology.Actions.Perch, { target = self.flight_locomotion.landing_target }
 		end
-		return Ecology.Actions.Wander, { target = self.flight.explore_target }
+		return Ecology.Actions.Wander, { target = self.flight_locomotion.explore_target }
 	end,
 
 	update_agent = function(self)
-		self.flight:update()
+		self.flight_locomotion:updateAutonomous()
 	end,
 
 	update = function(self)

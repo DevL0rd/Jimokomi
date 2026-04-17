@@ -1,5 +1,5 @@
-local StateMachine = include("src/Game/Mixins/Agent/State.lua")
-local ActionPlanner = include("src/Game/Mixins/Agent/Planner.lua")
+local State = include("src/Game/Mixins/Agent/State.lua")
+local Planner = include("src/Game/Mixins/Agent/Planner.lua")
 local Ecology = include("src/Game/Ecology/Ecology.lua")
 local AgentRelations = include("src/Game/Mixins/Agent/Relations.lua")
 local AgentActions = include("src/Game/Mixins/Agent/Actions.lua")
@@ -23,7 +23,7 @@ end
 
 Agent.init = function(self)
 	Agent.mixin(self)
-	self.ai = StateMachine:new({
+	self.ai = State:new({
 		owner = self,
 		state = self.initial_state or "idle"
 	})
@@ -31,7 +31,7 @@ Agent.init = function(self)
 	self.diet = self.diet or Ecology.Diets.None
 	self.temperament = self.temperament or Ecology.Temperaments.Neutral
 	self.default_action = self.default_action or Ecology.getDefaultActionForTemperament(self.temperament)
-	self.actions = ActionPlanner:new({
+	self.actions = Planner:new({
 		owner = self,
 		action = self.initial_action or self.default_action
 	})

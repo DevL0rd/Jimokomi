@@ -1,7 +1,7 @@
-local Behavior = include("src/Game/Locomotion/Mode.lua")
+local Mode = include("src/Game/Actors/Locomotion/Mode.lua")
 
-local GroundPatrolBehavior = Behavior:new({
-	_type = "GroundPatrolBehavior",
+local GroundPatrol = Mode:new({
+	_type = "GroundPatrol",
 	move_accel = 70,
 	max_speed = 18,
 	direction = -1,
@@ -67,7 +67,7 @@ local GroundPatrolBehavior = Behavior:new({
 		self.owner.vel.y = 0
 	end,
 
-	update = function(self)
+	updateAutonomous = function(self)
 		if not self.owner then
 			return
 		end
@@ -83,4 +83,4 @@ local GroundPatrolBehavior = Behavior:new({
 	end,
 })
 
-return GroundPatrolBehavior
+return GroundPatrol

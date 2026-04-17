@@ -1,8 +1,8 @@
 local Class = include("src/Engine/Core/Class.lua")
 local Screen = include("src/Engine/Core/Screen.lua")
 
-local LayerRenderer = Class:new({
-	_type = "LayerRenderer",
+local Renderer = Class:new({
+	_type = "Renderer",
 	layer = nil,
 
 	drawDebugGrid = function(self)
@@ -103,4 +103,4 @@ local LayerRenderer = Class:new({
 	end,
 })
 
-return LayerRenderer
+return Renderer

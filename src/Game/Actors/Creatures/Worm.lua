@@ -2,7 +2,7 @@ local Vector = include("src/Engine/Math/Vector.lua")
 local Ecology = include("src/Game/Ecology/Ecology.lua")
 local WorldObject = include("src/Engine/Objects/WorldObject.lua")
 local Creature = include("src/Game/Mixins/Creature.lua")
-local GroundPatrolBehavior = include("src/Game/Locomotion/Autonomous/GroundPatrol.lua")
+local GroundPatrol = include("src/Game/Actors/Locomotion/GroundPatrol.lua")
 
 local Worm = WorldObject:new({
 	_type = "Worm",
@@ -45,7 +45,7 @@ local Worm = WorldObject:new({
 		Creature.init(self)
 		self.ignore_gravity = false
 		self.ignore_friction = false
-		self.ground_patrol = GroundPatrolBehavior:new({
+		self.ground_patrol_locomotion = GroundPatrol:new({
 			owner = self,
 			move_accel = self.move_accel,
 			max_speed = self.max_speed,
@@ -75,20 +75,20 @@ local Worm = WorldObject:new({
 		return self:isSolidAt(probe_x, probe_y)
 	end,
 	reverseDirection = function(self)
-		self.ground_patrol:reverseDirection()
+		self.ground_patrol_locomotion:reverseDirection()
 	end,
-	onGroundPatrolDirectionChanged = function(self, behavior, direction)
+	onGroundPatrolDirectionChanged = function(self, locomotion, direction)
 		self:setVisualFlip(direction > 0, false)
 	end,
 	afterSpawn = function(self)
 		self:setState("patrol")
-		self.ground_patrol:afterSpawn()
+		self.ground_patrol_locomotion:afterSpawn()
 	end,
 	selectAction = function(self)
 		return Ecology.Actions.Patrol, {}
 	end,
 	update_agent = function(self)
-		self.ground_patrol:update()
+		self.ground_patrol_locomotion:updateAutonomous()
 	end,
 	update = function(self)
 		if Creature.update(self) == false then

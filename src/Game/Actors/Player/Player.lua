@@ -6,12 +6,12 @@ local Storage = include("src/Game/Mixins/Storage.lua")
 local Ray = include("src/Engine/Objects/Ray.lua")
 local Timer = include("src/Engine/Core/Timer.lua")
 local ParticleEmitter = include("src/Engine/Objects/ParticleEmitter.lua")
-local RunBehavior = include("src/Game/Locomotion/Player/Run.lua")
-local GlideBehavior = include("src/Game/Locomotion/Player/Glide.lua")
-local ClimbBehavior = include("src/Game/Locomotion/Player/Climb.lua")
-local PlayerController = include("src/Game/Actors/Player/Controller.lua")
-local PlayerLocomotion = include("src/Game/Actors/Player/Locomotion.lua")
-local PlayerVisuals = include("src/Game/Actors/Player/Visuals.lua")
+local Run = include("src/Game/Actors/Locomotion/Run.lua")
+local Glide = include("src/Game/Actors/Locomotion/Glide.lua")
+local Climb = include("src/Game/Actors/Locomotion/Climb.lua")
+local Controller = include("src/Game/Actors/Player/Controller.lua")
+local Locomotion = include("src/Game/Actors/Player/Locomotion.lua")
+local Visuals = include("src/Game/Actors/Player/Visuals.lua")
 
 local DIRECTIONS = {
 	up = 0,
@@ -149,30 +149,30 @@ Player.init = function(self)
 	self.did_ground_pound = true
 	self.jump_timer = Timer:new()
 
-	self.run_behavior = RunBehavior:new({
+	self.run_locomotion = Run:new({
 		owner = self,
 		horizontal_accel = self.player_accel,
 	})
-	self.glide_behavior = GlideBehavior:new({
+	self.glide_locomotion = Glide:new({
 		owner = self,
 		horizontal_accel = self.player_accel,
 		lift = 2,
 	})
-	self.climb_behavior = ClimbBehavior:new({
+	self.climb_locomotion = Climb:new({
 		owner = self,
 		speed = self.climb_speed,
 	})
 
-	self.controller = PlayerController:new({
+	self.controller = Controller:new({
 		owner = self,
 		directions = DIRECTIONS,
 	})
-	self.locomotion = PlayerLocomotion:new({
+	self.locomotion = Locomotion:new({
 		owner = self,
 		states = STATES,
 		directions = DIRECTIONS,
 	})
-	self.visuals = PlayerVisuals:new({
+	self.visuals = Visuals:new({
 		owner = self,
 		states = STATES,
 		directions = DIRECTIONS,

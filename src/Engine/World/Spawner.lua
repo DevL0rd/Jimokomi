@@ -5,9 +5,9 @@ local Spawner = Class:new({
 	layer = nil,
 	world = nil,
 
-	spawn = function(self, EntityClass, params, rule, require_offscreen, radius)
+	spawn = function(self, ObjectClass, params, rule, require_offscreen, radius)
 		params = params or {}
-		if not EntityClass or not self.layer then
+		if not ObjectClass or not self.layer then
 			return nil
 		end
 
@@ -24,13 +24,13 @@ local Spawner = Class:new({
 			params.pos = spawn_pos
 		end
 
-		return EntityClass:new(params)
+		return ObjectClass:new(params)
 	end,
 
-	spawnMany = function(self, count, EntityClass, params, rule, require_offscreen, radius)
+	spawnMany = function(self, count, ObjectClass, params, rule, require_offscreen, radius)
 		local spawned = {}
 		for i = 1, count do
-			local ent = self:spawn(EntityClass, params, rule, require_offscreen, radius)
+			local ent = self:spawn(ObjectClass, params, rule, require_offscreen, radius)
 			if ent then
 				add(spawned, ent)
 			end

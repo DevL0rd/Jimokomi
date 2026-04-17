@@ -27,9 +27,9 @@ LayerSnapshot.applySnapshot = function(layer, snapshot, registry)
 
 	local created = {}
 	for _, entity_snapshot in pairs(snapshot.entities or {}) do
-		local EntityClass = registry and registry[entity_snapshot._type] or nil
-		if EntityClass then
-			local ent = EntityClass:new({
+		local ObjectClass = registry and registry[entity_snapshot._type] or nil
+		if ObjectClass then
+			local ent = ObjectClass:new({
 				layer = layer,
 			})
 			if ent.applySnapshot then

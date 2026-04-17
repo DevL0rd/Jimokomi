@@ -1,11 +1,11 @@
-local Behavior = include("src/Game/Locomotion/Mode.lua")
+local Mode = include("src/Game/Actors/Locomotion/Mode.lua")
 
-local RunBehavior = Behavior:new({
-	_type = "RunBehavior",
+local Run = Mode:new({
+	_type = "Run",
 	horizontal_accel = 180,
 	ground_push = 8,
 
-	updateMovement = function(self, input)
+	updateControlled = function(self, input)
 		if not self.owner then
 			return
 		end
@@ -21,4 +21,4 @@ local RunBehavior = Behavior:new({
 	end,
 })
 
-return RunBehavior
+return Run

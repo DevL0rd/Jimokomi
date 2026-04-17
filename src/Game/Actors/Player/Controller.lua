@@ -1,7 +1,7 @@
 local Class = include("src/Engine/Core/Class.lua")
 
-local PlayerController = Class:new({
-	_type = "PlayerController",
+local Controller = Class:new({
+	_type = "Controller",
 	owner = nil,
 	directions = nil,
 
@@ -28,4 +28,4 @@ local PlayerController = Class:new({
 	end,
 })
 
-return PlayerController
+return Controller

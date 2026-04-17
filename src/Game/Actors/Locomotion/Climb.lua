@@ -1,10 +1,10 @@
-local Behavior = include("src/Game/Locomotion/Mode.lua")
+local Mode = include("src/Game/Actors/Locomotion/Mode.lua")
 
-local ClimbBehavior = Behavior:new({
-	_type = "ClimbBehavior",
+local Climb = Mode:new({
+	_type = "Climb",
 	speed = 120,
 
-	updateMovement = function(self, input)
+	updateControlled = function(self, input)
 		if not self.owner then
 			return
 		end
@@ -35,4 +35,4 @@ local ClimbBehavior = Behavior:new({
 	end,
 })
 
-return ClimbBehavior
+return Climb

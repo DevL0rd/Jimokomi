@@ -4,9 +4,9 @@ local EventBus = include("src/Engine/Core/EventBus.lua")
 local DebugOverlay = include("src/Engine/Core/DebugOverlay.lua")
 local SaveSystem = include("src/Engine/Core/SaveSystem.lua")
 
-local EngineServices = {}
+local Services = {}
 
-EngineServices.ensureServices = function(self)
+Services.ensureServices = function(self)
 	if not self.clock then
 		self.clock = FrameClock:new()
 	end
@@ -24,92 +24,92 @@ EngineServices.ensureServices = function(self)
 	end
 end
 
-EngineServices.nextObjectId = function(self)
+Services.nextObjectId = function(self)
 	self.next_object_id += 1
 	return self.next_object_id
 end
 
-EngineServices.on = function(self, name, handler)
+Services.on = function(self, name, handler)
 	self:ensureServices()
 	return self.events:on(name, handler)
 end
 
-EngineServices.once = function(self, name, handler)
+Services.once = function(self, name, handler)
 	self:ensureServices()
 	return self.events:once(name, handler)
 end
 
-EngineServices.off = function(self, name, handler)
+Services.off = function(self, name, handler)
 	if not self.events then
 		return false
 	end
 	return self.events:off(name, handler)
 end
 
-EngineServices.emit = function(self, name, payload)
+Services.emit = function(self, name, payload)
 	self:ensureServices()
 	return self.events:emit(name, payload, false)
 end
 
-EngineServices.appendDebug = function(self, value)
+Services.appendDebug = function(self, value)
 	self:ensureServices()
 	self.debug_buffer:append(value)
 end
 
-EngineServices.clearDebug = function(self)
+Services.clearDebug = function(self)
 	if self.debug_buffer ~= nil then
 		self.debug_buffer:clear()
 	end
 end
 
-EngineServices.registerClass = function(self, class_obj)
+Services.registerClass = function(self, class_obj)
 	self:ensureServices()
 	return self.save_system:registerClass(class_obj)
 end
 
-EngineServices.registerClasses = function(self, classes)
+Services.registerClasses = function(self, classes)
 	self:ensureServices()
 	return self.save_system:registerClasses(classes)
 end
 
-EngineServices.saveSnapshot = function(self, snapshot, filename, snapshot_type)
+Services.saveSnapshot = function(self, snapshot, filename, snapshot_type)
 	self:ensureServices()
 	return self.save_system:saveSnapshot(snapshot, filename, snapshot_type)
 end
 
-EngineServices.loadSnapshot = function(self, filename)
+Services.loadSnapshot = function(self, filename)
 	self:ensureServices()
 	return self.save_system:loadSnapshot(filename)
 end
 
-EngineServices.saveObject = function(self, obj, filename)
+Services.saveObject = function(self, obj, filename)
 	self:ensureServices()
 	return self.save_system:saveObject(obj, filename)
 end
 
-EngineServices.loadObject = function(self, filename)
+Services.loadObject = function(self, filename)
 	self:ensureServices()
 	return self.save_system:loadObject(filename)
 end
 
-EngineServices.save = function(self, filename)
+Services.save = function(self, filename)
 	self:ensureServices()
 	return self.save_system:saveEngine(self, filename)
 end
 
-EngineServices.load = function(self, filename)
+Services.load = function(self, filename)
 	self:ensureServices()
 	return self.save_system:loadEngine(self, filename)
 end
 
-EngineServices.saveExists = function(self, filename)
+Services.saveExists = function(self, filename)
 	self:ensureServices()
 	return self.save_system:saveExists(filename)
 end
 
-EngineServices.getSaveInfo = function(self, filename)
+Services.getSaveInfo = function(self, filename)
 	self:ensureServices()
 	return self.save_system:getSaveInfo(filename)
 end
 
-return EngineServices
+return Services

@@ -1,13 +1,13 @@
-local Behavior = include("src/Game/Locomotion/Mode.lua")
+local Mode = include("src/Game/Actors/Locomotion/Mode.lua")
 
-local SwimBehavior = Behavior:new({
-	_type = "SwimBehavior",
+local Swim = Mode:new({
+	_type = "Swim",
 	horizontal_accel = 90,
 	vertical_accel = 70,
 	buoyancy = 18,
 	drag = 0.1,
 
-	updateMovement = function(self, input)
+	updateControlled = function(self, input)
 		if not self.owner then
 			return
 		end
@@ -32,4 +32,4 @@ local SwimBehavior = Behavior:new({
 	end,
 })
 
-return SwimBehavior
+return Swim

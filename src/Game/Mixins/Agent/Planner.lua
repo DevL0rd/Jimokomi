@@ -1,7 +1,7 @@
 local Class = include("src/Engine/Core/Class.lua")
 
-local ActionPlanner = Class:new({
-	_type = "ActionPlanner",
+local Planner = Class:new({
+	_type = "Planner",
 	owner = nil,
 	action = "idle",
 	previous_action = nil,
@@ -41,4 +41,4 @@ local ActionPlanner = Class:new({
 	end,
 })
 
-return ActionPlanner
+return Planner

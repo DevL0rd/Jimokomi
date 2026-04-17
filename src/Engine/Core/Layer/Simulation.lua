@@ -1,7 +1,7 @@
 local Class = include("src/Engine/Core/Class.lua")
 
-local LayerSimulation = Class:new({
-	_type = "LayerSimulation",
+local Simulation = Class:new({
+	_type = "Simulation",
 	layer = nil,
 
 	syncAttachments = function(self)
@@ -73,4 +73,4 @@ local LayerSimulation = Class:new({
 	end,
 })
 
-return LayerSimulation
+return Simulation

@@ -1,10 +1,10 @@
-local Behavior = include("src/Game/Locomotion/Mode.lua")
+local Mode = include("src/Game/Actors/Locomotion/Mode.lua")
 local Timer = include("src/Engine/Core/Timer.lua")
 local Vector = include("src/Engine/Math/Vector.lua")
 local Ecology = include("src/Game/Ecology/Ecology.lua")
 
-local FlightBehavior = Behavior:new({
-	_type = "FlightBehavior",
+local Flight = Mode:new({
+	_type = "Flight",
 	state_names = {
 		flying = "flying",
 		landing = "landing",
@@ -340,7 +340,7 @@ local FlightBehavior = Behavior:new({
 		end
 	end,
 
-	update = function(self)
+	updateAutonomous = function(self)
 		if self:isMode("landing") then
 			self:updateLanding()
 		elseif self:isMode("landed") then
@@ -351,4 +351,4 @@ local FlightBehavior = Behavior:new({
 	end,
 })
 
-return FlightBehavior
+return Flight

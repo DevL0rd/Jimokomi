@@ -1,7 +1,7 @@
 local Class = include("src/Engine/Core/Class.lua")
 
-local StateMachine = Class:new({
-	_type = "StateMachine",
+local State = Class:new({
+	_type = "State",
 	owner = nil,
 	state = "idle",
 	previous_state = nil,
@@ -47,4 +47,4 @@ local StateMachine = Class:new({
 	end,
 })
 
-return StateMachine
+return State

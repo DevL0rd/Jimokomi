@@ -7,8 +7,8 @@ local Camera = include("src/Engine/Core/Camera.lua")
 local World = include("src/Engine/World/World.lua")
 local TileRegistry = include("src/Engine/World/TileRegistry.lua")
 local EventBus = include("src/Engine/Core/EventBus.lua")
-local LayerRenderer = include("src/Engine/Core/Layer/Renderer.lua")
-local LayerSimulation = include("src/Engine/Core/Layer/Simulation.lua")
+local Renderer = include("src/Engine/Core/Layer/Renderer.lua")
+local Simulation = include("src/Engine/Core/Layer/Simulation.lua")
 local LayerBuckets = include("src/Engine/Core/Layer/Buckets.lua")
 local LayerObjects = include("src/Engine/Core/Layer/Objects.lua")
 local LayerSnapshot = include("src/Engine/Core/Layer/Snapshot.lua")
@@ -72,11 +72,11 @@ local Layer = Class:new({
             parent_bus = self.engine and self.engine.events or nil
         })
 
-        self.renderer = LayerRenderer:new({
+        self.renderer = Renderer:new({
             layer = self
         })
 
-        self.simulation = LayerSimulation:new({
+        self.simulation = Simulation:new({
             layer = self
         })
     end,

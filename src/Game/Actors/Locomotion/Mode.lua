@@ -1,7 +1,7 @@
 local Class = include("src/Engine/Core/Class.lua")
 
-local Behavior = Class:new({
-	_type = "Behavior",
+local Mode = Class:new({
+	_type = "Mode",
 	owner = nil,
 
 	notify = function(self, method_name, ...)
@@ -24,6 +24,12 @@ local Behavior = Class:new({
 		end
 		return self.owner:getPlayer()
 	end,
+
+	updateControlled = function(self, input)
+	end,
+
+	updateAutonomous = function(self)
+	end,
 })
 
-return Behavior
+return Mode

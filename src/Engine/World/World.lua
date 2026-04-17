@@ -40,11 +40,11 @@ local World = Class:new({
 	castRay = function(self, ray)
 		return self.raycast:cast(ray)
 	end,
-	spawn = function(self, EntityClass, params, rule, require_offscreen, radius)
-		return self.spawner:spawn(EntityClass, params, rule, require_offscreen, radius)
+	spawn = function(self, ObjectClass, params, rule, require_offscreen, radius)
+		return self.spawner:spawn(ObjectClass, params, rule, require_offscreen, radius)
 	end,
-	spawnMany = function(self, count, EntityClass, params, rule, require_offscreen, radius)
-		return self.spawner:spawnMany(count, EntityClass, params, rule, require_offscreen, radius)
+	spawnMany = function(self, count, ObjectClass, params, rule, require_offscreen, radius)
+		return self.spawner:spawnMany(count, ObjectClass, params, rule, require_offscreen, radius)
 	end,
 })
 

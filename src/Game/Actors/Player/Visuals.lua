@@ -1,7 +1,7 @@
 local Class = include("src/Engine/Core/Class.lua")
 
-local PlayerVisuals = Class:new({
-	_type = "PlayerVisuals",
+local Visuals = Class:new({
+	_type = "Visuals",
 	owner = nil,
 	states = nil,
 	directions = nil,
@@ -50,4 +50,4 @@ local PlayerVisuals = Class:new({
 	end,
 })
 
-return PlayerVisuals
+return Visuals

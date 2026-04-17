@@ -3,7 +3,7 @@ local Particle = include("src/Engine/Objects/Particle.lua")
 local Vector = include("src/Engine/Math/Vector.lua")
 
 local zzz = Particle:new({
-    _type = "Particle",
+    _type = "zzz",
     lifetime = 3000,
     draw = function(self)
         -- Draw the letter z floating away scaling down

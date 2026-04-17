@@ -1,7 +1,7 @@
 local Class = include("src/Engine/Core/Class.lua")
 
-local PlayerLocomotion = Class:new({
-	_type = "PlayerLocomotion",
+local Locomotion = Class:new({
+	_type = "Locomotion",
 	owner = nil,
 	states = nil,
 	directions = nil,
@@ -97,15 +97,15 @@ local PlayerLocomotion = Class:new({
 		self.owner.ignore_gravity = false
 
 		if self.owner.state == self.states.Climbing then
-			self.owner.climb_behavior:updateMovement(input)
+			self.owner.climb_locomotion:updateControlled(input)
 			return
 		end
 
-		self.owner.climb_behavior:stop()
+		self.owner.climb_locomotion:stop()
 
 		if self.owner.state == self.states.Running then
 			if is_moving then
-				self.owner.run_behavior:updateMovement(input)
+				self.owner.run_locomotion:updateControlled(input)
 				self.owner.runEmitter.vec.x = -self.owner.vel.x * 0.2
 				self.owner.runEmitter.vec.y = -30
 				self.owner.runEmitter:on()
@@ -115,9 +115,9 @@ local PlayerLocomotion = Class:new({
 
 		if self.owner.state == self.states.Gliding then
 			self.owner.did_ground_pound = false
-			self.owner.glide_behavior:updateMovement(input)
+			self.owner.glide_locomotion:updateControlled(input)
 		end
 	end,
 })
 
-return PlayerLocomotion
+return Locomotion

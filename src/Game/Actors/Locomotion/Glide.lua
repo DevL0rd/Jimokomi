@@ -1,11 +1,11 @@
-local Behavior = include("src/Game/Locomotion/Mode.lua")
+local Mode = include("src/Game/Actors/Locomotion/Mode.lua")
 
-local GlideBehavior = Behavior:new({
-	_type = "GlideBehavior",
+local Glide = Mode:new({
+	_type = "Glide",
 	horizontal_accel = 180,
 	lift = 2,
 
-	updateMovement = function(self, input)
+	updateControlled = function(self, input)
 		if not self.owner then
 			return
 		end
@@ -21,4 +21,4 @@ local GlideBehavior = Behavior:new({
 	end,
 })
 
-return GlideBehavior
+return Glide
