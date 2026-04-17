@@ -1,95 +1,83 @@
+local Screen = include("src/Engine/Core/Screen.lua")
 local ProceduralSprite = include("src/Engine/Objects/ProceduralSprite.lua")
+local Wave = include("src/Engine/Math/Wave.lua")
 
 local Skybox = ProceduralSprite:new({
 	_type = "Skybox",
+	seed = 24680,
 	sprite = 0,
-	length = 8,
-	fps = 8 / 60,
+	length = 1,
+	fps = 0,
 	loop = true,
 	cache_procedural_sprite = true,
 	procedural_sprite_cache_mode = "surface",
 	procedural_sprite_cache_key = "skybox",
-	layer = nil,
+	draw_behind_map = true,
+	debug = false,
+	inherit_layer_debug = false,
+	ignore_collisions = true,
+	cycle_duration = 120,
+	cache_refresh_hz = 4,
+
 	init = function(self)
 		ProceduralSprite.init(self)
 		if self.layer then
 			self:setRectShape(self.layer.w, self.layer.h)
-			self.pos.x = self.layer.w / 2
-			self.pos.y = self.layer.h / 2
+			self.pos.x = self.layer.w * 0.5
+			self.pos.y = self.layer.h * 0.5
 		end
 	end,
-	update = function(self)
-		ProceduralSprite.update(self)
+
+	getSkyPhase = function(self)
+		local duration = max(1, self.cycle_duration or 90)
+		return (time() % duration) / duration
 	end,
-	get_time_of_day = function(self, frame_index)
-		local frame_count = max(1, self:getProceduralSpriteLength())
-		if frame_count <= 1 then
-			return 0
+
+	getSkyCacheFrame = function(self)
+		local refresh_hz = max(1, self.cache_refresh_hz or 4)
+		return flr(time() * refresh_hz)
+	end,
+
+	drawSky = function(self, target, w, h, phase)
+		local horizon_wave = Wave.sine01(phase * 6.28318 + self.seed * 0.0001)
+		local horizon_y = flr(h * (0.58 + (horizon_wave - 0.5) * 0.05))
+		local haze_band_y = max(0, horizon_y - 12)
+		local lower_band_h = max(1, h - horizon_y)
+
+		target:drawVerticalGradient(0, 0, w, horizon_y, 1, 1)
+		target:drawVerticalGradient(0, horizon_y, w, lower_band_h, 1, 2)
+
+		for y = haze_band_y, min(h - 1, horizon_y + 8), 2 do
+			target:line(0, y, w - 1, y, 2)
 		end
-		return (frame_index or 0) / (frame_count - 1)
 	end,
-	get_sky_colors = function(self, frame_index)
-		local time = self:get_time_of_day(frame_index)
 
-		-- Define color phases for different times of day
-		local colors = {
-			-- Dawn colors (0.2 - 0.3)
-			dawn_top = 1, -- Dark blue
-			dawn_bottom = 9, -- Orange
-
-			-- Day colors (0.4 - 0.6)
-			day_top = 12, -- Light blue
-			day_bottom = 7, -- White/light cyan
-
-			-- Dusk colors (0.7 - 0.8)
-			dusk_top = 2, -- Purple
-			dusk_bottom = 8, -- Red
-
-			-- Night colors (0.9 - 0.1)
-			night_top = 0, -- Black
-			night_bottom = 1 -- Dark blue
-		}
-
-		local top_color, bottom_color
-
-		if time >= 0 and time < 0.2 then
-			-- Night to dawn transition
-			local t = time / 0.2
-			top_color = colors.night_top
-			bottom_color = colors.night_bottom
-		elseif time >= 0.2 and time < 0.3 then
-			-- Dawn
-			top_color = colors.dawn_top
-			bottom_color = colors.dawn_bottom
-		elseif time >= 0.3 and time < 0.4 then
-			-- Dawn to day transition
-			top_color = colors.day_top
-			bottom_color = colors.day_bottom
-		elseif time >= 0.4 and time < 0.6 then
-			-- Day
-			top_color = colors.day_top
-			bottom_color = colors.day_bottom
-		elseif time >= 0.6 and time < 0.7 then
-			-- Day to dusk transition
-			top_color = colors.day_top
-			bottom_color = colors.day_bottom
-		elseif time >= 0.7 and time < 0.8 then
-			-- Dusk
-			top_color = colors.dusk_top
-			bottom_color = colors.dusk_bottom
-		elseif time >= 0.8 and time < 1.0 then
-			-- Dusk to night transition
-			local t = (time - 0.8) / 0.2
-			top_color = colors.night_top
-			bottom_color = colors.night_bottom
+	drawBackground = function(self, layer)
+		if not layer or not layer.gfx then
+			return
 		end
-
-		return top_color, bottom_color
+		local gfx = layer.gfx
+		local phase = self:getSkyPhase()
+		local cache_frame = self:getSkyCacheFrame()
+		gfx:drawCachedScreen(
+			"skybox.background:" .. Screen.w .. ":" .. Screen.h .. ":" .. cache_frame,
+			0,
+			0,
+			function(target)
+				self:drawSky(target, Screen.w, Screen.h, phase)
+			end,
+			{
+				w = Screen.w,
+				h = Screen.h,
+				cache_mode = "surface",
+				clear_color = 0,
+			}
+		)
 	end,
+
 	drawProceduralSprite = function(self, target, w, h, frame_id, frame_index)
-		local top_color, bottom_color = self:get_sky_colors(frame_index)
-		target:drawVerticalGradient(0, 0, w, h, top_color, bottom_color)
-	end
+		self:drawSky(target, w, h, self:getSkyPhase())
+	end,
 })
 
 return Skybox

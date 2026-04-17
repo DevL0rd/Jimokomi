@@ -20,6 +20,7 @@ local WorldObject = Class:new({
 	stroke_color = -1,
 	fill_color = -1,
 	debug = false,
+	inherit_layer_debug = true,
 	snapshot_enabled = true,
 	lifetime = -1,
 	ignore_physics = false,

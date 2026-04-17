@@ -5,6 +5,15 @@ local Renderer = Class:new({
 	_type = "Renderer",
 	layer = nil,
 
+	drawBackground = function(self)
+		local layer = self.layer
+		local background = layer and layer.background or nil
+		if not background or not background.drawBackground then
+			return
+		end
+		background:drawBackground(layer)
+	end,
+
 	drawDebugGrid = function(self)
 		if not self.layer.debug then
 			return
@@ -112,7 +121,7 @@ local Renderer = Class:new({
 		end
 	end,
 
-	drawEntities = function(self)
+	drawEntities = function(self, behind_map)
 		local view_bounds = self.view_bounds or self.layer.camera:getViewBounds()
 		local profiler = self.layer and self.layer.engine and self.layer.engine.profiler or nil
 		local drawable_entities = self.layer.drawable_entities
@@ -120,6 +129,10 @@ local Renderer = Class:new({
 		local culled_count = 0
 		for i = 1, #drawable_entities do
 			local ent = drawable_entities[i]
+			local ent_behind_map = ent.draw_behind_map == true
+			if (behind_map == true and not ent_behind_map) or (behind_map ~= true and ent_behind_map) then
+				goto continue
+			end
 			local width = ent.getWidth and ent:getWidth() or 0
 			local height = ent.getHeight and ent:getHeight() or 0
 			local x = ent.pos and ent.pos.x or 0
@@ -132,8 +145,9 @@ local Renderer = Class:new({
 			else
 				culled_count += 1
 			end
+			::continue::
 		end
-		if profiler then
+		if profiler and behind_map ~= true then
 			profiler:observe("layer.render.drawable_entities", #drawable_entities)
 			profiler:observe("layer.render.visible_entities", visible_count)
 			profiler:observe("layer.render.culled_entities", culled_count)
@@ -143,14 +157,20 @@ local Renderer = Class:new({
 	draw = function(self)
 		self.view_bounds = self.layer.camera:getViewBounds()
 		local profiler = self.layer and self.layer.engine and self.layer.engine.profiler or nil
+		local background_scope = profiler and profiler:start("layer.render.background") or nil
+		self:drawBackground()
+		if profiler then profiler:stop(background_scope) end
 		local grid_scope = profiler and profiler:start("layer.render.debug_grid") or nil
 		self:drawDebugGrid()
 		if profiler then profiler:stop(grid_scope) end
+		local behind_scope = profiler and profiler:start("layer.render.entities_behind_map") or nil
+		self:drawEntities(true)
+		if profiler then profiler:stop(behind_scope) end
 		local map_scope = profiler and profiler:start("layer.render.map") or nil
 		self:drawMap()
 		if profiler then profiler:stop(map_scope) end
 		local entities_scope = profiler and profiler:start("layer.render.entities") or nil
-		self:drawEntities()
+		self:drawEntities(false)
 		if profiler then profiler:stop(entities_scope) end
 		self.view_bounds = nil
 	end,

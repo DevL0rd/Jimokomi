@@ -56,6 +56,8 @@ local function boot_game()
 	Engine:ensureServices()
 	Engine.w = 16 * 64
 	Engine.h = 16 * 32
+	Engine.fill_color = 1
+	Engine.stroke_color = 5
 	local layer = Engine:createLayer(0, true, 0)
 	layer.debug = GAME_DEBUG
 	layer.gfx:setRenderCacheEnabled(true)
@@ -91,6 +93,7 @@ local function boot_game()
 	world:spawnMany(8, Cherry, { layer = layer })
 	world:spawn(Water, {
 		layer = layer,
+		debug = false,
 		pos = Vector:new({ x = Engine.w * 0.5, y = Engine.h * 0.5 }),
 		shape = {
 			kind = "rect",

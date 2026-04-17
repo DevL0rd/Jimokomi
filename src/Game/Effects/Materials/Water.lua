@@ -11,12 +11,11 @@ local Water = ProceduralSprite:new({
 	cache_procedural_sprite = true,
 	procedural_sprite_cache_mode = "command",
 	procedural_sprite_cache_key = "water",
+	debug = false,
+	inherit_layer_debug = false,
 	ignore_collisions = true,
 	init = function(self)
 		ProceduralSprite.init(self)
-	end,
-	update = function(self)
-		ProceduralSprite.update(self)
 	end,
 	drawProceduralSprite = function(self, target, w, h, frame_id, frame_index)
 		local phase01 = Wave.cycle01(frame_index or 0, self:getProceduralSpriteLength())
