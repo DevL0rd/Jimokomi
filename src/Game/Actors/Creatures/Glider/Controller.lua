@@ -6,13 +6,14 @@ local Controller = Class:new({
 	directions = nil,
 
 	getPlayerInputState = function(self)
-		return {
-			left = btn(0),
-			right = btn(1),
-			up = btn(2),
-			down = btn(3),
-			jump = btn(4),
-		}
+		self.player_input_state = self.player_input_state or {}
+		local input = self.player_input_state
+		input.left = btn(0)
+		input.right = btn(1)
+		input.up = btn(2)
+		input.down = btn(3)
+		input.jump = btn(4)
+		return input
 	end,
 
 	getInputState = function(self)

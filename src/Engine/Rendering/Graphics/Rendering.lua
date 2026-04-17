@@ -4,6 +4,23 @@ local function to_screen(gfx, x, y)
 	return gfx.camera:layerToScreenXY(x, y)
 end
 
+local function build_screen_target(gfx)
+	return {
+		line = function(_, x1, y1, x2, y2, color)
+			gfx:screenLine(x1, y1, x2, y2, color)
+		end,
+		rect = function(_, x1, y1, x2, y2, color)
+			gfx:screenRect(x1, y1, x2, y2, color)
+		end,
+		rectfill = function(_, x1, y1, x2, y2, color)
+			gfx:screenRectfill(x1, y1, x2, y2, color)
+		end,
+		print = function(_, text, x, y, color)
+			gfx:screenPrint(text, x, y, color)
+		end,
+	}
+end
+
 Rendering.drawHorizontalGradient = function(gfx, x, y, w, h, left_color, right_color)
 	local sx, sy = to_screen(gfx, x, y)
 	for i = 0, w - 1 do
@@ -70,7 +87,7 @@ Rendering.drawSpeckles = function(gfx, x, y, w, h, colors, seed, density)
 	end
 end
 
-Rendering.drawSparkline = function(gfx, values, x, y, w, h, color, max_value)
+Rendering.drawSparklineToTarget = function(target, values, x, y, w, h, color, max_value)
 	if not values or #values == 0 or w <= 1 or h <= 1 then
 		return
 	end
@@ -92,14 +109,18 @@ Rendering.drawSparkline = function(gfx, values, x, y, w, h, color, max_value)
 		local px = x + flr(t * (w - 1))
 		local py = y + h - 1 - flr((values[i] / limit) * (h - 1))
 		if prev_x ~= nil then
-			gfx:screenLine(prev_x, prev_y, px, py, color)
+			target:line(prev_x, prev_y, px, py, color)
 		end
 		prev_x = px
 		prev_y = py
 	end
 end
 
-Rendering.drawBarChart = function(gfx, entries, x, y, w, bar_h, colors, max_value)
+Rendering.drawSparkline = function(gfx, values, x, y, w, h, color, max_value)
+	Rendering.drawSparklineToTarget(build_screen_target(gfx), values, x, y, w, h, color, max_value)
+end
+
+Rendering.drawBarChartToTarget = function(target, entries, x, y, w, bar_h, colors, max_value)
 	if not entries or #entries == 0 then
 		return
 	end
@@ -122,49 +143,55 @@ Rendering.drawBarChart = function(gfx, entries, x, y, w, bar_h, colors, max_valu
 		local bar_color = entry.color or (colors and colors.bar) or 11
 		local frame_color = colors and colors.frame or 5
 		local text = entry.label or "?"
-		gfx:screenPrint(text, x, row_y, label_color)
+		target:print(text, x, row_y, label_color)
 		local label_w = #text * 4 + 6
 		local bar_x = x + label_w
 		local bar_w = max(8, w - label_w - 26)
 		local fill_w = flr((min(entry.value or 0, limit) / limit) * bar_w)
-		gfx:screenRect(bar_x, row_y, bar_x + bar_w, row_y + bar_h, frame_color)
+		target:rect(bar_x, row_y, bar_x + bar_w, row_y + bar_h, frame_color)
 		if fill_w > 0 then
-			gfx:screenRectfill(bar_x + 1, row_y + 1, bar_x + fill_w - 1, row_y + bar_h - 1, bar_color)
+			target:rectfill(bar_x + 1, row_y + 1, bar_x + fill_w - 1, row_y + bar_h - 1, bar_color)
 		end
 		local value_text = entry.value_text or tostr(flr((entry.value or 0) * 100) / 100)
-		gfx:screenPrint(value_text, bar_x + bar_w + 4, row_y, label_color)
+		target:print(value_text, bar_x + bar_w + 4, row_y, label_color)
 	end
 end
 
-Rendering.drawPerfPanel = function(gfx, profiler, x, y, w)
+Rendering.drawBarChart = function(gfx, entries, x, y, w, bar_h, colors, max_value)
+	Rendering.drawBarChartToTarget(build_screen_target(gfx), entries, x, y, w, bar_h, colors, max_value)
+end
+
+Rendering.appendPerfPanelCommands = function(gfx, target, profiler, x, y, w)
 	if not profiler then
 		return y
 	end
 	local entries = profiler.last_report_entries or {}
 	local history_by_scope = profiler.history_by_scope or {}
 	if #entries == 0 then
-		gfx:screenPrint("perf: collecting...", x, y, 6)
+		target:print("perf: collecting...", x, y, 6)
 		return y + 6
 	end
 
-	gfx:screenPrint("perf", x, y, 10)
+	target:print("perf", x, y, 10)
 	local top_entries = {}
 	local top_count = min(4, #entries)
 	local max_total = 0
 	for i = 1, top_count do
 		local entry = entries[i]
-		local panel_value = entry.total_ms > 0 and entry.total_ms or entry.hz or entry.calls or 0
+		local panel_value = entry.total_cpu > 0 and entry.total_cpu or entry.total_ms > 0 and entry.total_ms or entry.hz or entry.calls or 0
 		add(top_entries, {
 			label = entry.name,
 			value = panel_value,
-			value_text = entry.total_ms > 0 and (tostr(flr(entry.total_ms * 100) / 100) .. "ms") or (tostr(flr((entry.hz or 0) * 10) / 10) .. "hz"),
+			value_text = entry.total_cpu > 0 and (tostr(flr(entry.total_cpu * 1000) / 1000) .. "cpu") or
+				entry.total_ms > 0 and (tostr(flr(entry.total_ms * 100) / 100) .. "ms") or
+				(tostr(flr((entry.hz or 0) * 10) / 10) .. "hz"),
 			color = i == 1 and 8 or i == 2 and 9 or i == 3 and 11 or 10,
 		})
 		if panel_value > max_total then
 			max_total = panel_value
 		end
 	end
-	Rendering.drawBarChart(gfx, top_entries, x, y + 7, w, 4, {
+	Rendering.drawBarChartToTarget(target, top_entries, x, y + 7, w, 4, {
 		label = 7,
 		bar = 11,
 		frame = 5,
@@ -176,14 +203,18 @@ Rendering.drawPerfPanel = function(gfx, profiler, x, y, w)
 		local history = history_by_scope[entry.name]
 		local color = top_entries[i].color
 		local row_y = chart_y + (i - 1) * 10
-		gfx:screenPrint(entry.name, x, row_y, color)
-		gfx:screenRect(x + 40, row_y, x + w - 1, row_y + 7, 5)
+		target:print(entry.name, x, row_y, color)
+		target:rect(x + 40, row_y, x + w - 1, row_y + 7, 5)
 		if history and #history > 0 then
-			Rendering.drawSparkline(gfx, history, x + 41, row_y + 1, w - 42, 6, color, max_total)
+			Rendering.drawSparklineToTarget(target, history, x + 41, row_y + 1, w - 42, 6, color, max_total)
 		end
 	end
 
 	return chart_y + top_count * 10
+end
+
+Rendering.drawPerfPanel = function(gfx, profiler, x, y, w)
+	return Rendering.appendPerfPanelCommands(gfx, build_screen_target(gfx), profiler, x, y, w)
 end
 
 return Rendering

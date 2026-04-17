@@ -1,5 +1,14 @@
 local WorldSenses = {}
 
+local function get_sound_key(sound)
+	if not sound or not sound.source then
+		return nil
+	end
+	local source = sound.source
+	local source_id = source.object_id or tostr(source)
+	return tostr(source_id) .. ":" .. tostr(sound.type or "idle")
+end
+
 WorldSenses.getFrameId = function(self)
 	return flr(time() * 60)
 end
@@ -81,6 +90,10 @@ WorldSenses.pruneSounds = function(self, max_age_ms)
 	for i = #self.recent_sounds, 1, -1 do
 		local sound = self.recent_sounds[i]
 		if not sound or (now - sound.created_at) * 1000 > age_limit then
+			local key = get_sound_key(sound)
+			if key and self.recent_sound_lookup and self.recent_sound_lookup[key] == sound then
+				self.recent_sound_lookup[key] = nil
+			end
 			deli(self.recent_sounds, i)
 		end
 	end
@@ -92,6 +105,7 @@ WorldSenses.emitSound = function(self, source, sound_type, radius, pos)
 	end
 	local profiler = self.layer and self.layer.engine and self.layer.engine.profiler or nil
 	self.recent_sounds = self.recent_sounds or {}
+	self.recent_sound_lookup = self.recent_sound_lookup or {}
 	self:pruneSounds()
 	local sound = {
 		source = source,
@@ -100,7 +114,28 @@ WorldSenses.emitSound = function(self, source, sound_type, radius, pos)
 		pos = { x = pos.x, y = pos.y },
 		created_at = time(),
 	}
-	add(self.recent_sounds, sound)
+	local key = get_sound_key(sound)
+	local existing = key and self.recent_sound_lookup[key] or nil
+	if existing then
+		existing.radius = radius
+		existing.pos.x = pos.x
+		existing.pos.y = pos.y
+		existing.created_at = sound.created_at
+		sound = existing
+	else
+		add(self.recent_sounds, sound)
+		if key then
+			self.recent_sound_lookup[key] = sound
+		end
+		local limit = self.sound_queue_limit or 24
+		while #self.recent_sounds > limit do
+			local oldest = deli(self.recent_sounds, 1)
+			local oldest_key = get_sound_key(oldest)
+			if oldest_key and self.recent_sound_lookup[oldest_key] == oldest then
+				self.recent_sound_lookup[oldest_key] = nil
+			end
+		end
+	end
 	if profiler then
 		profiler:addCounter("world.senses.sounds_emitted", 1)
 		profiler:observe("world.senses.sound_queue_size", #self.recent_sounds)

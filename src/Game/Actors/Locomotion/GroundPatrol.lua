@@ -136,6 +136,25 @@ local GroundPatrol = Mode:new({
 			self.owner.vel.x = mid(-self.max_speed, self.owner.vel.x, self.max_speed)
 		end
 	end,
+
+	updateControlled = function(self, input)
+		if not self.owner then
+			return
+		end
+
+		local move_dir = 0
+		if input.left then
+			move_dir = -1
+		elseif input.right then
+			move_dir = 1
+		end
+
+		if move_dir ~= 0 then
+			self:setDirection(move_dir)
+			self.owner.vel.x += move_dir * self.move_accel * _dt
+			self.owner.vel.x = mid(-self.max_speed, self.owner.vel.x, self.max_speed)
+		end
+	end,
 })
 
 return GroundPatrol

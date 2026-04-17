@@ -62,7 +62,8 @@ local Layer = Class:new({
         })
 
         self.gfx = Graphics:new({
-            camera = self.camera
+            camera = self.camera,
+            profiler = self.engine and self.engine.profiler or nil,
         })
 
         self.world = World:new({
@@ -142,6 +143,15 @@ local Layer = Class:new({
     end,
 
     setMap = function(self, map_id)
+        if self.map_id ~= map_id and self.collision and self.collision.tile_queries and self.collision.tile_queries.invalidateSolidRowSpans then
+            self.collision.tile_queries:invalidateSolidRowSpans(map_id)
+        end
+        if self.map_id ~= map_id and self.world then
+            self.world.sampling_cache = {}
+        end
+        if self.map_id ~= map_id and self.gfx and self.gfx.clearRenderCache then
+            self.gfx:clearRenderCache()
+        end
         self.map_id = map_id
     end,
 

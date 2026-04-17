@@ -28,6 +28,10 @@ local EmitterNode = AttachmentNode:new({
 		self.waiting_time = self.rate
 	end,
 
+	needsNodeUpdate = function(self)
+		return self.state == true
+	end,
+
 	getHalfWidth = function(self)
 		return ((self.shape and self.shape.w) or 0) * 0.5
 	end,
@@ -46,6 +50,10 @@ local EmitterNode = AttachmentNode:new({
 	end,
 
 	spawnParticle = function(self)
+		local profiler = self.layer and self.layer.engine and self.layer.engine.profiler or nil
+		if profiler then
+			profiler:addCounter("render.emitter_node.particles_spawned", 1)
+		end
 		local particle_size = self.particle_size + random_int(-self.particle_size_variation, self.particle_size_variation)
 		if particle_size < 1 then
 			particle_size = 1
@@ -68,6 +76,10 @@ local EmitterNode = AttachmentNode:new({
 	end,
 
 	updateNode = function(self)
+		local profiler = self.layer and self.layer.engine and self.layer.engine.profiler or nil
+		if profiler and self.state then
+			profiler:addCounter("render.emitter_node.active", 1)
+		end
 		if self.state and self.spawn_timer:hasElapsed(self.waiting_time) then
 			self.waiting_time = self.rate + random_int(-self.rate_variation, self.rate_variation)
 			if self.waiting_time < 1 then

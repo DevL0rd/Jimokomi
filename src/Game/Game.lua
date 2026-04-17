@@ -1,13 +1,15 @@
 local Engine = include("src/Engine/Core/Engine.lua")
-local Player = include("src/Game/Actors/Player/Player.lua")
-local Party = include("src/Game/Actors/Player/Party.lua")
-local Hud = include("src/Game/Actors/Player/Hud.lua")
+local Glider = include("src/Game/Actors/Creatures/Glider/Glider.lua")
+local Party = include("src/Game/Actors/Creatures/Glider/Party.lua")
+local Hud = include("src/Game/Actors/Creatures/Glider/Hud.lua")
 local Fly = include("src/Game/Actors/Creatures/Fly.lua")
 local Worm = include("src/Game/Actors/Creatures/Worm.lua")
 local Cherry = include("src/Game/Actors/Items/Food/Cherry.lua")
+local Water = include("src/Game/Effects/Materials/Water.lua")
 local Vector = include("src/Engine/Math/Vector.lua")
 
 local runtime_error_path = "/appdata/jimokomi_runtime_error.txt"
+local GAME_DEBUG = true
 
 local Game = {}
 local runtime = {
@@ -47,12 +49,16 @@ local function safe_phase(phase, fn)
 end
 
 local function boot_game()
+	Engine.debug = GAME_DEBUG
+	Engine.profiler_enabled = true
+	Engine.debug_overlay_enabled = GAME_DEBUG
+	Engine.debug_guides_enabled = GAME_DEBUG
 	Engine:ensureServices()
-	Engine.debug = false
 	Engine.w = 16 * 64
 	Engine.h = 16 * 32
 	local layer = Engine:createLayer(0, true, 0)
-	layer.debug = false
+	layer.debug = GAME_DEBUG
+	layer.gfx:setRenderCacheEnabled(true)
 	local world = layer.world
 	local party = Party:new({
 		layer = layer,
@@ -60,28 +66,38 @@ local function boot_game()
 	runtime.party = party
 	runtime.hud = Hud:new({
 		party = party,
+		gfx = layer.gfx,
 	})
 
-	local player_specs = {
+	local glider_specs = {
 		{ name = "coco", x = 388, y = 220 },
 		{ name = "mimi", x = 420, y = 220 },
 		{ name = "jiji", x = 452, y = 220 },
 		{ name = "momo", x = 484, y = 220 },
 	}
-	for i = 1, #player_specs do
-		local spec = player_specs[i]
-		local player = world:spawn(Player, {
+	for i = 1, #glider_specs do
+		local spec = glider_specs[i]
+		local glider = world:spawn(Glider, {
 			layer = layer,
 			display_name = spec.name,
 			pos = Vector:new({ x = spec.x, y = spec.y }),
 		})
-		party:addPlayer(player)
+		party:addPlayer(glider)
 	end
 	party:setActiveIndex(3)
 
 	world:spawnMany(6, Fly, { layer = layer })
 	world:spawnMany(5, Worm, { layer = layer })
 	world:spawnMany(8, Cherry, { layer = layer })
+	world:spawn(Water, {
+		layer = layer,
+		pos = Vector:new({ x = Engine.w * 0.5, y = Engine.h * 0.5 }),
+		shape = {
+			kind = "rect",
+			w = 96,
+			h = 56,
+		},
+	})
 	Engine:start()
 end
 

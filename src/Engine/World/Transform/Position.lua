@@ -38,7 +38,8 @@ TransformPosition.setWorldPosition = function(self, pos)
 	self.position.y = pos and pos.y or 0
 
 	if self:isAttached() then
-		local anchor = self.attachment.parent_transform:getSlotWorldPosition(self.attachment.slot_name)
+		self.world_anchor = self.world_anchor or Vector:new()
+		local anchor = self.attachment.parent_transform:getSlotWorldPosition(self.attachment.slot_name, self.world_anchor)
 		self.local_position.x = self.position.x - anchor.x
 		self.local_position.y = self.position.y - anchor.y
 		self.attachment.offset = self.local_position

@@ -16,9 +16,20 @@ local Particle = WorldObject:new({
         self.initial_radius = self:getRadius()
     end,
     update = function(self)
+        local profiler = self.layer and self.layer.engine and self.layer.engine.profiler or nil
+        if profiler then
+            profiler:addCounter("render.particle.updated", 1)
+        end
         local d = 1 - self.percent_expired
         self:setCircleShape(self.initial_radius * d)
         WorldObject.update(self)
+    end,
+    draw = function(self)
+        local profiler = self.layer and self.layer.engine and self.layer.engine.profiler or nil
+        if profiler then
+            profiler:addCounter("render.particle.draws", 1)
+        end
+        WorldObject.draw(self)
     end
 })
 

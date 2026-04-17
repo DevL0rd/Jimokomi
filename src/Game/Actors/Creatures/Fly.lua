@@ -3,6 +3,7 @@ local WorldObject = include("src/Engine/Objects/WorldObject.lua")
 local Creature = include("src/Game/Mixins/Creature.lua")
 local Item = include("src/Game/Mixins/Item.lua")
 local Flight = include("src/Game/Actors/Locomotion/Flight.lua")
+local Controller = include("src/Game/Actors/Creatures/Glider/Controller.lua")
 
 local Fly = WorldObject:new({
 	_type = "Fly",
@@ -33,7 +34,7 @@ local Fly = WorldObject:new({
 	temperament = Ecology.Temperaments.Timid,
 	default_action = Ecology.Actions.Wander,
 	vision_range = 84,
-	hearing_range = 96,
+	hearing_range = 32,
 	action_plan_interval_ms = 250,
 	perception_interval_ms = 500,
 	sound_update_interval_ms = 500,
@@ -106,6 +107,15 @@ local Fly = WorldObject:new({
 			landing_radius_x = self.landing_radius_x,
 			landing_radius_y = self.landing_radius_y,
 		})
+		self.controller = Controller:new({
+			owner = self,
+			directions = {
+				up = 0,
+				down = 1,
+				left = 2,
+				right = 3,
+			},
+		})
 		self:playVisual("flying")
 	end,
 
@@ -141,6 +151,11 @@ local Fly = WorldObject:new({
 	end,
 
 	update_agent = function(self)
+		if self:isPlayerControlled() and self.controller then
+			local input = self.controller:getPlayerInputState()
+			self.flight_locomotion:updateControlled(input)
+			return
+		end
 		self.flight_locomotion:updateAutonomous()
 	end,
 

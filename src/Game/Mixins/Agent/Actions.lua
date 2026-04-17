@@ -31,6 +31,9 @@ AgentActions.selectAction = function(self)
 end
 
 AgentActions.updateActionPlan = function(self)
+	if self.isPlayerControlled and self:isPlayerControlled() then
+		return
+	end
 	if self.action_plan_timer and not self.action_plan_timer:hasElapsed(self.action_plan_interval_ms or 250) then
 		return
 	end

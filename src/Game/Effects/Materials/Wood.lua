@@ -1,8 +1,15 @@
-local Material = include("src/Game/Effects/Materials/Material.lua")
+local ProceduralSprite = include("src/Engine/Objects/ProceduralSprite.lua")
 
-local Wood = Material:new({
+local Wood = ProceduralSprite:new({
 	_type = "Wood",
 	seed = 13579,
+	sprite = 0,
+	length = 1,
+	fps = 0,
+	loop = true,
+	cache_procedural_sprite = true,
+	procedural_sprite_cache_mode = "surface",
+	procedural_sprite_cache_key = "wood",
 	shape = {
 		kind = "rect",
 		w = 16,
@@ -10,17 +17,16 @@ local Wood = Material:new({
 	},
 	ignore_physics = false,
 	init = function(self)
-		Material.init(self)
+		ProceduralSprite.init(self)
 	end,
 	update = function(self)
-		Material.update(self)
+		ProceduralSprite.update(self)
 	end,
-	drawMaterial = function(self, gfx, x, y, w, h)
-		gfx:drawHorizontalGradient(x, y, w, h, 4, 9)
-		gfx:drawDitheredGradient(x, y, w, h, 4, 15, 0x6666)
+	drawProceduralSprite = function(self, target, w, h, frame_id, frame_index)
+		target:drawHorizontalGradient(0, 0, w, h, 4, 9)
+		target:drawDitheredGradient(0, 0, w, h, 4, 15, 0x6666)
 		for i = 2, w - 1, 4 do
-			local sx, sy = gfx.camera:layerToScreenXY(x + i, y)
-			line(sx, sy, sx, sy + h - 1, 1)
+			target:line(i, 0, i, h - 1, 1)
 		end
 	end
 })

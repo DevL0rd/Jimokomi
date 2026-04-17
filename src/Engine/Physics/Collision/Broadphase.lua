@@ -13,7 +13,50 @@ end
 CollisionBroadphase.new = function(config)
 	local self = config or {}
 	self.cell_size = self.cell_size or 32
+	self.bucket_rows = self.bucket_rows or {}
+	self.active_buckets = self.active_buckets or {}
+	self.bucket_stamp = self.bucket_stamp or 0
+	self.visited_pairs = self.visited_pairs or {}
+	self.pair_stamp = self.pair_stamp or 0
 	return setmetatable(self, { __index = CollisionBroadphase })
+end
+
+local function get_bucket(self, cell_x, cell_y)
+	local row = self.bucket_rows[cell_y]
+	if not row then
+		row = {}
+		self.bucket_rows[cell_y] = row
+	end
+	local bucket = row[cell_x]
+	if not bucket then
+		bucket = { stamp = 0 }
+		row[cell_x] = bucket
+	end
+	return bucket
+end
+
+local function begin_bucket_collection(self)
+	self.bucket_stamp += 1
+	self.pair_stamp += 1
+	clear_array(self.active_buckets)
+end
+
+local function has_visited_pair(self, entity_a_index, entity_b_index)
+	local low = entity_a_index
+	local high = entity_b_index
+	if low > high then
+		low, high = high, low
+	end
+	local visited_row = self.visited_pairs[low]
+	if not visited_row then
+		visited_row = {}
+		self.visited_pairs[low] = visited_row
+	end
+	if visited_row[high] == self.pair_stamp then
+		return true
+	end
+	visited_row[high] = self.pair_stamp
+	return false
 end
 
 CollisionBroadphase.canEntitiesInteract = function(self, entity_a, entity_b)
@@ -58,11 +101,13 @@ CollisionBroadphase.addEntityToBuckets = function(self, buckets, entity, index)
 
 	for cell_y = top, bottom do
 		for cell_x = left, right do
-			local key = cell_x .. ":" .. cell_y
-			if not buckets[key] then
-				buckets[key] = {}
+			local bucket = get_bucket(self, cell_x, cell_y)
+			if bucket.stamp ~= self.bucket_stamp then
+				clear_array(bucket)
+				bucket.stamp = self.bucket_stamp
+				add(self.active_buckets, bucket)
 			end
-			add(buckets[key], index)
+			add(bucket, index)
 		end
 	end
 end
@@ -128,7 +173,7 @@ CollisionBroadphase.canEntitiesGenerateContact = function(self, entity_a, entity
 	return overlap_interest
 end
 
-CollisionBroadphase.collectBucketPairs = function(self, entities, bucket, visited)
+CollisionBroadphase.collectBucketPairs = function(self, entities, bucket)
 	local profiler = self.profiler
 	if profiler then
 		profiler:observe("collision.broadphase.bucket_size", #bucket)
@@ -142,17 +187,9 @@ CollisionBroadphase.collectBucketPairs = function(self, entities, bucket, visite
 
 		for j = i + 1, #bucket do
 			local entity_b_index = bucket[j]
-			local pair_key
-			if entity_a_index < entity_b_index then
-				pair_key = entity_a_index .. ":" .. entity_b_index
-			else
-				pair_key = entity_b_index .. ":" .. entity_a_index
-			end
-
-			if visited[pair_key] then
+			if has_visited_pair(self, entity_a_index, entity_b_index) then
 				goto continue_b
 			end
-			visited[pair_key] = true
 			if profiler then
 				profiler:addCounter("collision.broadphase.pairs_considered", 1)
 			end
@@ -186,28 +223,24 @@ CollisionBroadphase.collectBucketPairs = function(self, entities, bucket, visite
 end
 
 CollisionBroadphase.collectEntityCollisions = function(self, entities)
-	local buckets = {}
-	local visited = {}
 	local profiler = self.profiler
+	begin_bucket_collection(self)
 
 	for index = 1, #entities do
 		local entity = entities[index]
 		if not entity.ignore_collisions then
-			self:addEntityToBuckets(buckets, entity, index)
+			self:addEntityToBuckets(nil, entity, index)
 		end
 	end
 	if profiler then
-		local bucket_count = 0
-		for _ in pairs(buckets) do
-			bucket_count += 1
-		end
-		profiler:observe("collision.broadphase.bucket_count", bucket_count)
+		profiler:observe("collision.broadphase.bucket_count", #self.active_buckets)
 		profiler:observe("collision.broadphase.entities", #entities)
 	end
 
-	for _, bucket in pairs(buckets) do
+	for i = 1, #self.active_buckets do
+		local bucket = self.active_buckets[i]
 		if #bucket > 1 then
-			self:collectBucketPairs(entities, bucket, visited)
+			self:collectBucketPairs(entities, bucket)
 		end
 	end
 end

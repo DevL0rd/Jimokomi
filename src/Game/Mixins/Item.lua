@@ -1,4 +1,5 @@
 local VisualOwner = include("src/Engine/Mixins/VisualOwner.lua")
+local Timer = include("src/Engine/Core/Timer.lua")
 local ItemStacks = include("src/Game/Mixins/Item/Stacks.lua")
 local ItemInteractions = include("src/Game/Mixins/Item/Interactions.lua")
 local ItemVisuals = include("src/Game/Mixins/Item/Visuals.lua")
@@ -31,6 +32,8 @@ Item.init = function(self)
 	self.can_place = self.can_place or false
 	self.can_drop = self.can_drop ~= false
 	self.pickup_on_touch = self.pickup_on_touch == true
+	self.touch_pickup_interval_ms = self.touch_pickup_interval_ms or 120
+	self.touch_pickup_timer = self.touch_pickup_timer or Timer:new()
 	self.pickup_radius_padding = self.pickup_radius_padding or 0
 	self.destroy_on_pickup = self.destroy_on_pickup ~= false
 	self.pickup_action_name = self.pickup_action_name or "pickup"
@@ -46,7 +49,7 @@ Item.init = function(self)
 end
 
 Item.update = function(self)
-	if self.pickup_on_touch and self.tryTouchPickup then
+	if self.pickup_on_touch and self.tryTouchPickup and self.touch_pickup_timer and self.touch_pickup_timer:hasElapsed(self.touch_pickup_interval_ms or 120) then
 		self:tryTouchPickup()
 	end
 	return true

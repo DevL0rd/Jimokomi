@@ -9,10 +9,10 @@ local EmitterNode = include("src/Engine/Nodes/EmitterNode.lua")
 local Run = include("src/Game/Actors/Locomotion/Run.lua")
 local Glide = include("src/Game/Actors/Locomotion/Glide.lua")
 local Climb = include("src/Game/Actors/Locomotion/Climb.lua")
-local Autonomy = include("src/Game/Actors/Player/Autonomy.lua")
-local Controller = include("src/Game/Actors/Player/Controller.lua")
-local Locomotion = include("src/Game/Actors/Player/Locomotion.lua")
-local Visuals = include("src/Game/Actors/Player/Visuals.lua")
+local Autonomy = include("src/Game/Actors/Creatures/Glider/Autonomy.lua")
+local Controller = include("src/Game/Actors/Creatures/Glider/Controller.lua")
+local Locomotion = include("src/Game/Actors/Creatures/Glider/Locomotion.lua")
+local Visuals = include("src/Game/Actors/Creatures/Glider/Visuals.lua")
 
 local DIRECTIONS = {
 	up = 0,
@@ -32,8 +32,8 @@ local CONTROL_MODES = {
 	Autonomous = "autonomous",
 }
 
-local Player = WorldObject:new({
-	_type = "Player",
+local Glider = WorldObject:new({
+	_type = "Glider",
 	shape = {
 		kind = "circle",
 		r = 8,
@@ -288,7 +288,7 @@ local Player = WorldObject:new({
 	end,
 })
 
-Player.init = function(self)
+Glider.init = function(self)
 	self.player_accel = self.player_accel or 180
 	self.climb_speed = self.climb_speed or 120
 	self.jump_speed = self.jump_speed or 120
@@ -362,10 +362,10 @@ Player.init = function(self)
 	self.runEmitter = EmitterNode:new({
 		parent = self,
 		parent_slot = "feet",
-		rate = 10,
-		rate_variation = 50,
-		particle_lifetime = 500,
-		particle_lifetime_variation = 100,
+		rate = 90,
+		rate_variation = 20,
+		particle_lifetime = 220,
+		particle_lifetime_variation = 40,
 		pos = Vector:new(),
 		shape = {
 			kind = "rect",
@@ -376,4 +376,4 @@ Player.init = function(self)
 	})
 end
 
-return Player
+return Glider

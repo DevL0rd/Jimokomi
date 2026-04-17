@@ -340,6 +340,47 @@ local Flight = Mode:new({
 		end
 	end,
 
+	updateControlled = function(self, input)
+		local owner = self.owner
+		if not owner then
+			return
+		end
+
+		self.landing_target = nil
+		self:setMode("flying")
+
+		local dx = 0
+		local dy = 0
+		if input.left then
+			dx -= 1
+			owner.direction = 2
+		end
+		if input.right then
+			dx += 1
+			owner.direction = 3
+		end
+		if input.up then
+			dy -= 1
+			owner.direction = 0
+		end
+		if input.down then
+			dy += 1
+			owner.direction = 1
+		end
+
+		if dx ~= 0 or dy ~= 0 then
+			local dist = sqrt(dx * dx + dy * dy)
+			dx /= dist
+			dy /= dist
+			owner.pos.x += dx * self.explore_speed * _dt
+			owner.pos.y += dy * self.explore_speed * _dt
+			self:setFacingRight(dx > 0)
+			self:setAnchorPosition(owner.pos)
+			self.explore_target.x = owner.pos.x
+			self.explore_target.y = owner.pos.y
+		end
+	end,
+
 	updateAutonomous = function(self)
 		if self:isMode("landing") then
 			self:updateLanding()

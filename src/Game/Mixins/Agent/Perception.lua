@@ -5,26 +5,23 @@ local AgentPerception = {}
 
 local function get_facing_vector(self)
 	local direction = self.direction
-	if self._type == "Player" then
-		if direction == 2 then
-			return -1, 0
-		end
-		if direction == 3 then
-			return 1, 0
-		end
-		if direction == 0 then
-			return 0, -1
-		end
-		if direction == 1 then
-			return 0, 1
-		end
-	else
-		if direction == -1 then
-			return -1, 0
-		end
-		if direction == 1 then
-			return 1, 0
-		end
+	if direction == 2 then
+		return -1, 0
+	end
+	if direction == 3 then
+		return 1, 0
+	end
+	if direction == 0 then
+		return 0, -1
+	end
+	if direction == 1 then
+		return 0, 1
+	end
+	if direction == -1 then
+		return -1, 0
+	end
+	if direction == 1 then
+		return 1, 0
 	end
 	if self.vel then
 		if abs(self.vel.x) > abs(self.vel.y) and abs(self.vel.x) > 1 then
@@ -118,20 +115,36 @@ AgentPerception.getSeenTarget = function(self)
 	if not self.layer then
 		return nil
 	end
+	local own_faction = self.getFaction and self:getFaction() or self.faction
 	local closest = nil
 	local closest_dist2 = nil
-	for i = 1, #self.layer.entities do
-		local candidate = self.layer.entities[i]
-		if self:canPerceiveFaction(candidate) and self:canSeeTarget(candidate) then
-			local dx = candidate.pos.x - self.pos.x
-			local dy = candidate.pos.y - self.pos.y
-			local dist2 = dx * dx + dy * dy
-			if closest_dist2 == nil or dist2 < closest_dist2 then
-				closest = candidate
-				closest_dist2 = dist2
+	local buckets = self.layer.entities_by_faction
+
+	local function consider_bucket(bucket)
+		for i = 1, #(bucket or {}) do
+			local candidate = bucket[i]
+			if self:canPerceiveFaction(candidate) and self:canSeeTarget(candidate) then
+				local dx = candidate.pos.x - self.pos.x
+				local dy = candidate.pos.y - self.pos.y
+				local dist2 = dx * dx + dy * dy
+				if closest_dist2 == nil or dist2 < closest_dist2 then
+					closest = candidate
+					closest_dist2 = dist2
+				end
 			end
 		end
 	end
+
+	if buckets then
+		for faction, bucket in pairs(buckets) do
+			if faction ~= own_faction then
+				consider_bucket(bucket)
+			end
+		end
+	else
+		consider_bucket(self.layer.entities)
+	end
+
 	return closest
 end
 

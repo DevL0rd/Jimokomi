@@ -24,7 +24,7 @@ WorldObjectEvents.emitEvent = function(self, name, payload)
 end
 
 WorldObjectEvents.hasCollisionEnterInterest = function(self)
-	return self.debug == true or
+	return self.debug_collision_interest == true or
 		self.on_collision ~= WorldObjectEvents.on_collision or
 		self.on_collision_enter ~= WorldObjectEvents.on_collision_enter or
 		has_event_listener(self, "object.collision")
@@ -103,7 +103,7 @@ WorldObjectEvents.didRemoveFromLayer = function(self, layer)
 end
 
 WorldObjectEvents.on_collision = function(self, ent, vector)
-	if self.debug then
+	if self.debug_collision_interest == true then
 		local collision_scale = 10
 		local end_x = self.pos.x + (vector.x * collision_scale)
 		local end_y = self.pos.y + (vector.y * collision_scale)

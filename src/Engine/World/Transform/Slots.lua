@@ -89,12 +89,12 @@ TransformSlots.getSlotLocalPosition = function(self, name)
 	return slot and slot.pos or Vector:new()
 end
 
-TransformSlots.getSlotWorldPosition = function(self, name)
+TransformSlots.getSlotWorldPosition = function(self, name, out_pos)
 	local slot_pos = self:getSlotLocalPosition(name)
-	return Vector:new({
-		x = self.position.x + slot_pos.x,
-		y = self.position.y + slot_pos.y,
-	})
+	local out = out_pos or Vector:new()
+	out.x = self.position.x + slot_pos.x
+	out.y = self.position.y + slot_pos.y
+	return out
 end
 
 TransformSlots.isSlotEnabled = function(self, name)

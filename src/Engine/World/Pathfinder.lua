@@ -26,6 +26,85 @@ local function default_heuristic(from_node, goal_node)
 	return 0
 end
 
+local function is_higher_priority(entry_a, entry_b)
+	if entry_a.f == entry_b.f then
+		return entry_a.g > entry_b.g
+	end
+	return entry_a.f < entry_b.f
+end
+
+local function heap_swap(heap, a_index, b_index)
+	local a_entry = heap[a_index]
+	local b_entry = heap[b_index]
+	heap[a_index] = b_entry
+	heap[b_index] = a_entry
+	a_entry.heap_index = b_index
+	b_entry.heap_index = a_index
+end
+
+local function sift_up(heap, index)
+	while index > 1 do
+		local parent_index = flr(index / 2)
+		if not is_higher_priority(heap[index], heap[parent_index]) then
+			break
+		end
+		heap_swap(heap, index, parent_index)
+		index = parent_index
+	end
+end
+
+local function sift_down(heap, index)
+	local heap_size = #heap
+	while true do
+		local left_index = index * 2
+		local right_index = left_index + 1
+		local best_index = index
+		if left_index <= heap_size and is_higher_priority(heap[left_index], heap[best_index]) then
+			best_index = left_index
+		end
+		if right_index <= heap_size and is_higher_priority(heap[right_index], heap[best_index]) then
+			best_index = right_index
+		end
+		if best_index == index then
+			break
+		end
+		heap_swap(heap, index, best_index)
+		index = best_index
+	end
+end
+
+local function heap_push(heap, entry)
+	add(heap, entry)
+	entry.heap_index = #heap
+	sift_up(heap, entry.heap_index)
+	return entry
+end
+
+local function heap_pop(heap)
+	local heap_size = #heap
+	if heap_size == 0 then
+		return nil
+	end
+	local root = heap[1]
+	local last = heap[heap_size]
+	heap[heap_size] = nil
+	if heap_size > 1 then
+		heap[1] = last
+		last.heap_index = 1
+		sift_down(heap, 1)
+	end
+	root.heap_index = nil
+	return root
+end
+
+local function heap_update(heap, entry)
+	if not entry or not entry.heap_index then
+		return
+	end
+	sift_up(heap, entry.heap_index)
+	sift_down(heap, entry.heap_index)
+end
+
 local Pathfinder = Class:new({
 	_type = "Pathfinder",
 
@@ -104,16 +183,16 @@ local Pathfinder = Class:new({
 			return nil, { iterations = 0, found = false, error = "missing node key" }
 		end
 
-		local open = {
-			{
-				node = start_node,
-				key = start_key,
-				g = 0,
-				f = self:getHeuristic(start_node, goal_node, options),
-			}
+		local open = {}
+		local start_entry = {
+			node = start_node,
+			key = start_key,
+			g = 0,
+			f = self:getHeuristic(start_node, goal_node, options),
 		}
+		heap_push(open, start_entry)
 		local open_lookup = {
-			[start_key] = true,
+			[start_key] = start_entry,
 		}
 		local closed = {}
 		local came_from = {
@@ -129,19 +208,7 @@ local Pathfinder = Class:new({
 		local iterations = 0
 		while #open > 0 and iterations < max_iterations do
 			iterations += 1
-
-			local best_index = 1
-			local best_entry = open[1]
-			for i = 2, #open do
-				local entry = open[i]
-				if entry.f < best_entry.f then
-					best_index = i
-					best_entry = entry
-				end
-			end
-
-			local current = best_entry
-			del(open, current)
+			local current = heap_pop(open)
 			open_lookup[current.key] = nil
 
 			if current.key == goal_key or self:isGoal(current.node, goal_node, options) then
@@ -178,24 +245,21 @@ local Pathfinder = Class:new({
 						}
 
 						local estimate = tentative_score + self:getHeuristic(neighbor, goal_node, options)
-						if open_lookup[neighbor_key] then
-							for j = 1, #open do
-								local open_entry = open[j]
-								if open_entry.key == neighbor_key then
-									open_entry.node = neighbor
-									open_entry.g = tentative_score
-									open_entry.f = estimate
-									break
-								end
-							end
+						local open_entry = open_lookup[neighbor_key]
+						if open_entry then
+							open_entry.node = neighbor
+							open_entry.g = tentative_score
+							open_entry.f = estimate
+							heap_update(open, open_entry)
 						else
-							add(open, {
+							open_entry = {
 								node = neighbor,
 								key = neighbor_key,
 								g = tentative_score,
 								f = estimate,
-							})
-							open_lookup[neighbor_key] = true
+							}
+							heap_push(open, open_entry)
+							open_lookup[neighbor_key] = open_entry
 						end
 					end
 				end

@@ -23,7 +23,10 @@ Services.ensureServices = function(self)
 	if not self.profiler then
 		self.profiler = Profiler:new()
 	end
-	if self.debug and not self.debug_overlay then
+	if self.profiler and self.profiler.setEnabled then
+		self.profiler:setEnabled(self.profiler_enabled ~= false)
+	end
+	if self.debug_overlay_enabled and not self.debug_overlay then
 		self.debug_overlay = DebugOverlay:new()
 	end
 end

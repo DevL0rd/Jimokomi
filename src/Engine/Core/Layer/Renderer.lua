@@ -6,34 +6,38 @@ local Renderer = Class:new({
 	layer = nil,
 
 	drawDebugGrid = function(self)
-		if not DEBUG then
+		if not self.layer.debug then
 			return
 		end
 
 		local layer = self.layer
 		local grid_size = 16
 		local camera_obj = layer.camera
-		local view_bounds = self.view_bounds or camera_obj:getViewBounds()
-
-		local start_x = flr(view_bounds.left / grid_size) * grid_size
-		local start_y = flr(view_bounds.top / grid_size) * grid_size
 		local grid_color = layer.layer_id + 5
 		local profiler = layer and layer.engine and layer.engine.profiler or nil
-		local line_count = 0
-
-		for x = start_x, view_bounds.right, grid_size do
-			local sx1, sy1 = camera_obj:layerToScreenXY(x, view_bounds.top)
-			local sx2, sy2 = camera_obj:layerToScreenXY(x, view_bounds.bottom)
-			line(sx1, sy1, sx2, sy2, grid_color)
-			line_count += 1
-		end
-
-		for y = start_y, view_bounds.bottom, grid_size do
-			local sx1, sy1 = camera_obj:layerToScreenXY(view_bounds.left, y)
-			local sx2, sy2 = camera_obj:layerToScreenXY(view_bounds.right, y)
-			line(sx1, sy1, sx2, sy2, grid_color)
-			line_count += 1
-		end
+		local origin_sx, origin_sy = camera_obj:layerToScreenXY(0, 0)
+		local offset_x = ((flr(origin_sx) % grid_size) + grid_size) % grid_size
+		local offset_y = ((flr(origin_sy) % grid_size) + grid_size) % grid_size
+		local vertical_lines = flr((Screen.w - offset_x + grid_size - 1) / grid_size) + 1
+		local horizontal_lines = flr((Screen.h - offset_y + grid_size - 1) / grid_size) + 1
+		local line_count = vertical_lines + horizontal_lines
+		layer.gfx:drawCachedScreen(
+			"debug_grid:" .. grid_size .. ":" .. grid_color .. ":" .. offset_x .. ":" .. offset_y,
+			0,
+			0,
+			function(target)
+				for sx = offset_x, Screen.w, grid_size do
+					target:line(sx, 0, sx, Screen.h, grid_color)
+				end
+				for sy = offset_y, Screen.h, grid_size do
+					target:line(0, sy, Screen.w, sy, grid_color)
+				end
+			end,
+			{
+				w = Screen.w,
+				h = Screen.h,
+			}
+		)
 		if profiler then
 			profiler:observe("layer.render.debug_grid_lines", line_count)
 		end
@@ -47,46 +51,61 @@ local Renderer = Class:new({
 
 		local tile_size = layer.tile_size
 		local camera_obj = layer.camera
-		local view_bounds = self.view_bounds or camera_obj:getViewBounds()
-		local start_tile_x = max(0, flr(view_bounds.left / tile_size))
-		local end_tile_x = max(start_tile_x, ceil(view_bounds.right / tile_size))
-		local start_tile_y = max(0, flr(view_bounds.top / tile_size))
-		local end_tile_y = max(start_tile_y, ceil(view_bounds.bottom / tile_size))
-		local visible_tiles_w = end_tile_x - start_tile_x + 1
-		local visible_tiles_h = end_tile_y - start_tile_y + 1
-		local profiler = layer and layer.engine and layer.engine.profiler or nil
-		if profiler then
-			profiler:observe("layer.render.visible_tiles", visible_tiles_w * visible_tiles_h)
-		end
-
 		local transform = camera_obj:getRenderTransform()
 		local cam_x = flr(transform.x)
 		local cam_y = flr(transform.y)
-
-		camera(cam_x, cam_y)
+		local start_tile_x = max(0, flr(cam_x / tile_size))
+		local end_tile_x = max(start_tile_x, flr((cam_x + Screen.w - 1) / tile_size))
+		local start_tile_y = max(0, flr(cam_y / tile_size))
+		local end_tile_y = max(start_tile_y, flr((cam_y + Screen.h - 1) / tile_size))
+		local visible_tiles_w = end_tile_x - start_tile_x + 1
+		local visible_tiles_h = end_tile_y - start_tile_y + 1
+		local profiler = layer and layer.engine and layer.engine.profiler or nil
+		local visible_tile_rect = visible_tiles_w * visible_tiles_h
+		local dest_x = start_tile_x * tile_size - cam_x
+		local dest_y = start_tile_y * tile_size - cam_y
 		map(
 			start_tile_x,
 			start_tile_y,
-			start_tile_x * tile_size,
-			start_tile_y * tile_size,
+			dest_x,
+			dest_y,
 			visible_tiles_w,
 			visible_tiles_h
 		)
-		camera()
 
-		if not DEBUG then
+		if profiler then
+			profiler:observe("layer.render.visible_tiles", visible_tile_rect)
+			profiler:observe("layer.render.drawn_tiles", visible_tile_rect)
+			profiler:observe("layer.render.map_calls", 1)
+		end
+
+		if not layer.debug then
 			return
 		end
 
-		for tx = start_tile_x, end_tile_x do
-			for ty = start_tile_y, end_tile_y do
-				local tile_id = layer.collision:getTileIDAt(tx * tile_size, ty * tile_size, layer.map_id)
-				if tile_id ~= 0 then
-					local layer_x = tx * tile_size + tile_size / 2
-					local layer_y = ty * tile_size + tile_size / 2
-					local sx, sy = camera_obj:layerToScreenXY(layer_x, layer_y)
-					if sx >= 0 and sx < Screen.w and sy >= 0 and sy < Screen.h then
-						print(tile_id, sx - 6, sy - 4, 7)
+		if layer.debug_tile_labels == true then
+			for tx = start_tile_x, end_tile_x do
+				for ty = start_tile_y, end_tile_y do
+					local tile_id = layer.collision:getTileIDAt(tx * tile_size, ty * tile_size, layer.map_id)
+					if tile_id ~= 0 then
+						local layer_x = tx * tile_size + tile_size / 2
+						local layer_y = ty * tile_size + tile_size / 2
+						local sx, sy = camera_obj:layerToScreenXY(layer_x, layer_y)
+						if sx >= 0 and sx < Screen.w and sy >= 0 and sy < Screen.h then
+							local label = tostr(tile_id)
+							layer.gfx:drawCachedScreen(
+								"debug_tile_label:" .. label,
+								sx - 6,
+								sy - 4,
+								function(target)
+									target:print(label, 0, 0, 7)
+								end,
+								{
+									w = #label * 4 + 2,
+									h = 6,
+								}
+							)
+						end
 					end
 				end
 			end

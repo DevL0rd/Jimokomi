@@ -150,7 +150,8 @@ TransformAttachments.sync = function(self)
 		return
 	end
 	local attachment = self.attachment
-	local anchor = attachment.parent_transform:getSlotWorldPosition(attachment.slot_name)
+	self.sync_anchor = self.sync_anchor or Vector:new()
+	local anchor = attachment.parent_transform:getSlotWorldPosition(attachment.slot_name, self.sync_anchor)
 	self.position.x = anchor.x + self.local_position.x
 	self.position.y = anchor.y + self.local_position.y
 end

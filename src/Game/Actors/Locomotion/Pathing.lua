@@ -152,6 +152,19 @@ local Pathing = Class:new({
 			return nil
 		end
 
+		local search_context = policy.prepareSearch and policy:prepareSearch(self, goal, start_node, goal_node) or nil
+		if policy.canDirectPath and policy:canDirectPath(self, start_node, goal_node, search_context) then
+			local direct_path = self:resolveDirectPath(goal)
+			if policy.finishSearch then
+				policy:finishSearch(self, search_context, self.path, self.last_path_info)
+			end
+			if profiler then
+				profiler:addCounter("game.pathing.direct_paths", 1)
+				profiler:stop(scope)
+			end
+			return direct_path
+		end
+
 		local path_nodes, path_info = world:findPath(start_node, goal_node, {
 			max_iterations = policy.max_iterations or 256,
 			getNodeKey = function(node)
@@ -161,20 +174,23 @@ local Pathing = Class:new({
 				return policy:getHeuristic(self, from_node, to_node)
 			end,
 			getNeighbors = function(node)
-				return policy:getNeighbors(self, node, goal_node)
+				return policy:getNeighbors(self, node, goal_node, search_context)
 			end,
 			isGoal = function(node, wanted_goal)
 				return policy:isGoal(self, node, wanted_goal)
 			end,
 		})
 
-		self.path = path_nodes and policy:convertPath(self, path_nodes, goal) or nil
+		self.path = path_nodes and policy:convertPath(self, path_nodes, goal, search_context) or nil
 		self.path_index = 1
 		self:setGoal(goal)
 		self.last_path_info = path_info or {
 			iterations = 0,
 			found = self.path ~= nil,
 		}
+		if policy.finishSearch then
+			policy:finishSearch(self, search_context, self.path, self.last_path_info)
+		end
 		self.path_timer:reset()
 		if profiler then
 			profiler:observe("game.pathing.rebuild_iterations", self.last_path_info.iterations or 0)

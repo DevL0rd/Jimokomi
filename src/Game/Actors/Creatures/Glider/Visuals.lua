@@ -35,7 +35,8 @@ local Visuals = Class:new({
 		end
 
 		if self.owner.state == self.states.Running and self.owner.current_visual_state ~= visual_state and
-			not self.owner.did_ground_pound then
+			not self.owner.did_ground_pound and self.owner.layer and self.owner.layer.getPlayer and
+			self.owner.layer:getPlayer() == self.owner then
 			self.owner.layer.camera:startShaking(5, 500)
 			self.owner.did_ground_pound = true
 		end

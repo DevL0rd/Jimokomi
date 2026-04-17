@@ -7,6 +7,8 @@ local RaySensor = AttachmentNode:new({
 	vec = Vector:new({ y = 1 }),
 	length = 50,
 	rate = 50,
+	always_update_offscreen = false,
+	ignore_entity_hits = true,
 
 	init = function(self)
 		AttachmentNode.init(self)

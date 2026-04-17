@@ -53,6 +53,10 @@ local SpriteNode = AttachmentNode:new({
 		self.is_done = false
 	end,
 
+	needsNodeUpdate = function(self)
+		return self.end_sprite >= 0 and (self.loop or not self.is_done)
+	end,
+
 	getSpriteId = function(self)
 		if self.end_sprite < 0 then
 			return self.sprite
@@ -94,6 +98,15 @@ local SpriteNode = AttachmentNode:new({
 		end
 		if self.sprite < 0 then
 			return
+		end
+		local profiler = self.layer and self.layer.engine and self.layer.engine.profiler or nil
+		if profiler then
+			profiler:addCounter("render.sprite_node.draws", 1)
+			if self.end_sprite >= 0 then
+				profiler:addCounter("render.sprite_node.animated_draws", 1)
+			else
+				profiler:addCounter("render.sprite_node.static_draws", 1)
+			end
 		end
 		local x = self.pos.x - self:getHalfWidth()
 		local y = self.pos.y - self:getHalfHeight()

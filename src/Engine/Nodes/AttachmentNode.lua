@@ -14,6 +14,8 @@ local AttachmentNode = Class:new({
 	default_slot_destroy_policy = "destroy_children",
 	layer = nil,
 	children = nil,
+	always_update_offscreen = false,
+	always_draw_offscreen = false,
 
 	init = function(self)
 		local initial_pos = self.pos or Vector:new()
@@ -51,6 +53,17 @@ local AttachmentNode = Class:new({
 
 	getWorld = function(self)
 		return self.parent and self.parent.getWorld and self.parent:getWorld() or nil
+	end,
+
+	isVisibleInLayer = function(self)
+		if not self.layer or not self.layer.camera or not self.pos then
+			return true
+		end
+		local w = self.getWidth and self:getWidth() or 0
+		local h = self.getHeight and self:getHeight() or 0
+		local left = self.pos.x - w * 0.5
+		local top = self.pos.y - h * 0.5
+		return self.layer.camera:isRectVisible(left, top, w, h)
 	end,
 
 	addAttachmentNode = function(self, child)
@@ -115,20 +128,42 @@ local AttachmentNode = Class:new({
 	updateNode = function(self)
 	end,
 
+	needsNodeUpdate = function(self)
+		return false
+	end,
+
 	drawNode = function(self)
 	end,
 
 	updateRecursive = function(self)
-		if self.transform and self.transform:shouldSync() then
+		if not self.always_update_offscreen and not self:isVisibleInLayer() then
+			return
+		end
+		local should_sync = self.transform and self.transform:shouldSync() or false
+		local should_update = should_sync or (self.needsNodeUpdate and self:needsNodeUpdate())
+		local profiler = self.layer and self.layer.engine and self.layer.engine.profiler or nil
+		if profiler and should_update then
+			profiler:addCounter("layer.nodes.updated", 1)
+		end
+		if should_sync then
 			self.transform:sync()
 		end
-		self:updateNode()
+		if should_update then
+			self:updateNode()
+		end
 		for i = 1, #self.children do
 			self.children[i]:updateRecursive()
 		end
 	end,
 
 	drawRecursive = function(self)
+		if not self.always_draw_offscreen and not self:isVisibleInLayer() then
+			return
+		end
+		local profiler = self.layer and self.layer.engine and self.layer.engine.profiler or nil
+		if profiler then
+			profiler:addCounter("layer.nodes.drawn", 1)
+		end
 		self:drawNode()
 		for i = 1, #self.children do
 			self.children[i]:drawRecursive()

@@ -33,6 +33,7 @@ Agent.init = function(self)
 	self.diet = self.diet or Ecology.Diets.None
 	self.temperament = self.temperament or Ecology.Temperaments.Neutral
 	self.default_action = self.default_action or Ecology.getDefaultActionForTemperament(self.temperament)
+	self.control_mode = self.control_mode or "autonomous"
 	self.actions = Planner:new({
 		owner = self,
 		action = self.initial_action or self.default_action
@@ -43,6 +44,19 @@ Agent.init = function(self)
 	self.action_plan_timer = self.action_plan_timer or Timer:new()
 	self.action_plan_timer.start_time -= random_int(0, self.action_plan_interval_ms) / 1000
 	self:initPerception()
+end
+
+Agent.isAutonomous = function(self)
+	return self.control_mode ~= "player"
+end
+
+Agent.isPlayerControlled = function(self)
+	return self.control_mode == "player"
+end
+
+Agent.setControlMode = function(self, control_mode)
+	self.control_mode = control_mode or "player"
+	return self.control_mode
 end
 
 Agent.getFaction = AgentRelations.getFaction

@@ -1,33 +1,35 @@
-local Material = include("src/Game/Effects/Materials/Material.lua")
-local Timer = include("src/Engine/Core/Timer.lua")
+local ProceduralSprite = include("src/Engine/Objects/ProceduralSprite.lua")
 
-local Skybox = Material:new({
+local Skybox = ProceduralSprite:new({
 	_type = "Skybox",
-	cycle_duration = 60000, -- 60 seconds for full day/night cycle (in milliseconds)
+	sprite = 0,
+	length = 8,
+	fps = 8 / 60,
+	loop = true,
+	cache_procedural_sprite = true,
+	procedural_sprite_cache_mode = "surface",
+	procedural_sprite_cache_key = "skybox",
 	layer = nil,
 	init = function(self)
-		Material.init(self)
+		ProceduralSprite.init(self)
 		if self.layer then
 			self:setRectShape(self.layer.w, self.layer.h)
 			self.pos.x = self.layer.w / 2
 			self.pos.y = self.layer.h / 2
 		end
-		self.cycle_timer = Timer:new()
 	end,
 	update = function(self)
-		-- Reset timer when cycle completes
-		if self.cycle_timer:hasElapsed(self.cycle_duration) then
-			self.cycle_timer:reset()
+		ProceduralSprite.update(self)
+	end,
+	get_time_of_day = function(self, frame_index)
+		local frame_count = max(1, self:getProceduralSpriteLength())
+		if frame_count <= 1 then
+			return 0
 		end
-		Material.update(self)
+		return (frame_index or 0) / (frame_count - 1)
 	end,
-	get_time_of_day = function(self)
-		-- Returns a value from 0 to 1 representing the time of day
-		-- 0 = midnight, 0.25 = dawn, 0.5 = noon, 0.75 = dusk, 1 = midnight again
-		return self.cycle_timer:elapsed() / self.cycle_duration
-	end,
-	get_sky_colors = function(self)
-		local time = self:get_time_of_day()
+	get_sky_colors = function(self, frame_index)
+		local time = self:get_time_of_day(frame_index)
 
 		-- Define color phases for different times of day
 		local colors = {
@@ -84,9 +86,9 @@ local Skybox = Material:new({
 
 		return top_color, bottom_color
 	end,
-	drawMaterial = function(self, gfx, x, y, w, h)
-		local top_color, bottom_color = self:get_sky_colors()
-		gfx:drawVerticalGradient(x, y, w, h, top_color, bottom_color)
+	drawProceduralSprite = function(self, target, w, h, frame_id, frame_index)
+		local top_color, bottom_color = self:get_sky_colors(frame_index)
+		target:drawVerticalGradient(0, 0, w, h, top_color, bottom_color)
 	end
 })
 

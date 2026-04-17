@@ -5,6 +5,7 @@ local WorldObject = include("src/Engine/Objects/WorldObject.lua")
 local Creature = include("src/Game/Mixins/Creature.lua")
 local EmitterNode = include("src/Engine/Nodes/EmitterNode.lua")
 local zzz = include("src/Game/Effects/Particles/zzz.lua")
+local Controller = include("src/Game/Actors/Creatures/Glider/Controller.lua")
 
 local CoCo = WorldObject:new({
 	_type = "CoCo",
@@ -23,6 +24,7 @@ local CoCo = WorldObject:new({
 	sound_idle_radius = 22,
 	sound_move_radius = 0,
 	sound_land_radius = 0,
+	control_speed = 48,
 	visual_definitions = {
 		sleep = {
 			shape = { kind = "rect", w = 16, h = 16 },
@@ -36,6 +38,15 @@ local CoCo = WorldObject:new({
 		Creature.init(self)
 		local radius = self:getRadius()
 		self:playVisual("sleep")
+		self.controller = Controller:new({
+			owner = self,
+			directions = {
+				up = 0,
+				down = 1,
+				left = 2,
+				right = 3,
+			},
+		})
 		self.sleepEmitter = EmitterNode:new({
 			parent = self,
 			parent_slot = "sleep",
@@ -52,6 +63,35 @@ local CoCo = WorldObject:new({
 				h = 2,
 			},
 		})
+	end,
+	update_agent = function(self)
+		if not self:isPlayerControlled() or not self.controller then
+			return
+		end
+
+		local input = self.controller:getPlayerInputState()
+		local dx = 0
+		local dy = 0
+		if input.left then
+			dx -= 1
+		end
+		if input.right then
+			dx += 1
+		end
+		if input.up then
+			dy -= 1
+		end
+		if input.down then
+			dy += 1
+		end
+		if dx ~= 0 or dy ~= 0 then
+			local dist = sqrt(dx * dx + dy * dy)
+			dx /= dist
+			dy /= dist
+			self.pos.x += dx * self.control_speed * _dt
+			self.pos.y += dy * self.control_speed * _dt
+			self.controller:updateDirection(input)
+		end
 	end,
 	update = function(self)
 		if Creature.update(self) == false then

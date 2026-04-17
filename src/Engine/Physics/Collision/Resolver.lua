@@ -9,6 +9,7 @@ end
 
 CollisionResolver.processCollisions = function(self, entities)
 	local profiler = self.profiler
+	local contacts_processed = 0
 	for index = 1, #entities do
 		local entity = entities[index]
 		if entity.ignore_physics or entity.ignore_collisions or not entity.collisions then
@@ -26,6 +27,7 @@ CollisionResolver.processCollisions = function(self, entities)
 					(pass == 2 and object == "layer") or
 					(pass == 3 and object ~= "map" and object ~= "layer") then
 					entity.pos:add(collision.vector)
+					contacts_processed += 1
 					if profiler then
 						profiler:addCounter("collision.resolver.contacts_processed", 1)
 					end
@@ -51,12 +53,15 @@ CollisionResolver.processCollisions = function(self, entities)
 
 		::skip::
 	end
+	return contacts_processed
 end
 
 CollisionResolver.resolveCollisions = function(self, entities, map_id, broadphase, tile_queries)
 	for _ = 1, self.collision_passes do
 		broadphase:collectCollisions(entities, map_id, tile_queries)
-		self:processCollisions(entities)
+		if self:processCollisions(entities) <= 0 then
+			break
+		end
 	end
 end
 

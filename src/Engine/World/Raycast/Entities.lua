@@ -45,20 +45,22 @@ RaycastEntities.cast = function(self, ray)
 	end
 
 	local targets = self.layer.collidable_entities or self.layer.entities
-	for i = 1, #targets do
-		local obj = targets[i]
-		candidates_considered += 1
-		if not self:canRayHitEntity(ray, obj) then
-			goto continue
-		end
+	if ray.ignore_entity_hits ~= true then
+		for i = 1, #targets do
+			local obj = targets[i]
+			candidates_considered += 1
+			if not self:canRayHitEntity(ray, obj) then
+				goto continue
+			end
 
-		local t = self:rayToEntity(ray, obj)
-		if t ~= false and t >= 0 and t < min_t then
-			min_t = t
-			closest_hit_obj = obj
-		end
+			local t = self:rayToEntity(ray, obj)
+			if t ~= false and t >= 0 and t < min_t then
+				min_t = t
+				closest_hit_obj = obj
+			end
 
-		::continue::
+			::continue::
+		end
 	end
 	if profiler then
 		profiler:observe("world.raycast.candidates", candidates_considered)

@@ -75,7 +75,7 @@ EngineLoop.draw = function(self)
 		end
 	end
 
-	if self.debug then
+	if self.debug_overlay_enabled then
 		if not self.debug_overlay then
 			self.debug_overlay = DebugOverlay:new()
 		end
@@ -90,10 +90,11 @@ EngineLoop.draw = function(self)
 	if self.profiler then
 		self.profiler:stop(draw_scope)
 		local runtime_cpu = stat and stat(1) or 0
+		local measured_dt = self.clock and self.clock.measured_delta or _dt or 0
 		self.profiler:setRuntimeStat("fps", runtime_fps or 0)
 		self.profiler:setRuntimeStat("cpu", runtime_cpu or 0)
 		self.profiler:setRuntimeStat("draw_fps", runtime_fps or 0)
-		self.profiler:observeFrame(_dt or 0, runtime_cpu or 0)
+		self.profiler:observeFrame(measured_dt, runtime_cpu or 0)
 		self.profiler:addCounter("picotron.draw_calls", 1)
 		self.profiler:observe("picotron.fps", runtime_fps or 0)
 		self.profiler:observe("picotron.cpu", runtime_cpu or 0)

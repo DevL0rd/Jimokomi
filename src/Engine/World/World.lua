@@ -16,7 +16,10 @@ local World = Class:new({
 	spawner = nil,
 	pathfinder = nil,
 	recent_sounds = nil,
+	recent_sound_lookup = nil,
+	sampling_cache = nil,
 	sound_memory_ms = 1200,
+	sound_queue_limit = 24,
 	path_rebuilds_per_frame = 1,
 	perception_checks_per_frame = 3,
 	path_budget_frame = nil,
@@ -36,6 +39,8 @@ local World = Class:new({
 			world = self,
 		})
 		self.recent_sounds = {}
+		self.recent_sound_lookup = {}
+		self.sampling_cache = {}
 		self:resetPathBudget()
 		self:resetPerceptionBudget()
 	end,

@@ -4,6 +4,7 @@ local WorldObject = include("src/Engine/Objects/WorldObject.lua")
 local Creature = include("src/Game/Mixins/Creature.lua")
 local Item = include("src/Game/Mixins/Item.lua")
 local GroundPatrol = include("src/Game/Actors/Locomotion/GroundPatrol.lua")
+local Controller = include("src/Game/Actors/Creatures/Glider/Controller.lua")
 
 local Worm = WorldObject:new({
 	_type = "Worm",
@@ -29,8 +30,8 @@ local Worm = WorldObject:new({
 	diet = Ecology.Diets.Herbivore,
 	temperament = Ecology.Temperaments.Neutral,
 	default_action = Ecology.Actions.Patrol,
-	vision_range = 72,
-	hearing_range = 84,
+	vision_range = 0,
+	hearing_range = 0,
 	action_plan_interval_ms = 250,
 	perception_interval_ms = 500,
 	sound_update_interval_ms = 500,
@@ -74,6 +75,15 @@ local Worm = WorldObject:new({
 			owner = self,
 			move_accel = self.move_accel,
 			max_speed = self.max_speed,
+		})
+		self.controller = Controller:new({
+			owner = self,
+			directions = {
+				left = -1,
+				right = 1,
+				up = -1,
+				down = 1,
+			},
 		})
 		self:playVisual("crawl")
 	end,
@@ -121,6 +131,11 @@ local Worm = WorldObject:new({
 		return Ecology.Actions.Patrol, {}
 	end,
 	update_agent = function(self)
+		if self:isPlayerControlled() and self.controller then
+			local input = self.controller:getPlayerInputState()
+			self.ground_patrol_locomotion:updateControlled(input)
+			return
+		end
 		self.ground_patrol_locomotion:updateAutonomous()
 	end,
 	update = function(self)

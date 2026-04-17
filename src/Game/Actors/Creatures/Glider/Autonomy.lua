@@ -56,13 +56,14 @@ local Autonomy = Class:new({
 	end,
 
 	resetInput = function(self)
-		return {
-			left = false,
-			right = false,
-			up = false,
-			down = false,
-			jump = false,
-		}
+		self.input_state = self.input_state or {}
+		local input = self.input_state
+		input.left = false
+		input.right = false
+		input.up = false
+		input.down = false
+		input.jump = false
+		return input
 	end,
 
 	getCurrentAction = function(self)
