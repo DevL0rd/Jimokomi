@@ -14,6 +14,7 @@ local Graphic = WorldObject:new({
         WorldObject.init(self)
     end,
     draw_debug = function(self)
+        WorldObject.draw_debug(self)
         self:strokeShape(32)
     end,
 })

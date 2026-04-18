@@ -8,6 +8,10 @@ local AgentSpawning = include("src/Game/Mixins/Agent/Spawning.lua")
 local AgentPerception = include("src/Game/Mixins/Agent/Perception.lua")
 
 local Agent = {}
+Agent.ControlModes = {
+	Player = 1,
+	Autonomous = 2,
+}
 
 Agent.mixin = function(self)
 	if self._agent_mixin_applied then
@@ -33,7 +37,7 @@ Agent.init = function(self)
 	self.diet = self.diet or Ecology.Diets.None
 	self.temperament = self.temperament or Ecology.Temperaments.Neutral
 	self.default_action = self.default_action or Ecology.getDefaultActionForTemperament(self.temperament)
-	self.control_mode = self.control_mode or "autonomous"
+	self.control_mode = self.control_mode or Agent.ControlModes.Autonomous
 	self.actions = Planner:new({
 		owner = self,
 		action = self.initial_action or self.default_action
@@ -47,15 +51,15 @@ Agent.init = function(self)
 end
 
 Agent.isAutonomous = function(self)
-	return self.control_mode ~= "player"
+	return self.control_mode ~= Agent.ControlModes.Player
 end
 
 Agent.isPlayerControlled = function(self)
-	return self.control_mode == "player"
+	return self.control_mode == Agent.ControlModes.Player
 end
 
 Agent.setControlMode = function(self, control_mode)
-	self.control_mode = control_mode or "player"
+	self.control_mode = control_mode or Agent.ControlModes.Player
 	return self.control_mode
 end
 

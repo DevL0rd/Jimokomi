@@ -5,6 +5,7 @@ local WorldSenses = include("src/Engine/World/World/Senses.lua")
 local WorldVisibility = include("src/Engine/World/World/Visibility.lua")
 local WorldTiles = include("src/Engine/World/World/Tiles.lua")
 local WorldSampling = include("src/Engine/World/World/Sampling.lua")
+local SpatialIndex = include("src/Engine/World/SpatialIndex.lua")
 local Raycast = include("src/Engine/World/Raycast.lua")
 local Spawner = include("src/Engine/World/Spawner.lua")
 local Pathfinder = include("src/Engine/World/Pathfinder.lua")
@@ -17,6 +18,8 @@ local World = Class:new({
 	pathfinder = nil,
 	recent_sounds = nil,
 	recent_sound_lookup = nil,
+	sound_spatial_index = nil,
+	sound_spatial_dirty = true,
 	sampling_cache = nil,
 	sound_memory_ms = 1200,
 	sound_queue_limit = 24,
@@ -40,6 +43,10 @@ local World = Class:new({
 		})
 		self.recent_sounds = {}
 		self.recent_sound_lookup = {}
+		self.sound_spatial_index = SpatialIndex.new({
+			cell_size = (self.layer and self.layer.tile_size or 16) * 2,
+		})
+		self.sound_spatial_dirty = true
 		self.sampling_cache = {}
 		self:resetPathBudget()
 		self:resetPerceptionBudget()
@@ -94,6 +101,52 @@ local World = Class:new({
 	pruneSounds = WorldSenses.pruneSounds,
 	emitSound = WorldSenses.emitSound,
 	findNearestSound = WorldSenses.findNearestSound,
+	querySpatialIndices = function(self, primary_index, secondary_index, query_fn)
+		local results = {}
+		if primary_index then
+			query_fn(primary_index, results)
+		end
+		if secondary_index then
+			query_fn(secondary_index, results)
+		end
+		return results
+	end,
+	queryEntitiesInRadius = function(self, pos, radius, filter_fn)
+		if not self.layer or not pos then
+			return {}
+		end
+		return self:querySpatialIndices(
+			self.layer.entity_spatial_index,
+			self.layer.entity_static_spatial_index,
+			function(index, results)
+				index:queryRadius(pos.x, pos.y, radius, results, filter_fn)
+			end
+		)
+	end,
+	queryEntitiesInRect = function(self, left, top, right, bottom, filter_fn)
+		if not self.layer then
+			return {}
+		end
+		return self:querySpatialIndices(
+			self.layer.entity_spatial_index,
+			self.layer.entity_static_spatial_index,
+			function(index, results)
+				index:queryRect(left, top, right, bottom, results, filter_fn)
+			end
+		)
+	end,
+	queryCollidablesInRect = function(self, left, top, right, bottom, filter_fn)
+		if not self.layer then
+			return {}
+		end
+		return self:querySpatialIndices(
+			self.layer.collidable_spatial_index,
+			self.layer.collidable_static_spatial_index,
+			function(index, results)
+				index:queryRect(left, top, right, bottom, results, filter_fn)
+			end
+		)
+	end,
 
 	getMapBounds = WorldBounds.getMapBounds,
 	clampBoundsToMap = WorldBounds.clampBoundsToMap,

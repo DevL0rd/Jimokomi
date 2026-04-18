@@ -9,8 +9,15 @@ local Locomotion = Class:new({
 	ground_probe_dist = nil,
 
 	getCurrentTile = function(self)
+		local frame_id = self:getGroundProbeFrame()
+		if self.current_tile_frame == frame_id and self.current_tile_id ~= nil then
+			return self.current_tile_id
+		end
 		local world = self.owner:getWorld()
-		return world and world:getTileAt(self.owner.pos.x, self.owner.pos.y) or 0
+		local tile_id = world and world:getTileAt(self.owner.pos.x, self.owner.pos.y) or 0
+		self.current_tile_frame = frame_id
+		self.current_tile_id = tile_id
+		return tile_id
 	end,
 
 	isClimbableTile = function(self, tile_id)

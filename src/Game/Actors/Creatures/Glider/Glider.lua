@@ -13,6 +13,7 @@ local Autonomy = include("src/Game/Actors/Creatures/Glider/Autonomy.lua")
 local Controller = include("src/Game/Actors/Creatures/Glider/Controller.lua")
 local Locomotion = include("src/Game/Actors/Creatures/Glider/Locomotion.lua")
 local Visuals = include("src/Game/Actors/Creatures/Glider/Visuals.lua")
+local Agent = include("src/Game/Mixins/Agent.lua")
 
 local DIRECTIONS = {
 	up = 0,
@@ -28,9 +29,19 @@ local STATES = {
 }
 
 local CONTROL_MODES = {
-	Player = "player",
-	Autonomous = "autonomous",
+	Player = Agent.ControlModes.Player,
+	Autonomous = Agent.ControlModes.Autonomous,
 }
+
+local function is_visible_in_layer(self)
+	local layer = self.layer
+	local camera = layer and layer.camera or nil
+	if not layer or not camera or not self.pos then
+		return true
+	end
+	local radius = self.getRadius and self:getRadius() or 0
+	return camera:isRectVisible(self.pos.x - radius, self.pos.y - radius, radius * 2, radius * 2)
+end
 
 local Glider = WorldObject:new({
 	_type = "Glider",
@@ -38,6 +49,9 @@ local Glider = WorldObject:new({
 		kind = "circle",
 		r = 8,
 	},
+	fixed_rotation = true,
+	resolve_entity_collisions = true,
+	debug_collision_interest = false,
 	faction = Ecology.Factions.Player,
 	diet = Ecology.Diets.Omnivore,
 	temperament = Ecology.Temperaments.Defensive,
@@ -219,7 +233,8 @@ local Glider = WorldObject:new({
 			end
 		end
 
-		if not self.layer then
+		local world = self:getWorld()
+		if not self.layer or not world then
 			if profiler then profiler:stop(scope) end
 			return nil
 		end
@@ -227,9 +242,12 @@ local Glider = WorldObject:new({
 		local closest = nil
 		local closest_dist2 = nil
 		local max_dist2 = radius and radius * radius or nil
+		local candidates = world:queryEntitiesInRadius(self.pos, radius or self.prey_seek_radius or 0, function(candidate)
+			return self:isValidPrey(candidate)
+		end)
 
-		for i = 1, #self.layer.entities do
-			local candidate = self.layer.entities[i]
+		for i = 1, #candidates do
+			local candidate = candidates[i]
 			if self:isValidPrey(candidate) then
 				local dx = candidate.pos.x - self.pos.x
 				local dy = candidate.pos.y - self.pos.y
@@ -278,13 +296,31 @@ local Glider = WorldObject:new({
 		end
 
 		self.locomotion:applyMovement(input, is_moving)
-		self.visuals:updateVisualState(is_moving)
+		if is_moving ~= self.old_is_moving or self.state ~= self.old_state or self.direction ~= self.old_direction then
+			self.visuals:updateVisualState(is_moving)
+		end
 
 		self.old_direction = self.direction
 		self.old_state = self.state
 		self.old_is_moving = is_moving
 
 		WorldObject.update(self)
+	end,
+
+	needsUpdate = function(self)
+		if self:isPlayerControlled() then
+			return true
+		end
+		if is_visible_in_layer(self) then
+			return true
+		end
+		if self.offscreen_update_timer == nil then
+		self.offscreen_update_interval_ms = self.offscreen_update_interval_ms or 150
+		self.touch_pickup_active_padding = self.touch_pickup_active_padding or 32
+			self.offscreen_update_timer = Timer:new()
+			self.offscreen_update_timer.start_time -= random_int(0, self.offscreen_update_interval_ms) / 1000
+		end
+		return self.offscreen_update_timer:hasElapsed(self.offscreen_update_interval_ms or 150)
 	end,
 })
 
@@ -302,6 +338,7 @@ Glider.init = function(self)
 	self.ground_probe_rate = self.ground_probe_rate or 90
 	self.inactive_ground_probe_rate = self.inactive_ground_probe_rate or 180
 	self.ground_probe_max_distance = self.ground_probe_max_distance or 64
+	self.offscreen_update_interval_ms = self.offscreen_update_interval_ms or 150
 	WorldObject.init(self)
 	Creature.init(self)
 	Storage.init(self)
@@ -314,6 +351,8 @@ Glider.init = function(self)
 	self.did_ground_pound = true
 	self.jump_timer = Timer:new()
 	self.prey_scan_timer = Timer:new()
+	self.offscreen_update_timer = Timer:new()
+	self.offscreen_update_timer.start_time -= random_int(0, self.offscreen_update_interval_ms) / 1000
 	self.cached_prey = nil
 
 	self.run_locomotion = Run:new({

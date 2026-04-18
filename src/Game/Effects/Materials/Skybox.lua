@@ -10,8 +10,6 @@ local Skybox = ProceduralSprite:new({
 	fps = 0,
 	loop = true,
 	cache_procedural_sprite = true,
-	procedural_sprite_cache_mode = "surface",
-	procedural_sprite_cache_key = "skybox",
 	draw_behind_map = true,
 	debug = false,
 	inherit_layer_debug = false,
@@ -60,19 +58,26 @@ local Skybox = ProceduralSprite:new({
 		local phase = self:getSkyPhase()
 		local cache_frame = self:getSkyCacheFrame()
 		gfx:drawCachedScreen(
-			"skybox.background:" .. Screen.w .. ":" .. Screen.h .. ":" .. cache_frame,
+			nil,
 			0,
 			0,
 			function(target)
 				self:drawSky(target, Screen.w, Screen.h, phase)
 			end,
-			{
-				w = Screen.w,
-				h = Screen.h,
-				cache_mode = "surface",
-				clear_color = 0,
-			}
-		)
+				{
+					w = Screen.w,
+					h = Screen.h,
+					cache_tag = "background.skybox",
+					cache_profile_key = "background.skybox",
+					cache_profile_signature = table.concat({
+						tostr(Screen.w),
+						tostr(Screen.h),
+						tostr(self.cache_refresh_hz or 4),
+						tostr(cache_frame),
+					}, ":"),
+					clear_color = 0,
+				}
+			)
 	end,
 
 	drawProceduralSprite = function(self, target, w, h, frame_id, frame_index)

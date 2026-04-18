@@ -1,4 +1,5 @@
 local Class = include("src/Engine/Core/Class.lua")
+local Agent = include("src/Game/Mixins/Agent.lua")
 
 local Party = Class:new({
 	_type = "Party",
@@ -28,7 +29,7 @@ local Party = Class:new({
 		for i = 1, #self.players do
 			local player = self.players[i]
 			if player and player.setControlMode then
-				player:setControlMode(i == self.active_index and "player" or "autonomous")
+				player:setControlMode(i == self.active_index and Agent.ControlModes.Player or Agent.ControlModes.Autonomous)
 			end
 		end
 		if self.layer then

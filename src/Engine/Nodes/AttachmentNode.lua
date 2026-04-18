@@ -4,6 +4,7 @@ local Transform = include("src/Engine/World/Transform.lua")
 
 local AttachmentNode = Class:new({
 	_type = "AttachmentNode",
+	node_kind = 0,
 	is_world_object = false,
 	parent = nil,
 	parent_slot = nil,
@@ -136,17 +137,17 @@ local AttachmentNode = Class:new({
 	end,
 
 	updateRecursive = function(self)
+		local should_sync = self.transform and self.transform:shouldSync() or false
+		if should_sync then
+			self.transform:sync()
+		end
 		if not self.always_update_offscreen and not self:isVisibleInLayer() then
 			return
 		end
-		local should_sync = self.transform and self.transform:shouldSync() or false
 		local should_update = should_sync or (self.needsNodeUpdate and self:needsNodeUpdate())
 		local profiler = self.layer and self.layer.engine and self.layer.engine.profiler or nil
 		if profiler and should_update then
 			profiler:addCounter("layer.nodes.updated", 1)
-		end
-		if should_sync then
-			self.transform:sync()
 		end
 		if should_update then
 			self:updateNode()

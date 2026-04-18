@@ -2,7 +2,14 @@ local LayerObjects = {}
 
 LayerObjects.add = function(layer, ent)
 	add(layer.entities, ent)
-	ent.debug = ent.debug or layer.debug
+	if ent.inherit_layer_debug ~= false then
+		if rawget(ent, "debug") == nil then
+			ent.debug = layer.debug
+		end
+		if rawget(ent, "debug_collision_interest") == nil then
+			ent.debug_collision_interest = layer.debug
+		end
+	end
 	ent.layer = layer
 	layer:registerEntityBuckets(ent)
 	ent:didAddToLayer(layer)

@@ -63,21 +63,18 @@ local Hud = Class:new({
 
 		self.root_node = gfx:newRetainedGroup({
 			key = "hud.root",
-			cache_mode = "surface",
 			w = self.panel_width,
 			h = self.panel_height,
 		})
 
 		self.panel_node = gfx:newRetainedPanel({
 			key = "hud.panel",
-			cache_mode = "retained",
 			w = self.panel_width,
 			h = self.panel_height,
 			style = HUD_PANEL_STYLE,
 		})
 		self.title_node = gfx:newRetainedLeaf({
 			key = "hud.title",
-			cache_mode = "retained",
 			x = 6,
 			y = 5,
 			w = self.panel_width - 12,
@@ -85,7 +82,6 @@ local Hud = Class:new({
 		})
 		self.divider_node = gfx:newRetainedLeaf({
 			key = "hud.divider",
-			cache_mode = "retained",
 			w = self.panel_width - 12,
 			h = 1,
 			x = 6,
@@ -96,7 +92,6 @@ local Hud = Class:new({
 		})
 		self.health_bar_node = gfx:newRetainedLeaf({
 			key = "hud.health_bar",
-			cache_mode = "retained",
 			x = 6,
 			y = 18,
 			w = 78,
@@ -104,7 +99,6 @@ local Hud = Class:new({
 		})
 		self.health_text_node = gfx:newRetainedLeaf({
 			key = "hud.health_text",
-			cache_mode = "retained",
 			x = 90,
 			y = 18,
 			w = 30,
@@ -125,7 +119,6 @@ local Hud = Class:new({
 			local slot_x = slots_x + ((i - 1) * (self.slot_size + self.slot_gap))
 			local slot_node = gfx:newRetainedGroup({
 				key = "hud.slot." .. i,
-				cache_mode = "retained",
 				x = slot_x,
 				y = 27,
 				w = self.slot_size,
@@ -133,14 +126,12 @@ local Hud = Class:new({
 			})
 			local slot_panel_node = gfx:newRetainedPanel({
 				key = "hud.slot.panel." .. i,
-				cache_mode = "retained",
 				w = self.slot_size,
 				h = self.slot_size,
 				style = HUD_SLOT_STYLE,
 			})
 			local slot_content_node = gfx:newRetainedLeaf({
 				key = "hud.slot.content." .. i,
-				cache_mode = "retained",
 				w = self.slot_size,
 				h = self.slot_size,
 			})

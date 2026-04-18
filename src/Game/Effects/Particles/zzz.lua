@@ -6,17 +6,25 @@ local zzz = Particle:new({
     _type = "zzz",
     lifetime = 3000,
     draw = function(self)
-        -- Draw the letter z floating away scaling down
         local scale = 1 - self.percent_expired
         local x = self.pos.x
         local y = self.pos.y
+        local text = "."
         if scale >= 0.5 then
-            self.layer.gfx:print("Z", x, y, 7)
+            text = "Z"
         elseif scale >= 0.25 then
-            self.layer.gfx:print("z", x, y, 7)
-        else
-            self.layer.gfx:print(".", x, y, 7)
+            text = "z"
         end
+        self.layer.gfx:drawCachedTextLayer(
+            nil,
+            text,
+            x,
+            y,
+            7,
+            {
+                cache_tag = "particle.zzz",
+            }
+        )
     end
 })
 

@@ -190,11 +190,51 @@ local function draw_immediate(node, draw_x, draw_y)
 	end
 end
 
+local function get_node_cache_profile_key(node)
+	if node.getCacheProfileKey then
+		return node:getCacheProfileKey()
+	end
+	return node.cache_profile_key or ("retained:" .. tostr(node.cache_tag or node.kind or "node"))
+end
+
+local function get_node_cache_profile_signature(node)
+	if node.getCacheProfileSignature then
+		return node:getCacheProfileSignature()
+	end
+	if node.cache_profile_signature ~= nil then
+		return node.cache_profile_signature
+	end
+	return table.concat({
+		tostr(node.kind or "leaf"),
+		tostr(node.cache_tag or "-"),
+		tostr(node.state_key or "-"),
+		tostr(node.w or 0),
+		tostr(node.h or 0),
+		tostr(#(node.children or {})),
+		tostr(node.builder ~= nil),
+	}, ":")
+end
+
+local function get_node_surface_cache_key(node)
+	if node.getSurfaceCacheKey then
+		return node:getSurfaceCacheKey()
+	end
+	if node.key ~= nil then
+		return node.key
+	end
+	return get_node_cache_profile_key(node) .. ":" .. get_node_cache_profile_signature(node)
+end
+
 function RetainedNode:draw(base_x, base_y)
 	local draw_x = (base_x or 0) + (self.x or 0)
 	local draw_y = (base_y or 0) + (self.y or 0)
 	record_counter(self.gfx, "render.retained.draws", 1)
-	if self.cache_mode == "off" then
+	local resolved_mode = self.gfx and self.gfx.resolveCacheMode and self.gfx:resolveCacheMode({
+		cache_mode = self.cache_mode,
+		cache_tag = self.cache_tag,
+		cache_override_mode = self.cache_override_mode,
+	}, self.cache_mode or "retained") or self.cache_mode
+	if resolved_mode == "off" or not (self.gfx and self.gfx.cache_renders) then
 		record_counter(self.gfx, "render.retained.off_draws", 1)
 		draw_immediate(self, draw_x, draw_y)
 		return
@@ -202,33 +242,25 @@ function RetainedNode:draw(base_x, base_y)
 
 	local was_dirty = self.dirty
 	local commands = self:ensureCommands() or {}
-	if self.cache_mode == "command" then
-		record_counter(self.gfx, "render.retained.command_draws", 1)
-		self.gfx:drawCachedScreen(self.key, draw_x, draw_y, function(target)
-			GraphicsCache.emitCommands(target, commands, 0, 0)
-		end, {
-			w = self.w,
-			h = self.h,
-			rebuild = was_dirty,
-		})
-		return
-	end
-
-	if self.cache_mode == "surface" then
+	if resolved_mode == "surface" then
 		record_counter(self.gfx, "render.retained.surface_draws", 1)
-		self.gfx:drawCachedSurfaceScreen(self.key, draw_x, draw_y, function(target)
+		self.gfx:drawCachedSurfaceScreen(get_node_surface_cache_key(self), draw_x, draw_y, function(target)
 			GraphicsCache.emitCommands(target, commands, 0, 0)
 		end, {
 			w = self.w,
 			h = self.h,
 			rebuild = was_dirty,
 			clear_color = self.clear_color or 0,
+			cache_tag = self.cache_tag,
+			cache_profile_key = get_node_cache_profile_key(self),
+			cache_profile_signature = get_node_cache_profile_signature(self),
+			cache_override_mode = resolved_mode,
 		})
 		return
 	end
 
-	record_counter(self.gfx, "render.retained.replay_draws", 1)
-	GraphicsCache.replayCommandList(self.gfx, commands, draw_x, draw_y)
+	record_counter(self.gfx, "render.retained.off_draws", 1)
+	draw_immediate(self, draw_x, draw_y)
 end
 
 local GraphicsRetained = {}
@@ -237,13 +269,17 @@ local function new_node(gfx, config, kind)
 	local node = setmetatable({
 		gfx = gfx,
 		kind = kind or "leaf",
-		key = (config and config.key) or ("retained:" .. tostr(time())),
+		key = config and config.key or nil,
 		x = (config and config.x) or 0,
 		y = (config and config.y) or 0,
 		w = (config and config.w) or 0,
 		h = (config and config.h) or 0,
 		state_key = (config and config.state_key) or nil,
 		cache_mode = (config and config.cache_mode) or "retained",
+		cache_tag = (config and config.cache_tag) or ("retained." .. tostr(kind or "leaf")),
+		cache_profile_key = config and config.cache_profile_key or nil,
+		cache_profile_signature = config and config.cache_profile_signature or nil,
+		cache_override_mode = config and config.cache_override_mode or nil,
 		clear_color = config and config.clear_color or 0,
 		builder = config and config.builder or nil,
 		children = {},

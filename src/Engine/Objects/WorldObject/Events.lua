@@ -107,8 +107,10 @@ WorldObjectEvents.on_collision = function(self, ent, vector)
 		local collision_scale = 10
 		local end_x = self.pos.x + (vector.x * collision_scale)
 		local end_y = self.pos.y + (vector.y * collision_scale)
-		self.layer.gfx:line(self.pos.x, self.pos.y, end_x, end_y, 8)
-		self.layer.gfx:circfill(end_x, end_y, 2, 8)
+		local sx, sy = self.layer.camera:layerToScreenXY(self.pos.x, self.pos.y)
+		local ex, ey = self.layer.camera:layerToScreenXY(end_x, end_y)
+		self.layer.gfx:screenLine(sx, sy, ex, ey, 8)
+		self.layer.gfx:screenCircfill(ex, ey, 2, 8)
 	end
 	self:emitEvent("object.collision", {
 		other = ent,

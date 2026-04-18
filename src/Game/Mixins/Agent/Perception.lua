@@ -112,37 +112,35 @@ AgentPerception.canSeeTarget = function(self, target)
 end
 
 AgentPerception.getSeenTarget = function(self)
-	if not self.layer then
+	local world = self:getWorld()
+	if not self.layer or not world then
 		return nil
 	end
 	local own_faction = self.getFaction and self:getFaction() or self.faction
 	local closest = nil
 	local closest_dist2 = nil
-	local buckets = self.layer.entities_by_faction
+	local candidates = world:queryEntitiesInRadius(self.pos, self.vision_range, function(candidate)
+		if candidate == self then
+			return false
+		end
+		local target_faction = candidate.getFaction and candidate:getFaction() or candidate.faction
+		if target_faction == own_faction then
+			return false
+		end
+		return self:canPerceiveFaction(candidate)
+	end)
 
-	local function consider_bucket(bucket)
-		for i = 1, #(bucket or {}) do
-			local candidate = bucket[i]
-			if self:canPerceiveFaction(candidate) and self:canSeeTarget(candidate) then
-				local dx = candidate.pos.x - self.pos.x
-				local dy = candidate.pos.y - self.pos.y
-				local dist2 = dx * dx + dy * dy
-				if closest_dist2 == nil or dist2 < closest_dist2 then
-					closest = candidate
-					closest_dist2 = dist2
-				end
+	for i = 1, #candidates do
+		local candidate = candidates[i]
+		if self:canSeeTarget(candidate) then
+			local dx = candidate.pos.x - self.pos.x
+			local dy = candidate.pos.y - self.pos.y
+			local dist2 = dx * dx + dy * dy
+			if closest_dist2 == nil or dist2 < closest_dist2 then
+				closest = candidate
+				closest_dist2 = dist2
 			end
 		end
-	end
-
-	if buckets then
-		for faction, bucket in pairs(buckets) do
-			if faction ~= own_faction then
-				consider_bucket(bucket)
-			end
-		end
-	else
-		consider_bucket(self.layer.entities)
 	end
 
 	return closest

@@ -103,13 +103,19 @@ CollisionEvents.handleCollisionEvents = function(self, entities)
 	local stamp = self.event_stamp
 	for index = 1, #entities do
 		local entity = entities[index]
+		local collisions = entity.collisions
+		local overlaps = entity.overlaps
+		if (collisions == nil or #collisions <= 0) and (overlaps == nil or #overlaps <= 0) and
+			entity._collision_contact_state == nil and entity._overlap_contact_state == nil then
+			goto continue
+		end
 		local wants_collision_enter = resolve_interest(entity, "hasCollisionEnterInterest", "on_collision_enter")
 		local wants_collision_stay = resolve_interest(entity, "hasCollisionStayInterest", "on_collision_stay")
 		local wants_collision_exit = resolve_interest(entity, "hasCollisionExitInterest", "on_collision_exit")
 		process_contacts(
 			profiler,
 			entity,
-			entity.collisions,
+			collisions,
 			"_collision_contact_state",
 			stamp,
 			wants_collision_enter,
@@ -128,7 +134,7 @@ CollisionEvents.handleCollisionEvents = function(self, entities)
 		process_contacts(
 			profiler,
 			entity,
-			entity.overlaps,
+			overlaps,
 			"_overlap_contact_state",
 			stamp,
 			wants_overlap_enter,
@@ -140,6 +146,7 @@ CollisionEvents.handleCollisionEvents = function(self, entities)
 			entity.on_overlap_exit,
 			"overlap"
 		)
+		::continue::
 	end
 end
 

@@ -2,6 +2,13 @@ local Vector = include("src/Engine/Math/Vector.lua")
 
 local TransformAttachments = {}
 
+local function mark_spatial_dirty(self)
+	local owner = self and self.owner or nil
+	if owner and owner.markSpatialDirty then
+		owner:markSpatialDirty()
+	end
+end
+
 TransformAttachments.emit = function(self, name, payload)
 	if self.owner and self.owner.emitEvent then
 		self.owner:emitEvent(name, payload)
@@ -107,6 +114,7 @@ TransformAttachments.attachTo = function(self, parent_transform, slot_name, conf
 		attachment = self.attachment,
 	})
 	self:sync()
+	mark_spatial_dirty(self)
 	return true
 end
 
@@ -142,6 +150,7 @@ TransformAttachments.detach = function(self)
 	end
 	self.local_position.x = self.position.x
 	self.local_position.y = self.position.y
+	mark_spatial_dirty(self)
 	return true
 end
 
@@ -154,6 +163,7 @@ TransformAttachments.sync = function(self)
 	local anchor = attachment.parent_transform:getSlotWorldPosition(attachment.slot_name, self.sync_anchor)
 	self.position.x = anchor.x + self.local_position.x
 	self.position.y = anchor.y + self.local_position.y
+	mark_spatial_dirty(self)
 end
 
 return TransformAttachments

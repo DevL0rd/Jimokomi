@@ -1,12 +1,18 @@
 local WorldObject = include("src/Engine/Objects/WorldObject.lua")
 local Item = include("src/Game/Mixins/Item.lua")
 
+local CHERRY_DRAW_W = 10
+local CHERRY_DRAW_H = 10
+
 local Cherry = WorldObject:new({
 	_type = "Cherry",
 	shape = {
 		kind = "circle",
 		r = 5,
 	},
+	inherit_layer_debug = false,
+	debug_force_off = true,
+	debug_collision_force_off = true,
 	item_id = "cherry",
 	display_name = "Cherry",
 	ignore_physics = true,
@@ -24,6 +30,7 @@ local Cherry = WorldObject:new({
 	spawn_item_path = "src/Game/Actors/Items/Food/Cherry.lua",
 	inventory_sprite = 47,
 	destroy_on_pickup = false,
+	touch_pickup_active_padding = 24,
 	visual_definitions = {
 		idle = {
 			shape = { kind = "rect", w = 10, h = 10 },
@@ -41,7 +48,7 @@ local Cherry = WorldObject:new({
 		WorldObject.init(self)
 		Item.init(self)
 		self.is_spawned = self.spawn_rule == nil
-		self:playVisual("idle")
+		self:clearVisual()
 	end,
 
 	getWorld = function(self)
@@ -99,6 +106,41 @@ local Cherry = WorldObject:new({
 		end
 
 		WorldObject.update(self)
+	end,
+
+	draw = function(self)
+		local layer = self.layer
+		if layer and self.inventory_sprite ~= nil and self.inventory_sprite >= 0 and self.drawSharedSprite then
+			self:drawSharedSprite(
+				self.inventory_sprite,
+				self.pos.x - CHERRY_DRAW_W * 0.5,
+				self.pos.y - CHERRY_DRAW_H * 0.5,
+				CHERRY_DRAW_W,
+				CHERRY_DRAW_H,
+				{
+					cache_tag = "object.sprite.cherry",
+					cache_profile_key = "object.sprite:Cherry",
+				}
+			)
+		end
+		if self.debug or self.fill or self.stroke or self.fill_color > -1 or self.stroke_color > -1 or
+			(self.attachment_nodes and #self.attachment_nodes > 0) then
+			WorldObject.draw(self)
+		end
+	end,
+
+	needsUpdate = function(self)
+		if self.spawn_rule and not self.is_spawned then
+			return true
+		end
+		if self.pickup_on_touch ~= true then
+			return false
+		end
+		local player = self.getPlayer and self:getPlayer() or nil
+		if not player or not self.isCollectorNearPickupRange then
+			return false
+		end
+		return self:isCollectorNearPickupRange(player, self.touch_pickup_active_padding or 24)
 	end
 })
 

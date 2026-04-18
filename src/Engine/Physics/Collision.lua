@@ -10,6 +10,7 @@ local Collision = Class:new({
 	_type = "Collision",
 	collision_passes = 1,
 	wall_friction = 0.8,
+	broadphase_cell_size = 32,
 	tile_size = 16,
 	layer_bounds = nil,
 	tile_registry = nil,
@@ -35,6 +36,7 @@ local Collision = Class:new({
 		self.shape_tests = CollisionShapeTests
 		self.broadphase = CollisionBroadphase.new({
 			shape_tests = self.shape_tests,
+			cell_size = self.broadphase_cell_size or 32,
 			profiler = self.profiler,
 		})
 		self.resolver = CollisionResolver.new({

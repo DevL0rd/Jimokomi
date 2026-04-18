@@ -52,6 +52,9 @@ LayerBuckets.registerEntity = function(layer, ent)
 			add(layer.collidable_entities, ent)
 		end
 	end
+	if layer.markSpatialIndexDirty then
+		layer:markSpatialIndexDirty(ent)
+	end
 end
 
 LayerBuckets.unregisterEntity = function(layer, ent)
@@ -60,6 +63,9 @@ LayerBuckets.unregisterEntity = function(layer, ent)
 	del(layer.attached_entities, ent)
 	del(layer.physics_entities, ent)
 	del(layer.collidable_entities, ent)
+	if layer.markSpatialIndexDirty then
+		layer:markSpatialIndexDirty(ent)
+	end
 end
 
 LayerBuckets.refreshAttachment = function(layer, ent)

@@ -2,6 +2,8 @@ local WorldObject = include("src/Engine/Objects/WorldObject.lua")
 
 local Particle = WorldObject:new({
     _type = "Particle",
+    entity_kind = 1,
+    inherit_layer_debug = false,
     ignore_physics = true,
     ignore_collisions = true,
     snapshot_enabled = false,
@@ -29,7 +31,13 @@ local Particle = WorldObject:new({
         if profiler then
             profiler:addCounter("render.particle.draws", 1)
         end
-        WorldObject.draw(self)
+        if self.layer and self.layer.camera and self.fill_color > -1 then
+            local sx, sy = self.layer.camera:layerToScreenXY(self.pos.x, self.pos.y)
+            circfill(sx, sy, max(1, flr(self.getRadius and self:getRadius() or self.shape.r or 1)), self.fill_color)
+        end
+        if self.debug or self.stroke or self.stroke_color > -1 or self.fill ~= nil then
+            WorldObject.draw(self)
+        end
     end
 })
 

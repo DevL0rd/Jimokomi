@@ -1,5 +1,25 @@
 local CollisionShapeTests = {}
 
+local function clamp(value, min_value, max_value)
+	return max(min_value, min(max_value, value))
+end
+
+local function build_contact(push_x, push_y, contact_x, contact_y)
+	local penetration = sqrt(push_x * push_x + push_y * push_y)
+	if penetration <= 0 then
+		return false
+	end
+	return {
+		x = push_x,
+		y = push_y,
+		penetration = penetration,
+		normal_x = push_x / penetration,
+		normal_y = push_y / penetration,
+		contact_x = contact_x,
+		contact_y = contact_y,
+	}
+end
+
 CollisionShapeTests.boundsOverlap = function(self, entity_a, entity_b)
 	local a_half_width = entity_a:isCircleShape() and entity_a:getRadius() or entity_a:getHalfWidth()
 	local a_half_height = entity_a:isCircleShape() and entity_a:getRadius() or entity_a:getHalfHeight()
@@ -21,15 +41,19 @@ CollisionShapeTests.circleToCircle = function(self, entity_a, entity_b)
 		return false
 	end
 	if distance_sq == 0 then
-		return { x = min_distance, y = 0 }
+		return build_contact(min_distance, 0, entity_a.pos.x - entity_a:getRadius(), entity_a.pos.y)
 	end
 
 	local distance = sqrt(distance_sq)
 	local overlap = min_distance - distance
-	return {
-		x = (dx / distance) * overlap,
-		y = (dy / distance) * overlap,
-	}
+	local nx = dx / distance
+	local ny = dy / distance
+	return build_contact(
+		nx * overlap,
+		ny * overlap,
+		entity_a.pos.x - nx * entity_a:getRadius(),
+		entity_a.pos.y - ny * entity_a:getRadius()
+	)
 end
 
 CollisionShapeTests.rectToRect = function(self, entity_a, entity_b)
@@ -42,15 +66,23 @@ CollisionShapeTests.rectToRect = function(self, entity_a, entity_b)
 		return false
 	end
 	if overlap_x < overlap_y then
-		return {
-			x = dx >= 0 and overlap_x or -overlap_x,
-			y = 0,
-		}
+		local nx = dx >= 0 and 1 or -1
+		local contact_x = entity_a.pos.x - nx * entity_a:getHalfWidth()
+		local contact_y = clamp(
+			entity_b.pos.y,
+			entity_a.pos.y - entity_a:getHalfHeight(),
+			entity_a.pos.y + entity_a:getHalfHeight()
+		)
+		return build_contact(nx * overlap_x, 0, contact_x, contact_y)
 	end
-	return {
-		x = 0,
-		y = dy >= 0 and overlap_y or -overlap_y,
-	}
+	local ny = dy >= 0 and 1 or -1
+	local contact_x = clamp(
+		entity_b.pos.x,
+		entity_a.pos.x - entity_a:getHalfWidth(),
+		entity_a.pos.x + entity_a:getHalfWidth()
+	)
+	local contact_y = entity_a.pos.y - ny * entity_a:getHalfHeight()
+	return build_contact(0, ny * overlap_y, contact_x, contact_y)
 end
 
 CollisionShapeTests.circleToRect = function(self, circle, rect)
@@ -76,21 +108,18 @@ CollisionShapeTests.circleToRect = function(self, circle, rect)
 		local min_push = min(min(push_left, push_right), min(push_up, push_down))
 
 		if min_push == push_left then
-			return { x = radius, y = 0 }
+			return build_contact(radius, 0, rect_left, clamp(circle.pos.y, rect_top, rect_bottom))
 		elseif min_push == push_right then
-			return { x = -radius, y = 0 }
+			return build_contact(-radius, 0, rect_right, clamp(circle.pos.y, rect_top, rect_bottom))
 		elseif min_push == push_up then
-			return { x = 0, y = radius }
+			return build_contact(0, radius, clamp(circle.pos.x, rect_left, rect_right), rect_top)
 		end
-		return { x = 0, y = -radius }
+		return build_contact(0, -radius, clamp(circle.pos.x, rect_left, rect_right), rect_bottom)
 	end
 
 	local distance = sqrt(distance_sq)
 	local overlap = radius - distance
-	return {
-		x = (dx / distance) * overlap,
-		y = (dy / distance) * overlap,
-	}
+	return build_contact((dx / distance) * overlap, (dy / distance) * overlap, closest_x, closest_y)
 end
 
 CollisionShapeTests.entityToEntity = function(self, entity_a, entity_b)
@@ -108,7 +137,7 @@ CollisionShapeTests.entityToEntity = function(self, entity_a, entity_b)
 		if entity_b:isCircleShape() then
 			local push = self:circleToRect(entity_b, entity_a)
 			if push then
-				return { x = -push.x, y = -push.y }
+				return build_contact(-push.x, -push.y, push.contact_x, push.contact_y)
 			end
 		end
 	end

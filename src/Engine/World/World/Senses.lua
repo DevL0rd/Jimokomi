@@ -1,5 +1,15 @@
 local WorldSenses = {}
 
+local function rebuild_sound_spatial_index(self)
+	if not self.sound_spatial_index then
+		return
+	end
+	self.sound_spatial_index:rebuild(self.recent_sounds, function(sound)
+		return sound and sound.pos ~= nil
+	end)
+	self.sound_spatial_dirty = false
+end
+
 local function get_sound_key(sound)
 	if not sound or not sound.source then
 		return nil
@@ -95,6 +105,7 @@ WorldSenses.pruneSounds = function(self, max_age_ms)
 				self.recent_sound_lookup[key] = nil
 			end
 			deli(self.recent_sounds, i)
+			self.sound_spatial_dirty = true
 		end
 	end
 end
@@ -136,6 +147,7 @@ WorldSenses.emitSound = function(self, source, sound_type, radius, pos)
 			end
 		end
 	end
+	self.sound_spatial_dirty = true
 	if profiler then
 		profiler:addCounter("world.senses.sounds_emitted", 1)
 		profiler:observe("world.senses.sound_queue_size", #self.recent_sounds)
@@ -165,8 +177,15 @@ WorldSenses.findNearestSound = function(self, listener, options)
 	local closest = nil
 	local closest_dist2 = nil
 	local considered_count = 0
-	for i = 1, #self.recent_sounds do
-		local sound = self.recent_sounds[i]
+	if self.sound_spatial_dirty == true then
+		rebuild_sound_spatial_index(self)
+	end
+	local candidates = self.recent_sounds
+	if self.sound_spatial_index and max_listener_radius ~= nil then
+		candidates = self.sound_spatial_index:queryRadius(listener_pos.x, listener_pos.y, max_listener_radius, {})
+	end
+	for i = 1, #candidates do
+		local sound = candidates[i]
 		if sound and sound.source ~= listener and (not filter or filter(sound) == true) then
 			considered_count += 1
 			local dx = sound.pos.x - listener_pos.x

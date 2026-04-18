@@ -34,6 +34,14 @@ local function get_cache_key(w, h, style)
 	return table.concat(key_parts, ":")
 end
 
+local function get_panel_profile_key(style)
+	return "panel:" .. tostr(get_style_value(style, "key", "panel"))
+end
+
+local function get_panel_profile_signature(w, h, style)
+	return get_cache_key(w, h, style)
+end
+
 local function get_noise(seed, x, y)
 	local n = abs(sin((x + seed * 17) * 12.9898 + (y + seed * 31) * 78.233))
 	return n - flr(n)
@@ -43,18 +51,10 @@ Panels.clearPanelCache = function(gfx)
 	gfx.panel_cache = {}
 end
 
-Panels.getCachedPanel = function(gfx, w, h, style)
-	gfx.panel_cache = gfx.panel_cache or {}
+local function build_panel(w, h, style)
 	style = style or {}
-	local key = get_cache_key(w, h, style)
-	if gfx.panel_cache[key] then
-		record_counter(gfx, "render.panel_cache.hits", 1)
-		return gfx.panel_cache[key]
-	end
-	record_counter(gfx, "render.panel_cache.misses", 1)
-
 	local panel = {
-		key = key,
+		key = get_cache_key(w, h, style),
 		w = w,
 		h = h,
 		shadow_offset = get_style_value(style, "shadow_offset", 1),
@@ -95,9 +95,37 @@ Panels.getCachedPanel = function(gfx, w, h, style)
 			end
 		end
 	end
+	return panel
+end
 
-	gfx.panel_cache[key] = panel
-	record_counter(gfx, "render.panel_cache.rebuilds", 1)
+Panels.getCachedPanel = function(gfx, w, h, style, options)
+	gfx.panel_cache = gfx.panel_cache or {}
+	style = style or {}
+	options = options or {}
+	local key = get_cache_key(w, h, style)
+	local cache_options = {
+		cache_mode = options.cache_mode or "panel",
+		cache_override_mode = options.cache_override_mode,
+		cache_tag = options.cache_tag or style.cache_tag or ("panel." .. tostr(get_style_value(style, "key", "panel"))),
+	}
+	local should_cache = true
+	if gfx.resolveCacheMode then
+		should_cache = gfx:resolveCacheMode(cache_options, "panel") ~= "off"
+	end
+	if should_cache and gfx.panel_cache[key] then
+		record_counter(gfx, "render.panel_cache.hits", 1)
+		return gfx.panel_cache[key]
+	end
+	if should_cache then
+		record_counter(gfx, "render.panel_cache.misses", 1)
+	else
+		record_counter(gfx, "render.panel_cache.bypass", 1)
+	end
+	local panel = build_panel(w, h, style)
+	if should_cache then
+		gfx.panel_cache[key] = panel
+		record_counter(gfx, "render.panel_cache.rebuilds", 1)
+	end
 	return panel
 end
 
@@ -139,7 +167,9 @@ Panels.drawPanel = function(gfx, panel, x, y)
 	end, {
 		w = panel.w,
 		h = panel.h,
-		cache_mode = "surface",
+		cache_tag = "panel.surface",
+		cache_profile_key = "panel.surface",
+		cache_profile_signature = tostr(panel.key),
 	})
 end
 
@@ -149,6 +179,7 @@ Panels.newRetainedPanel = function(gfx, config)
 	local node = gfx:newRetainedLeaf({
 		key = config.key or "retained.panel",
 		cache_mode = config.cache_mode or "retained",
+		cache_tag = config.cache_tag or "panel.retained",
 		x = config.x or 0,
 		y = config.y or 0,
 		w = config.w or 0,
@@ -156,6 +187,8 @@ Panels.newRetainedPanel = function(gfx, config)
 	})
 
 	node.panel_style = style
+	node.panel_cache_tag = config.panel_cache_tag or style.cache_tag or "panel.descriptor"
+	node.panel_cache_override_mode = config.panel_cache_override_mode
 
 	function node:setPanelStyle(next_style)
 		self.panel_style = next_style or {}
@@ -163,8 +196,19 @@ Panels.newRetainedPanel = function(gfx, config)
 		return self
 	end
 
+	function node:getCacheProfileKey()
+		return self.cache_profile_key or get_panel_profile_key(self.panel_style)
+	end
+
+	function node:getCacheProfileSignature()
+		return get_panel_profile_signature(self.w, self.h, self.panel_style)
+	end
+
 	node:setBuilder(function(target, panel_node)
-		local panel = gfx:getCachedPanel(panel_node.w, panel_node.h, panel_node.panel_style)
+		local panel = gfx:getCachedPanel(panel_node.w, panel_node.h, panel_node.panel_style, {
+			cache_tag = panel_node.panel_cache_tag,
+			cache_override_mode = panel_node.panel_cache_override_mode,
+		})
 		if panel then
 			gfx:appendPanelCommands(target, panel)
 		end

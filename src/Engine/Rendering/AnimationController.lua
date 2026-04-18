@@ -12,6 +12,29 @@ local function clone_table(source)
 	return copy
 end
 
+local function tables_equal(a, b)
+	if a == b then
+		return true
+	end
+	if type(a) ~= type(b) then
+		return false
+	end
+	if type(a) ~= "table" then
+		return a == b
+	end
+	for key, value in pairs(a) do
+		if not tables_equal(value, b[key]) then
+			return false
+		end
+	end
+	for key in pairs(b) do
+		if a[key] == nil then
+			return false
+		end
+	end
+	return true
+end
+
 local AnimationController = Class:new({
 	_type = "AnimationController",
 	owner = nil,
@@ -56,7 +79,14 @@ local AnimationController = Class:new({
 	applyConfig = function(self, config, reset_animation)
 		local sprite = self:ensureSprite()
 		if not sprite then
-			return nil
+			return nil, false
+		end
+
+		if self.current_config and tables_equal(self.current_config, config) then
+			if reset_animation and sprite.reset then
+				sprite:reset()
+			end
+			return sprite, false
 		end
 
 		if config.shape then
@@ -79,7 +109,7 @@ local AnimationController = Class:new({
 		end
 
 		self.current_config = clone_table(config)
-		return sprite
+		return sprite, true
 	end,
 
 	play = function(self, state, overrides)
@@ -99,14 +129,30 @@ local AnimationController = Class:new({
 	setFlip = function(self, flip_x, flip_y)
 		local sprite = self.sprite
 		if not sprite then
-			return
+			return false
 		end
+		local changed = false
 		if flip_x ~= nil then
-			sprite.flip_x = flip_x == true
+			local next_flip_x = flip_x == true
+			if sprite.flip_x ~= next_flip_x then
+				sprite.flip_x = next_flip_x
+				changed = true
+			end
+			if self.current_config then
+				self.current_config.flip_x = next_flip_x
+			end
 		end
 		if flip_y ~= nil then
-			sprite.flip_y = flip_y == true
+			local next_flip_y = flip_y == true
+			if sprite.flip_y ~= next_flip_y then
+				sprite.flip_y = next_flip_y
+				changed = true
+			end
+			if self.current_config then
+				self.current_config.flip_y = next_flip_y
+			end
 		end
+		return changed
 	end,
 
 	getSprite = function(self)

@@ -11,6 +11,7 @@ EngineLayers.createLayer = function(self, layer_id, physics_enabled, map_id)
 
 	local layer = Layer:new({
 		debug = self.debug,
+		debug_tile_labels = self.debug,
 		layer_id = layer_id,
 		physics_enabled = physics_enabled,
 		gravity = self.gravity,
@@ -18,6 +19,8 @@ EngineLayers.createLayer = function(self, layer_id, physics_enabled, map_id)
 		engine = self,
 		w = self.w,
 		h = self.h,
+		spatial_index_cell_size = self.spatial_index_cell_size or 32,
+		collision_broadphase_cell_size = self.collision_broadphase_cell_size or self.spatial_index_cell_size or 32,
 	})
 
 	layer.camera:setBounds(0, self.w - Screen.w, 0, self.h - Screen.h)

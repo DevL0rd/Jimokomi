@@ -38,9 +38,9 @@ local Autonomy = Class:new({
 		self.pathing = Pathing:new({
 			owner = self.owner,
 			policy = WalkClimbJumpPath,
-			repath_distance = self.path_retarget_distance,
-			repath_rate_hz = 1,
-			repath_fail_rate_hz = 0.5,
+			repath_distance = max(28, self.path_retarget_distance),
+			repath_rate_hz = 0.5,
+			repath_fail_rate_hz = 0.25,
 		})
 		self.path = nil
 		self.path_index = 1
@@ -219,6 +219,13 @@ local Autonomy = Class:new({
 	end,
 
 	getInputState = function(self)
+		local owner = self.owner
+		local world = owner and owner.getWorld and owner:getWorld() or nil
+		local frame_id = world and world.getFrameId and world:getFrameId() or flr(time() * 60)
+		if self.input_state_frame == frame_id and self.input_state ~= nil then
+			return self.input_state
+		end
+
 		local input = self:resetInput()
 		local action = self:getCurrentAction()
 		local target = self:getCurrentTarget()
@@ -230,6 +237,7 @@ local Autonomy = Class:new({
 		end
 
 		target = self:getPathWaypoint(target)
+		self.input_state_frame = frame_id
 		return self:applyTargetInput(input, target)
 	end,
 })

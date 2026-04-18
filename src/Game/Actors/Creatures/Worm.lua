@@ -5,6 +5,17 @@ local Creature = include("src/Game/Mixins/Creature.lua")
 local Item = include("src/Game/Mixins/Item.lua")
 local GroundPatrol = include("src/Game/Actors/Locomotion/GroundPatrol.lua")
 local Controller = include("src/Game/Actors/Creatures/Glider/Controller.lua")
+local Timer = include("src/Engine/Core/Timer.lua")
+
+local function is_visible_in_layer(self)
+	local layer = self.layer
+	local camera = layer and layer.camera or nil
+	if not layer or not camera or not self.pos then
+		return true
+	end
+	local radius = self.getRadius and self:getRadius() or 0
+	return camera:isRectVisible(self.pos.x - radius, self.pos.y - radius, radius * 2, radius * 2)
+end
 
 local Worm = WorldObject:new({
 	_type = "Worm",
@@ -12,6 +23,8 @@ local Worm = WorldObject:new({
 		kind = "circle",
 		r = 3,
 	},
+	fixed_rotation = true,
+	inherit_layer_debug = false,
 	edible = true,
 	item_id = "worm",
 	display_name = "Worm",
@@ -66,9 +79,13 @@ local Worm = WorldObject:new({
 	init = function(self)
 		self.move_accel = self.move_accel or 70
 		self.max_speed = self.max_speed or 18
+		self.offscreen_update_interval_ms = self.offscreen_update_interval_ms or 180
+		self.touch_pickup_active_padding = self.touch_pickup_active_padding or 24
 		WorldObject.init(self)
 		Creature.init(self)
 		Item.init(self)
+		self.offscreen_update_timer = self.offscreen_update_timer or Timer:new()
+		self.offscreen_update_timer.start_time -= random_int(0, self.offscreen_update_interval_ms) / 1000
 		self.ignore_gravity = false
 		self.ignore_friction = false
 		self.ground_patrol_locomotion = GroundPatrol:new({
@@ -117,9 +134,6 @@ local Worm = WorldObject:new({
 	end,
 	afterSpawn = function(self)
 		self:playVisual("crawl")
-		if self.layer and self.layer.refreshEntityBuckets then
-			self.layer:refreshEntityBuckets(self)
-		end
 		self:setState("patrol")
 		self.ground_patrol_locomotion:afterSpawn()
 	end,
@@ -138,6 +152,17 @@ local Worm = WorldObject:new({
 		end
 		self.ground_patrol_locomotion:updateAutonomous()
 	end,
+
+	needsUpdate = function(self)
+		if self:isPlayerControlled() then
+			return true
+		end
+		if is_visible_in_layer(self) then
+			return true
+		end
+		return self.offscreen_update_timer and self.offscreen_update_timer:hasElapsed(self.offscreen_update_interval_ms or 180) or true
+	end,
+
 	update = function(self)
 		if Creature.update(self) == false then
 			return

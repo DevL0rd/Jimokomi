@@ -5,6 +5,7 @@ local Particle = include("src/Engine/Objects/Particle.lua")
 
 local EmitterNode = AttachmentNode:new({
 	_type = "EmitterNode",
+	node_kind = 2,
 	shape = {
 		kind = "rect",
 		w = 16,

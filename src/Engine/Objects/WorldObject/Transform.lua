@@ -32,6 +32,10 @@ WorldObjectTransform.getSlot = function(self, name)
 	return self.transform:getSlot(name)
 end
 
+WorldObjectTransform.getSlotNames = function(self)
+	return self.transform:getSlotNames()
+end
+
 WorldObjectTransform.hasSlot = function(self, name)
 	return self.transform:hasSlot(name)
 end

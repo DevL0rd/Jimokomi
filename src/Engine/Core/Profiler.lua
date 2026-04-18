@@ -54,14 +54,71 @@ local function matches_prefixes(name, prefixes)
 	return false
 end
 
+local function get_entry_by_name(entries, name)
+	for i = 1, #(entries or {}) do
+		local entry = entries[i]
+		if entry.name == name then
+			return entry
+		end
+	end
+	return nil
+end
+
+local function get_entry_total_cpu(entries, name)
+	local entry = get_entry_by_name(entries, name)
+	return entry and round_value(entry.total_cpu or 0) or 0
+end
+
+local function get_scope_counter(entries, name)
+	local entry = get_entry_by_name(entries, name)
+	return entry and (entry.counter or 0) or 0
+end
+
+local function append_text_file(path, text, max_chars)
+	local existing = fetch(path)
+	if type(existing) ~= "string" then
+		existing = ""
+	end
+	local next_text = existing
+	if next_text ~= "" then
+		next_text ..= "\n"
+	end
+	next_text ..= text
+	if max_chars and #next_text > max_chars then
+		next_text = sub(next_text, max(1, #next_text - max_chars + 1))
+	end
+	store(path, next_text)
+end
+
+local function get_runtime_cache_mode_label(runtime_stats)
+	local mode = runtime_stats and runtime_stats.render_cache_mode or nil
+	if mode == 1 then
+		return "auto"
+	end
+	if mode == 2 then
+		return "off"
+	end
+	if mode == 3 or mode == 4 or mode == 5 then
+		return "on"
+	end
+	if mode == "auto" or mode == "on" or mode == "off" then
+		return mode
+	end
+	return ((runtime_stats and runtime_stats.render_cache_enabled or 0) > 0) and "on" or "off"
+end
+
 local Profiler = Class:new({
 	_type = "Profiler",
 	report_interval_ms = 5000,
 	log_path = "/appdata/jimokomi_perf_latest.txt",
+	history_log_path = "/appdata/jimokomi_perf_history.txt",
+	summary_log_path = "/appdata/jimokomi_perf_windows.txt",
 	enabled = false,
 	timing_enabled = false,
 	keep_history = false,
 	max_report_entries = 40,
+	max_history_chars = 200000,
+	max_summary_chars = 60000,
 	scopes = nil,
 	last_report_lines = nil,
 	last_report_entries = nil,
@@ -83,7 +140,34 @@ local Profiler = Class:new({
 			fps = 0,
 			cpu = 0,
 			draw_fps = 0,
+			render_cache_enabled = 0,
+			render_cache_mode = 2,
+			auto_cache_known = 0,
+			auto_cache_cached = 0,
+			auto_cache_live = 0,
+			auto_cache_total = 0,
+			auto_cache_completed = 0,
+			auto_cache_pending = 0,
+			auto_cache_waiting = 0,
+			auto_cache_active = 0,
+			auto_cache_pending_samples = 0,
+			auto_cache_active_samples = 0,
+			auto_cache_active_key = "",
+			auto_cache_active_bucket = "",
+			auto_cache_queue_eta_s = 0,
+			render_cache_entries = 0,
+			render_cache_command_entries = 0,
+			render_cache_surface_entries = 0,
+			render_cache_total_commands = 0,
+			render_cache_surface_area_total = 0,
+			auto_cache_recent_lines = {},
+			debug_text_cache_enabled = 0,
+			debug_shape_cache_enabled = 0,
+			debug_text_cache_toggle_serial = 0,
+			debug_shape_cache_toggle_serial = 0,
 			draw_calls = 0,
+			last_draw_ms = 0,
+			last_update_ms = 0,
 			cpu_max = 0,
 			cpu_spikes_over_08 = 0,
 			cpu_spikes_over_10 = 0,
@@ -212,11 +296,63 @@ local Profiler = Class:new({
 		local fps = self.runtime_stats and self.runtime_stats.fps or 0
 		local cpu = self.runtime_stats and self.runtime_stats.cpu or 0
 		local draw_fps = self.runtime_stats and self.runtime_stats.draw_fps or 0
+		local render_cache_enabled = self.runtime_stats and self.runtime_stats.render_cache_enabled or 0
+		local render_cache_mode = self.runtime_stats and self.runtime_stats.render_cache_mode or 2
+		local auto_cache_known = self.runtime_stats and self.runtime_stats.auto_cache_known or 0
+		local auto_cache_cached = self.runtime_stats and self.runtime_stats.auto_cache_cached or 0
+		local auto_cache_live = self.runtime_stats and self.runtime_stats.auto_cache_live or 0
+		local auto_cache_total = self.runtime_stats and self.runtime_stats.auto_cache_total or 0
+		local auto_cache_completed = self.runtime_stats and self.runtime_stats.auto_cache_completed or 0
+		local auto_cache_pending = self.runtime_stats and self.runtime_stats.auto_cache_pending or 0
+		local auto_cache_waiting = self.runtime_stats and self.runtime_stats.auto_cache_waiting or 0
+		local auto_cache_active = self.runtime_stats and self.runtime_stats.auto_cache_active or 0
+		local auto_cache_pending_samples = self.runtime_stats and self.runtime_stats.auto_cache_pending_samples or 0
+		local auto_cache_active_samples = self.runtime_stats and self.runtime_stats.auto_cache_active_samples or 0
+		local auto_cache_active_key = self.runtime_stats and self.runtime_stats.auto_cache_active_key or ""
+		local auto_cache_active_bucket = self.runtime_stats and self.runtime_stats.auto_cache_active_bucket or ""
+		local auto_cache_queue_eta_s = self.runtime_stats and self.runtime_stats.auto_cache_queue_eta_s or 0
+		local render_cache_entries = self.runtime_stats and self.runtime_stats.render_cache_entries or 0
+		local render_cache_command_entries = self.runtime_stats and self.runtime_stats.render_cache_command_entries or 0
+		local render_cache_surface_entries = self.runtime_stats and self.runtime_stats.render_cache_surface_entries or 0
+		local render_cache_total_commands = self.runtime_stats and self.runtime_stats.render_cache_total_commands or 0
+		local render_cache_surface_area_total = self.runtime_stats and self.runtime_stats.render_cache_surface_area_total or 0
+		local auto_cache_recent_lines = self.runtime_stats and self.runtime_stats.auto_cache_recent_lines or {}
+		local debug_text_cache_enabled = self.runtime_stats and self.runtime_stats.debug_text_cache_enabled or 0
+		local debug_shape_cache_enabled = self.runtime_stats and self.runtime_stats.debug_shape_cache_enabled or 0
+		local debug_text_cache_toggle_serial = self.runtime_stats and self.runtime_stats.debug_text_cache_toggle_serial or 0
+		local debug_shape_cache_toggle_serial = self.runtime_stats and self.runtime_stats.debug_shape_cache_toggle_serial or 0
 		self.runtime_stats = {
 			fps = fps,
 			cpu = cpu,
 			draw_fps = draw_fps,
+			render_cache_enabled = render_cache_enabled,
+			render_cache_mode = render_cache_mode,
+			auto_cache_known = auto_cache_known,
+			auto_cache_cached = auto_cache_cached,
+			auto_cache_live = auto_cache_live,
+			auto_cache_total = auto_cache_total,
+			auto_cache_completed = auto_cache_completed,
+			auto_cache_pending = auto_cache_pending,
+			auto_cache_waiting = auto_cache_waiting,
+			auto_cache_active = auto_cache_active,
+			auto_cache_pending_samples = auto_cache_pending_samples,
+			auto_cache_active_samples = auto_cache_active_samples,
+			auto_cache_active_key = auto_cache_active_key,
+			auto_cache_active_bucket = auto_cache_active_bucket,
+			auto_cache_queue_eta_s = auto_cache_queue_eta_s,
+			render_cache_entries = render_cache_entries,
+			render_cache_command_entries = render_cache_command_entries,
+			render_cache_surface_entries = render_cache_surface_entries,
+			render_cache_total_commands = render_cache_total_commands,
+			render_cache_surface_area_total = render_cache_surface_area_total,
+			auto_cache_recent_lines = auto_cache_recent_lines,
+			debug_text_cache_enabled = debug_text_cache_enabled,
+			debug_shape_cache_enabled = debug_shape_cache_enabled,
+			debug_text_cache_toggle_serial = debug_text_cache_toggle_serial,
+			debug_shape_cache_toggle_serial = debug_shape_cache_toggle_serial,
 			draw_calls = 0,
+			last_draw_ms = self.runtime_stats and self.runtime_stats.last_draw_ms or 0,
+			last_update_ms = self.runtime_stats and self.runtime_stats.last_update_ms or 0,
 			cpu_max = 0,
 			cpu_spikes_over_08 = 0,
 			cpu_spikes_over_10 = 0,
@@ -300,6 +436,50 @@ local Profiler = Class:new({
 			)
 			add(
 				lines,
+				"cache mode:r:" .. get_runtime_cache_mode_label(runtime_stats) ..
+				" t:" .. ((runtime_stats.debug_text_cache_enabled or 0) > 0 and "on" or "off") ..
+				" s:" .. ((runtime_stats.debug_shape_cache_enabled or 0) > 0 and "on" or "off") ..
+				" tog:" .. tostr(runtime_stats.debug_text_cache_toggle_serial or 0) ..
+				"/" .. tostr(runtime_stats.debug_shape_cache_toggle_serial or 0)
+			)
+			if (runtime_stats.auto_cache_total or 0) > 0 or (runtime_stats.auto_cache_known or 0) > 0 then
+				add(
+					lines,
+					"auto cache known:" .. tostr(runtime_stats.auto_cache_known or 0) ..
+					" cached:" .. tostr(runtime_stats.auto_cache_cached or 0) ..
+					" live:" .. tostr(runtime_stats.auto_cache_live or 0)
+				)
+				add(
+					lines,
+					"auto queue done:" .. tostr(runtime_stats.auto_cache_completed or 0) ..
+					"/" .. tostr(runtime_stats.auto_cache_total or 0) ..
+					" pending:" .. tostr(runtime_stats.auto_cache_pending or 0) ..
+					" waiting:" .. tostr(runtime_stats.auto_cache_waiting or 0) ..
+					" active:" .. tostr(runtime_stats.auto_cache_active or 0) ..
+					" samples:" .. tostr(runtime_stats.auto_cache_pending_samples or 0) ..
+					" eta_s:" .. round_value(runtime_stats.auto_cache_queue_eta_s or 0)
+				)
+				if runtime_stats.auto_cache_active_bucket and runtime_stats.auto_cache_active_bucket ~= "" then
+					add(
+						lines,
+						"auto active:" .. tostr(runtime_stats.auto_cache_active_bucket or "?") ..
+						" left:" .. tostr(runtime_stats.auto_cache_active_samples or 0)
+					)
+				end
+				add(
+					lines,
+					"render cache entries:" .. tostr(runtime_stats.render_cache_entries or 0) ..
+					" command:" .. tostr(runtime_stats.render_cache_command_entries or 0) ..
+					" surface:" .. tostr(runtime_stats.render_cache_surface_entries or 0) ..
+					" cmd_total:" .. tostr(runtime_stats.render_cache_total_commands or 0) ..
+					" surface_area:" .. tostr(runtime_stats.render_cache_surface_area_total or 0)
+				)
+				for i = 1, #(runtime_stats.auto_cache_recent_lines or {}) do
+					add(lines, "auto " .. i .. ": " .. tostr(runtime_stats.auto_cache_recent_lines[i]))
+				end
+			end
+			add(
+				lines,
 				"spikes cpu_max:" .. round_value(runtime_stats.cpu_max or 0) ..
 				" dt_max:" .. round_value(runtime_stats.frame_dt_ms_max or 0) ..
 				" dt_avg:" .. round_value(runtime_stats.frame_dt_ms_avg or 0) ..
@@ -330,11 +510,43 @@ local Profiler = Class:new({
 		end
 
 		local remaining = {}
-		for i = 1, #entries do
-			if i > (self.max_report_entries or 40) then
-				break
+		local used_names = {}
+
+		local function mark_used(entry)
+			used_names[entry.name] = true
+		end
+
+		local function append_full_section(title, prefixes)
+			local section_entries = {}
+			for i = 1, #entries do
+				local entry = entries[i]
+				if not used_names[entry.name] and matches_prefixes(entry.name, prefixes) then
+					add(section_entries, entry)
+				end
 			end
-			add(remaining, entries[i])
+			if #section_entries == 0 then
+				return
+			end
+			add(lines, "[" .. title .. "]")
+			for i = 1, #section_entries do
+				append_entry(section_entries[i])
+				mark_used(section_entries[i])
+			end
+		end
+
+		append_full_section("entity_update_types", { "layer.sim.update_entities.type." })
+		append_full_section("entity_update_objects", { "layer.sim.update_entities.object." })
+		append_full_section("entity_draw_types", { "layer.render.entities.type.", "layer.render.entities_behind_map.type." })
+		append_full_section("entity_draw_objects", { "layer.render.entities.object.", "layer.render.entities_behind_map.object." })
+
+		for i = 1, #entries do
+			local entry = entries[i]
+			if not used_names[entry.name] then
+				add(remaining, entry)
+				if #remaining >= (self.max_report_entries or 40) then
+					break
+				end
+			end
 		end
 
 		local function append_section(title, prefixes)
@@ -384,6 +596,46 @@ local Profiler = Class:new({
 		return lines
 	end,
 
+	buildCompactSummaryLine = function(self, elapsed_ms, entries)
+		local runtime_stats = self.runtime_stats or {}
+		local window_s = round_value(max(0, elapsed_ms / 1000))
+		local mode_line =
+			"r:" .. get_runtime_cache_mode_label(runtime_stats) ..
+			" t:" .. ((runtime_stats.debug_text_cache_enabled or 0) > 0 and "on" or "off") ..
+			" s:" .. ((runtime_stats.debug_shape_cache_enabled or 0) > 0 and "on" or "off")
+		return
+			"report:" .. tostr(self.report_serial or 0) ..
+			" time:" .. tostr(time()) ..
+			" window_s:" .. tostr(window_s) ..
+			" mode:" .. mode_line ..
+			" toggles:" .. tostr(runtime_stats.debug_text_cache_toggle_serial or 0) ..
+			"/" .. tostr(runtime_stats.debug_shape_cache_toggle_serial or 0) ..
+			" fps:" .. tostr(round_value(runtime_stats.fps or 0)) ..
+			" cpu:" .. tostr(round_value(runtime_stats.cpu or 0)) ..
+			" draw_cpu:" .. tostr(get_entry_total_cpu(entries, "engine.draw")) ..
+			" map_cpu:" .. tostr(get_entry_total_cpu(entries, "layer.render.map")) ..
+			" entities_cpu:" .. tostr(get_entry_total_cpu(entries, "layer.render.entities")) ..
+			" overlay_cpu:" .. tostr(get_entry_total_cpu(entries, "engine.debug_overlay.draw")) ..
+			" guides_cpu:" .. tostr(get_entry_total_cpu(entries, "engine.debug_overlay.guides")) ..
+			" grid_cpu:" .. tostr(get_entry_total_cpu(entries, "layer.render.debug_grid")) ..
+			" auto_known:" .. tostr(runtime_stats.auto_cache_known or 0) ..
+			" auto_done:" .. tostr(runtime_stats.auto_cache_completed or 0) ..
+			"/" .. tostr(runtime_stats.auto_cache_total or 0) ..
+			" auto_cached:" .. tostr(runtime_stats.auto_cache_cached or 0) ..
+			" auto_live:" .. tostr(runtime_stats.auto_cache_live or 0) ..
+			" auto_pending:" .. tostr(runtime_stats.auto_cache_pending or 0) ..
+			" auto_active:" .. tostr(runtime_stats.auto_cache_active or 0) ..
+			" auto_eta_s:" .. tostr(round_value(runtime_stats.auto_cache_queue_eta_s or 0)) ..
+			" cache_entries:" .. tostr(runtime_stats.render_cache_entries or 0) ..
+			" cache_cmd_entries:" .. tostr(runtime_stats.render_cache_command_entries or 0) ..
+			" cache_surface_entries:" .. tostr(runtime_stats.render_cache_surface_entries or 0) ..
+			" cache_hits:" .. tostr(get_scope_counter(entries, "render.cache.hits")) ..
+			" cache_replays:" .. tostr(get_scope_counter(entries, "render.cache.replays")) ..
+			" cache_bypass:" .. tostr(get_scope_counter(entries, "render.cache.bypass")) ..
+			" panel_hits:" .. tostr(get_scope_counter(entries, "render.panel_cache.hits")) ..
+			" retained_hits:" .. tostr(get_scope_counter(entries, "render.retained.hits"))
+	end,
+
 	reportIfDue = function(self)
 		if not self.enabled then
 			return false
@@ -409,6 +661,20 @@ local Profiler = Class:new({
 
 		pcall(function()
 			store(self.log_path, report)
+		end)
+		pcall(function()
+			append_text_file(
+				self.history_log_path,
+				"==== report:" .. tostr(self.report_serial) .. " time:" .. tostr(time()) .. " ====\n" .. report,
+				self.max_history_chars
+			)
+		end)
+		pcall(function()
+			append_text_file(
+				self.summary_log_path,
+				self:buildCompactSummaryLine(elapsed_ms, self.last_report_entries),
+				self.max_summary_chars
+			)
 		end)
 
 		self:resetWindow()

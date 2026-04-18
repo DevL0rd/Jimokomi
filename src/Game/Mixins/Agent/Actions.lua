@@ -2,6 +2,26 @@ local Ecology = include("src/Game/Ecology/Ecology.lua")
 
 local AgentActions = {}
 
+local function shallow_action_data_equal(a, b)
+	if a == b then
+		return true
+	end
+	if type(a) ~= "table" or type(b) ~= "table" then
+		return a == b
+	end
+	for key, value in pairs(a) do
+		if b[key] ~= value then
+			return false
+		end
+	end
+	for key, value in pairs(b) do
+		if a[key] ~= value then
+			return false
+		end
+	end
+	return true
+end
+
 AgentActions.getCurrentAction = function(self)
 	return self.actions.action
 end
@@ -39,6 +59,11 @@ AgentActions.updateActionPlan = function(self)
 	end
 	local action, data = self:selectAction()
 	action = action or self.default_action or Ecology.Actions.Idle
+	local current_action = self.actions and self.actions.action or nil
+	local current_data = self.actions and self.actions.data or nil
+	if current_action == action and shallow_action_data_equal(current_data, data or {}) then
+		return
+	end
 	self:setAction(action, data)
 end
 

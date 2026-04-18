@@ -64,14 +64,18 @@ VisualOwner.playVisual = function(self, state, overrides)
 	if not self.visual then
 		VisualOwner.init(self)
 	end
-	local sprite = self.visual:play(state, overrides)
-	refresh_visual_buckets(self)
+	local sprite, changed = self.visual:play(state, overrides)
+	if changed then
+		refresh_visual_buckets(self)
+	end
 	return sprite
 end
 
 VisualOwner.setVisualFlip = function(self, flip_x, flip_y)
 	if self.visual then
-		self.visual:setFlip(flip_x, flip_y)
+		if self.visual:setFlip(flip_x, flip_y) then
+			refresh_visual_buckets(self)
+		end
 	end
 end
 

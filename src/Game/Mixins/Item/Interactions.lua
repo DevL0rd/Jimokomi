@@ -131,6 +131,18 @@ ItemInteractions.isTouchingCollector = function(self, collector)
 	return dx * dx + dy * dy <= pickup_radius * pickup_radius
 end
 
+ItemInteractions.isCollectorNearPickupRange = function(self, collector, extra_padding)
+	if not collector then
+		return false
+	end
+	local dx = collector.pos.x - self.pos.x
+	local dy = collector.pos.y - self.pos.y
+	local collector_radius = collector.getRadius and collector:getRadius() or collector.r or 0
+	local padding = (self.pickup_radius_padding or 0) + (extra_padding or 0)
+	local pickup_radius = collector_radius + self:getPickupRadius() + padding
+	return dx * dx + dy * dy <= pickup_radius * pickup_radius
+end
+
 ItemInteractions.tryTouchPickup = function(self)
 	local collector = self:getPlayer()
 	if not collector or not self:isTouchingCollector(collector) then

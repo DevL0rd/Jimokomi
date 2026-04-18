@@ -50,6 +50,10 @@ end
 
 Item.update = function(self)
 	if self.pickup_on_touch and self.tryTouchPickup and self.touch_pickup_timer and self.touch_pickup_timer:hasElapsed(self.touch_pickup_interval_ms or 120) then
+		local player = self.getPlayer and self:getPlayer() or nil
+		if self.isCollectorNearPickupRange and player and not self:isCollectorNearPickupRange(player, self.touch_pickup_active_padding or 24) then
+			return true
+		end
 		self:tryTouchPickup()
 	end
 	return true

@@ -4,6 +4,17 @@ local Creature = include("src/Game/Mixins/Creature.lua")
 local Item = include("src/Game/Mixins/Item.lua")
 local Flight = include("src/Game/Actors/Locomotion/Flight.lua")
 local Controller = include("src/Game/Actors/Creatures/Glider/Controller.lua")
+local Timer = include("src/Engine/Core/Timer.lua")
+
+local function is_visible_in_layer(self)
+	local layer = self.layer
+	local camera = layer and layer.camera or nil
+	if not layer or not camera or not self.pos then
+		return true
+	end
+	local radius = self.getRadius and self:getRadius() or 0
+	return camera:isRectVisible(self.pos.x - radius, self.pos.y - radius, radius * 2, radius * 2)
+end
 
 local Fly = WorldObject:new({
 	_type = "Fly",
@@ -11,6 +22,8 @@ local Fly = WorldObject:new({
 		kind = "circle",
 		r = 2,
 	},
+	fixed_rotation = true,
+	inherit_layer_debug = false,
 	edible = true,
 	item_id = "fly",
 	display_name = "Fly",
@@ -87,9 +100,13 @@ local Fly = WorldObject:new({
 		self.flee_anchor_distance = self.flee_anchor_distance or 96
 		self.explore_retarget_min = self.explore_retarget_min or 1200
 		self.explore_retarget_max = self.explore_retarget_max or 3200
+		self.offscreen_update_interval_ms = self.offscreen_update_interval_ms or 150
+		self.touch_pickup_active_padding = self.touch_pickup_active_padding or 24
 		WorldObject.init(self)
 		Creature.init(self)
 		Item.init(self)
+		self.offscreen_update_timer = self.offscreen_update_timer or Timer:new()
+		self.offscreen_update_timer.start_time -= random_int(0, self.offscreen_update_interval_ms) / 1000
 		self.flight_locomotion = Flight:new({
 			owner = self,
 			explore_speed = self.explore_speed,
@@ -133,9 +150,6 @@ local Fly = WorldObject:new({
 
 	afterSpawn = function(self)
 		self:playVisual("flying")
-		if self.layer and self.layer.refreshEntityBuckets then
-			self.layer:refreshEntityBuckets(self)
-		end
 		self.flight_locomotion:afterSpawn()
 	end,
 
@@ -157,6 +171,16 @@ local Fly = WorldObject:new({
 			return
 		end
 		self.flight_locomotion:updateAutonomous()
+	end,
+
+	needsUpdate = function(self)
+		if self:isPlayerControlled() then
+			return true
+		end
+		if is_visible_in_layer(self) then
+			return true
+		end
+		return self.offscreen_update_timer and self.offscreen_update_timer:hasElapsed(self.offscreen_update_interval_ms or 150) or true
 	end,
 
 	update = function(self)

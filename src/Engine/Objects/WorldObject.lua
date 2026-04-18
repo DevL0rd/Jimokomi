@@ -1,36 +1,23 @@
 local Class = include("src/Engine/Core/Class.lua")
-local Vector = include("src/Engine/Math/Vector.lua")
 local WorldObjectLifecycle = include("src/Engine/Objects/WorldObject/Lifecycle.lua")
 local WorldObjectTransform = include("src/Engine/Objects/WorldObject/Transform.lua")
-local WorldObjectCollider = include("src/Engine/Objects/WorldObject/Collider.lua")
 local WorldObjectNodes = include("src/Engine/Objects/WorldObject/Nodes.lua")
 local WorldObjectSnapshot = include("src/Engine/Objects/WorldObject/Snapshot.lua")
 local WorldObjectEvents = include("src/Engine/Objects/WorldObject/Events.lua")
+local PhysicsBody = include("src/Engine/Mixins/PhysicsBody.lua")
+local ColliderBody = include("src/Engine/Mixins/ColliderBody.lua")
 
 local WorldObject = Class:new({
 	_type = "WorldObject",
+	entity_kind = 0,
 	is_world_object = true,
 	name = "WorldObject",
 	object_id = nil,
-	shape = nil,
 	pos = nil,
-	vel = Vector:new(),
-	accel = Vector:new(),
-	friction = 10,
-	stroke_color = -1,
-	fill_color = -1,
 	debug = false,
 	inherit_layer_debug = true,
 	snapshot_enabled = true,
 	lifetime = -1,
-	ignore_physics = false,
-	ignore_gravity = false,
-	ignore_friction = false,
-	ignore_collisions = false,
-	collision_layer = "default",
-	collision_mask = nil,
-	is_trigger = false,
-	resolve_entity_collisions = false,
 	parent = nil,
 	parent_slot = nil,
 	layer = nil,
@@ -40,20 +27,20 @@ local WorldObject = Class:new({
 	default_slot_destroy_policy = "detach",
 
 	getTransform = WorldObjectTransform.getTransform,
-	getCollider = WorldObjectCollider.getCollider,
+	getCollider = ColliderBody.getCollider,
 
-	setShape = WorldObjectCollider.setShape,
-	setCircleShape = WorldObjectCollider.setCircleShape,
-	setRectShape = WorldObjectCollider.setRectShape,
-	getShapeKind = WorldObjectCollider.getShapeKind,
-	isCircleShape = WorldObjectCollider.isCircleShape,
-	isRectShape = WorldObjectCollider.isRectShape,
-	getRadius = WorldObjectCollider.getRadius,
-	getWidth = WorldObjectCollider.getWidth,
-	getHeight = WorldObjectCollider.getHeight,
-	getHalfWidth = WorldObjectCollider.getHalfWidth,
-	getHalfHeight = WorldObjectCollider.getHalfHeight,
-	getTopLeft = WorldObjectCollider.getTopLeft,
+	setShape = ColliderBody.setShape,
+	setCircleShape = ColliderBody.setCircleShape,
+	setRectShape = ColliderBody.setRectShape,
+	getShapeKind = ColliderBody.getShapeKind,
+	isCircleShape = ColliderBody.isCircleShape,
+	isRectShape = ColliderBody.isRectShape,
+	getRadius = ColliderBody.getRadius,
+	getWidth = ColliderBody.getWidth,
+	getHeight = ColliderBody.getHeight,
+	getHalfWidth = ColliderBody.getHalfWidth,
+	getHalfHeight = ColliderBody.getHalfHeight,
+	getTopLeft = ColliderBody.getTopLeft,
 
 	setWorldPosition = WorldObjectTransform.setWorldPosition,
 	setLocalPosition = WorldObjectTransform.setLocalPosition,
@@ -70,16 +57,17 @@ local WorldObject = Class:new({
 	hasOverlapExitInterest = WorldObjectEvents.hasOverlapExitInterest,
 	hasAnyOverlapInterest = WorldObjectEvents.hasAnyOverlapInterest,
 
-	getCollisionLayer = WorldObjectCollider.getCollisionLayer,
-	setCollisionLayer = WorldObjectCollider.setCollisionLayer,
-	allowsCollisionLayer = WorldObjectCollider.allowsCollisionLayer,
-	setCollisionMask = WorldObjectCollider.setCollisionMask,
-	isTrigger = WorldObjectCollider.isTrigger,
-	canCollideWith = WorldObjectCollider.canCollideWith,
+	getCollisionLayer = ColliderBody.getCollisionLayer,
+	setCollisionLayer = ColliderBody.setCollisionLayer,
+	allowsCollisionLayer = ColliderBody.allowsCollisionLayer,
+	setCollisionMask = ColliderBody.setCollisionMask,
+	isTrigger = ColliderBody.isTrigger,
+	canCollideWith = ColliderBody.canCollideWith,
 
 	ensureSlots = WorldObjectTransform.ensureSlots,
 	defineSlot = WorldObjectTransform.defineSlot,
 	getSlot = WorldObjectTransform.getSlot,
+	getSlotNames = WorldObjectTransform.getSlotNames,
 	hasSlot = WorldObjectTransform.hasSlot,
 	setSlotPosition = WorldObjectTransform.setSlotPosition,
 	getSlotLocalPosition = WorldObjectTransform.getSlotLocalPosition,
@@ -107,6 +95,7 @@ local WorldObject = Class:new({
 	removeAttachmentNode = WorldObjectNodes.removeAttachmentNode,
 	updateAttachmentNodes = WorldObjectNodes.updateAttachmentNodes,
 	drawAttachmentNodes = WorldObjectNodes.drawAttachmentNodes,
+	drawSingleAttachmentSpriteFast = WorldObjectNodes.drawSingleAttachmentSpriteFast,
 	destroyAttachmentNodes = WorldObjectNodes.destroyAttachmentNodes,
 
 	isSnapshotEnabled = function(self)
@@ -114,11 +103,28 @@ local WorldObject = Class:new({
 	end,
 
 	getWorld = WorldObjectLifecycle.getWorld,
+	getSpriteRotationAngle = WorldObjectLifecycle.getSpriteRotationAngle,
+	getSpriteRotationBucketCount = WorldObjectLifecycle.getSpriteRotationBucketCount,
+	drawSharedSprite = WorldObjectLifecycle.drawSharedSprite,
+	markSpatialDirty = WorldObjectLifecycle.markSpatialDirty,
+	isSpatialStatic = WorldObjectLifecycle.isSpatialStatic,
+	initPhysicsBody = PhysicsBody.init,
+	canSleepPhysics = PhysicsBody.canSleepPhysics,
+	isPhysicsSleeping = PhysicsBody.isPhysicsSleeping,
+	sleepPhysics = PhysicsBody.sleepPhysics,
+	wakePhysics = PhysicsBody.wakePhysics,
+	updatePhysicsSleepState = PhysicsBody.updatePhysicsSleepState,
+	canRotatePhysics = PhysicsBody.canRotatePhysics,
+	isRotationLocked = PhysicsBody.isRotationLocked,
+	setRotationLocked = PhysicsBody.setRotationLocked,
+	getSharedCacheIdentity = function(self)
+		return tostr(self._type or self.name or "world_object")
+	end,
 
 	getDebugSnapshot = WorldObjectSnapshot.getDebugSnapshot,
 	toSnapshot = WorldObjectSnapshot.toSnapshot,
 	applySnapshot = function(self, snapshot)
-		return WorldObjectSnapshot.applySnapshot(self, snapshot, WorldObjectLifecycle.cloneVector)
+		return WorldObjectSnapshot.applySnapshot(self, snapshot, PhysicsBody.cloneVector)
 	end,
 
 	exportState = function(self)
@@ -135,11 +141,11 @@ local WorldObject = Class:new({
 
 	update = WorldObjectLifecycle.update,
 	needsUpdate = WorldObjectLifecycle.needsUpdate,
-	strokeShape = WorldObjectCollider.strokeShape,
-	fillShape = WorldObjectCollider.fillShape,
+	strokeShape = ColliderBody.strokeShape,
+	fillShape = ColliderBody.fillShape,
 	draw = WorldObjectLifecycle.draw,
 	needsDraw = WorldObjectLifecycle.needsDraw,
-	draw_debug = WorldObjectCollider.draw_debug,
+	draw_debug = ColliderBody.draw_debug,
 
 	on_collision = WorldObjectEvents.on_collision,
 	on_collision_enter = WorldObjectEvents.on_collision_enter,
@@ -153,5 +159,17 @@ local WorldObject = Class:new({
 
 	unInit = WorldObjectLifecycle.unInit,
 })
+
+for key, value in pairs(PhysicsBody) do
+	if key ~= "mixin" and key ~= "init" and WorldObject[key] == nil then
+		WorldObject[key] = value
+	end
+end
+
+for key, value in pairs(ColliderBody) do
+	if key ~= "mixin" and key ~= "init" and WorldObject[key] == nil then
+		WorldObject[key] = value
+	end
+end
 
 return WorldObject

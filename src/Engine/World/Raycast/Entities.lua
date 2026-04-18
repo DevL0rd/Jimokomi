@@ -45,6 +45,14 @@ RaycastEntities.cast = function(self, ray)
 	end
 
 	local targets = self.layer.collidable_entities or self.layer.entities
+	local query_left = min(ray.pos.x, ray.pos.x + ray.vec.x)
+	local query_right = max(ray.pos.x, ray.pos.x + ray.vec.x)
+	local query_top = min(ray.pos.y, ray.pos.y + ray.vec.y)
+	local query_bottom = max(ray.pos.y, ray.pos.y + ray.vec.y)
+	local world = self.layer and self.layer.world or nil
+	if world and world.queryCollidablesInRect then
+		targets = world:queryCollidablesInRect(query_left, query_top, query_right, query_bottom)
+	end
 	if ray.ignore_entity_hits ~= true then
 		for i = 1, #targets do
 			local obj = targets[i]

@@ -6,6 +6,9 @@ local DebugOverlaySummary = include("src/Engine/Core/DebugOverlay/Summary.lua")
 local DebugOverlay = Class:new({
 	_type = "DebugOverlay",
 	max_entities = 5,
+	summary_refresh_ms = 250,
+	spatial_chunk_refresh_ms = 150,
+	spatial_chunk_cell_step = 1,
 
 	appendLine = DebugOverlayLines.appendLine,
 	drawLines = DebugOverlayLines.drawLines,

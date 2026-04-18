@@ -9,8 +9,6 @@ local Fire = ProceduralSprite:new({
 	fps = 6,
 	loop = true,
 	cache_procedural_sprite = true,
-	procedural_sprite_cache_mode = "surface",
-	procedural_sprite_cache_key = "fire",
 	debug = false,
 	inherit_layer_debug = false,
 

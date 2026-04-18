@@ -24,6 +24,10 @@ WorldObjectSnapshot.toSnapshot = function(self)
 		collider = self.collider and self.collider:toSnapshot() or nil,
 		vel = { x = self.vel.x, y = self.vel.y },
 		accel = { x = self.accel.x, y = self.accel.y },
+		angle = self.angle or 0,
+		angular_vel = self.angular_vel or 0,
+		angular_accel = self.angular_accel or 0,
+		angular_damping = self.angular_damping or 0,
 		friction = self.friction,
 		lifetime = self.lifetime,
 		flags = {
@@ -52,6 +56,10 @@ WorldObjectSnapshot.applySnapshot = function(self, snapshot, clone_vector)
 	end
 	self.vel = clone_vector(snapshot.vel)
 	self.accel = clone_vector(snapshot.accel)
+	self.angle = snapshot.angle or self.angle or 0
+	self.angular_vel = snapshot.angular_vel or self.angular_vel or 0
+	self.angular_accel = snapshot.angular_accel or self.angular_accel or 0
+	self.angular_damping = snapshot.angular_damping or self.angular_damping or 0
 	self.friction = snapshot.friction or self.friction
 	self.lifetime = snapshot.lifetime or self.lifetime
 	local flags = snapshot.flags or {}

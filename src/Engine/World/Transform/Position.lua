@@ -2,6 +2,16 @@ local Vector = include("src/Engine/Math/Vector.lua")
 
 local TransformPosition = {}
 
+local function mark_spatial_dirty(self)
+	local owner = self and self.owner or nil
+	if owner and owner.wakePhysics then
+		owner:wakePhysics()
+	end
+	if owner and owner.markSpatialDirty then
+		owner:markSpatialDirty()
+	end
+end
+
 TransformPosition.init = function(self)
 	local start_pos = self.position or Vector:new()
 	self.position = Vector:new({
@@ -26,6 +36,7 @@ TransformPosition.setLocalPosition = function(self, pos)
 		self.position.x = self.local_position.x
 		self.position.y = self.local_position.y
 	end
+	mark_spatial_dirty(self)
 	return self.local_position
 end
 
@@ -48,6 +59,7 @@ TransformPosition.setWorldPosition = function(self, pos)
 		self.local_position.y = self.position.y
 	end
 
+	mark_spatial_dirty(self)
 	return self.position
 end
 
