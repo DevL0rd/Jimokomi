@@ -12,6 +12,18 @@ static double renderer_now_ms(void) {
 
 static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend, const SpriteRenderable *item, uint64_t now_ms);
 
+typedef struct RendererPreparedSurfaceDraw {
+    const Surface* surface;
+    SurfaceDrawInstance instance;
+    bool valid;
+} RendererPreparedSurfaceDraw;
+
+typedef struct RendererSurfaceBatch {
+    const Surface* surface;
+    Color32 tint;
+    size_t count;
+} RendererSurfaceBatch;
+
 static bool renderer_is_item_visible(const Renderer* renderer, const SpriteRenderable* item) {
     const VisualSourceResource* source;
     float left;
@@ -68,6 +80,136 @@ static bool renderer_reserve_scratch(Renderer* renderer, size_t required_capacit
     renderer->scratch_items = items;
     renderer->scratch_capacity = next_capacity;
     return true;
+}
+
+static bool renderer_reserve_instances(Renderer* renderer, size_t required_capacity) {
+    SurfaceDrawInstance* items;
+    size_t next_capacity;
+
+    if (renderer == NULL) {
+        return false;
+    }
+
+    if (renderer->scratch_instance_capacity >= required_capacity) {
+        return true;
+    }
+
+    next_capacity = renderer->scratch_instance_capacity > 0U ? renderer->scratch_instance_capacity : 32U;
+    while (next_capacity < required_capacity) {
+        next_capacity *= 2U;
+    }
+
+    items = (SurfaceDrawInstance*)realloc(renderer->scratch_instances, next_capacity * sizeof(*items));
+    if (items == NULL) {
+        return false;
+    }
+
+    renderer->scratch_instances = items;
+    renderer->scratch_instance_capacity = next_capacity;
+    return true;
+}
+
+static bool renderer_prepare_batched_surface_draw(
+    Renderer* renderer,
+    const SpriteRenderable* item,
+    uint64_t now_ms,
+    RendererPreparedSurfaceDraw* prepared
+) {
+    const VisualSourceResource* source;
+    const MaterialResource* material;
+    const Surface* baked_body;
+    uint32_t frame_index;
+    float width;
+    float height;
+    Vec2 screen;
+    Rect dest;
+
+    if (renderer == NULL || item == NULL || prepared == NULL) {
+        return false;
+    }
+
+    memset(prepared, 0, sizeof(*prepared));
+
+    source = resource_manager_get_visual_source(&renderer->resource_manager, item->visual_source_handle);
+    material = resource_manager_get_material(&renderer->resource_manager, item->material_handle);
+    if (source == NULL || material == NULL || source->draw_body == NULL) {
+        return false;
+    }
+    if (source->draw_overlay != NULL || source->bake_policy == BAKE_POLICY_DISABLED) {
+        return false;
+    }
+    if (fabsf(item->anchor_x - 0.5f) > 0.001f || fabsf(item->anchor_y - 0.5f) > 0.001f) {
+        return false;
+    }
+
+    frame_index = source->animation_fps > 0.0f
+        ? (uint32_t)floorf(((float)now_ms / 1000.0f) * source->animation_fps)
+        : 0U;
+    baked_body = resource_manager_get_baked_surface(
+        &renderer->resource_manager,
+        item->visual_source_handle,
+        item->material_handle,
+        item->shader_handle,
+        frame_index,
+        BAKED_SURFACE_PASS_BODY,
+        item->user_data
+    );
+    if (baked_body == NULL) {
+        return false;
+    }
+
+    width = (float)source->width;
+    height = (float)source->height;
+    screen = camera_world_to_screen(&renderer->camera, (Vec2){ item->x, item->y });
+    dest.x = screen.x - width * item->anchor_x;
+    dest.y = screen.y - height * item->anchor_y;
+    dest.w = width;
+    dest.h = height;
+
+    prepared->surface = baked_body;
+    prepared->instance.dest = dest;
+    prepared->instance.origin.x = width * item->anchor_x;
+    prepared->instance.origin.y = height * item->anchor_y;
+    prepared->instance.rotation_degrees = item->angle_radians * (180.0f / 3.14159265359f);
+    prepared->instance.tint = source->bake_ignores_material
+        ? (Color32){ material->value.base_color }
+        : (Color32){ 0xffffffffU };
+    prepared->valid = true;
+    return true;
+}
+
+static void renderer_flush_surface_batch(
+    Renderer* renderer,
+    RenderBackend* backend,
+    RendererSurfaceBatch* batch
+) {
+    double started_ms;
+
+    if (renderer == NULL || backend == NULL || batch == NULL) {
+        return;
+    }
+
+    if (batch->surface == NULL || batch->count == 0U) {
+        batch->surface = NULL;
+        batch->tint.value = 0U;
+        batch->count = 0U;
+        return;
+    }
+
+    started_ms = renderer_now_ms();
+    backend->draw_surface_batch(
+        backend->userdata,
+        batch->surface,
+        renderer->scratch_instances,
+        batch->count
+    );
+    renderer->last_instance_draw_ms += renderer_now_ms() - started_ms;
+    renderer->last_instanced_batch_count += 1U;
+    renderer->last_instanced_draw_count += batch->count;
+    renderer->last_sprite_draw_count += batch->count;
+    batch->surface = NULL;
+    batch->tint.value = 0U;
+    batch->count = 0U;
 }
 
 static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend, const SpriteRenderable *item, uint64_t now_ms) {
@@ -238,12 +380,14 @@ void renderer_dispose(Renderer *renderer) {
     resource_manager_dispose(&renderer->resource_manager);
     debug_overlay_dispose(&renderer->debug_overlay);
     free(renderer->scratch_items);
+    free(renderer->scratch_instances);
     memset(renderer, 0, sizeof(*renderer));
 }
 
 void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFrame *frame) {
     size_t index;
     bool needs_sort = false;
+    bool batching_enabled = false;
     const SpriteRenderable* draw_items = NULL;
     if (renderer == NULL || backend == NULL || frame == NULL) {
         return;
@@ -255,10 +399,13 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
     renderer->last_overlay_draw_count = 0U;
     renderer->last_procedural_item_count = 0U;
     renderer->last_baked_surface_count = resource_manager_get_baked_surface_count(&renderer->resource_manager);
+    renderer->last_instanced_batch_count = 0U;
+    renderer->last_instanced_draw_count = 0U;
     renderer->last_sort_ms = 0.0;
     renderer->last_visibility_ms = 0.0;
     renderer->last_body_draw_ms = 0.0;
     renderer->last_overlay_draw_ms = 0.0;
+    renderer->last_instance_draw_ms = 0.0;
     resource_manager_begin_frame(&renderer->resource_manager);
 
     if (frame->draw_sprites) {
@@ -285,7 +432,13 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
             frame->backdrop_draw(&target, &renderer->camera, frame->backdrop_user_data);
         }
         if (draw_items != NULL) {
+            RendererSurfaceBatch batch = { 0 };
+
+            batching_enabled = renderer_reserve_instances(renderer, frame->item_count);
             for (index = 0U; index < frame->item_count; ++index) {
+                RendererPreparedSurfaceDraw prepared;
+                double started_ms;
+
                 started_ms = renderer_now_ms();
                 if (!renderer_is_item_visible(renderer, &draw_items[index])) {
                     renderer->last_visibility_ms += renderer_now_ms() - started_ms;
@@ -293,9 +446,24 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
                 }
                 renderer->last_visibility_ms += renderer_now_ms() - started_ms;
                 renderer->last_visible_item_count += 1U;
+
+                if (batching_enabled &&
+                    renderer_prepare_batched_surface_draw(renderer, &draw_items[index], frame->now_ms, &prepared)) {
+                    if (batch.surface != NULL &&
+                        (prepared.surface != batch.surface || prepared.instance.tint.value != batch.tint.value)) {
+                        renderer_flush_surface_batch(renderer, backend, &batch);
+                    }
+                    batch.surface = prepared.surface;
+                    batch.tint = prepared.instance.tint;
+                    renderer->scratch_instances[batch.count++] = prepared.instance;
+                    continue;
+                }
+
+                renderer_flush_surface_batch(renderer, backend, &batch);
                 renderer_draw_sprite_body(renderer, backend, &draw_items[index], frame->now_ms);
                 renderer->last_sprite_draw_count += 1U;
             }
+            renderer_flush_surface_batch(renderer, backend, &batch);
         }
         resource_manager_process_pending_bakes(&renderer->resource_manager);
     }
@@ -304,6 +472,7 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
         debug_overlay_draw_world(
             &renderer->debug_overlay,
             backend,
+            frame->now_ms,
             &renderer->camera,
             frame->debug_entities,
             frame->debug_entity_count,

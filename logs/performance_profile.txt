@@ -3,7 +3,7 @@ frames: 180
 
 Frame 1
 name: update_callback
-total_ms: 0.002
+total_ms: 0.003
 metadata:
   stats_update_ms: 0.000
 scopes:
@@ -12,341 +12,70 @@ scopes:
 
 Frame 2
 name: game_simulation
-total_ms: 0.031
+total_ms: 46.517
 metadata:
-  dt_ms: 9.000
-  ball_count: 100.000
+  dt_ms: 17.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2849.000
+  physics_substeps: 1.000
+  physics_ms: 46.156
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.247
-  player_y: 1066.000
-  player_vx: -0.487
-  player_vy: 0.000
+  player_x: 30.202
+  player_y: 716.568
+  player_vx: 0.420
+  player_vy: 2.758
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 422.101
 scopes:
-  game.debug_entities: 0.008ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
+  game.physics: 46.154ms (1 calls)
+  game.renderables: 0.340ms (1 calls)
   game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
 
 Frame 3
 name: draw_callback
-total_ms: 1.438
+total_ms: 1.450
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2849.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2849.000
+  renderer_last_sprites: 2849.000
+  renderer_visible_items: 2849.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2849.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.002
-  renderer_body_ms: 0.014
-  renderer_overlay_ms: 0.010
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.136
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.506
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.431
-  stats_frame_ms: 7.921
+  stats_draw_ms: 1.441
+  stats_frame_ms: 61.002
 scopes:
-  draw.debug_world: 0.157ms (1 calls)
-  draw.renderer: 0.104ms (1 calls)
-  draw.debug_ui: 0.053ms (1 calls)
+  draw.renderer: 0.943ms (1 calls)
+  draw.debug_ui: 0.059ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 4
-name: update_callback
-total_ms: 0.007
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.000ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 5
-name: game_simulation
-total_ms: 0.194
-metadata:
-  dt_ms: 4.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.173
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.240
-  player_y: 1066.000
-  player_vx: -0.429
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.physics: 0.171ms (1 calls)
-  game.debug_entities: 0.002ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 6
-name: draw_callback
-total_ms: 2.067
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.014
-  renderer_overlay_ms: 0.013
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 2.056
-  stats_frame_ms: 5.593
-scopes:
-  draw.debug_world: 0.176ms (1 calls)
-  draw.renderer: 0.120ms (1 calls)
-  draw.debug_ui: 0.075ms (1 calls)
-
-Frame 7
-name: update_callback
-total_ms: 0.008
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.001ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 8
-name: game_simulation
-total_ms: 0.055
-metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.240
-  player_y: 1066.000
-  player_vx: -0.429
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.013ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
-  game.physics: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 9
-name: draw_callback
-total_ms: 3.497
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.022
-  renderer_overlay_ms: 0.012
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 3.485
-  stats_frame_ms: 7.716
-scopes:
-  draw.debug_world: 0.176ms (1 calls)
-  draw.renderer: 0.119ms (1 calls)
-  draw.debug_ui: 0.068ms (1 calls)
-
-Frame 10
-name: update_callback
-total_ms: 0.008
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.001ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 11
-name: game_simulation
-total_ms: 0.050
-metadata:
-  dt_ms: 7.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.240
-  player_y: 1066.000
-  player_vx: -0.429
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.012ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
-  game.physics: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 12
-name: draw_callback
-total_ms: 1.614
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.005
-  renderer_body_ms: 0.011
-  renderer_overlay_ms: 0.010
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.604
-  stats_frame_ms: 5.054
-scopes:
-  draw.debug_world: 0.157ms (1 calls)
-  draw.renderer: 0.105ms (1 calls)
-  draw.debug_ui: 0.055ms (1 calls)
-
-Frame 13
-name: update_callback
-total_ms: 0.061
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.000ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 14
-name: game_simulation
-total_ms: 0.306
-metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.278
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.233
-  player_y: 1066.000
-  player_vx: -0.378
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.physics: 0.277ms (1 calls)
-  game.debug_entities: 0.003ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 15
-name: draw_callback
-total_ms: 1.636
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.017
-  renderer_overlay_ms: 0.012
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.625
-  stats_frame_ms: 5.860
-scopes:
-  draw.debug_world: 0.183ms (1 calls)
-  draw.renderer: 0.115ms (1 calls)
-  draw.debug_ui: 0.064ms (1 calls)
-
-Frame 16
 name: update_callback
 total_ms: 0.003
 metadata:
@@ -355,136 +84,72 @@ scopes:
   engine.frame: 0.000ms (1 calls)
   engine.input: 0.000ms (1 calls)
 
-Frame 17
+Frame 5
 name: game_simulation
-total_ms: 0.035
+total_ms: 0.598
 metadata:
-  dt_ms: 10.000
-  ball_count: 100.000
+  dt_ms: 52.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2850.000
   physics_substeps: 0.000
-  physics_ms: 0.001
+  physics_ms: 0.002
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.233
-  player_y: 1066.000
-  player_vx: -0.378
-  player_vy: 0.000
+  player_x: 30.202
+  player_y: 716.568
+  player_vx: 0.420
+  player_vy: 2.758
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 422.101
 scopes:
-  game.debug_entities: 0.008ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
+  game.renderables: 0.567ms (1 calls)
+  game.physics: 0.001ms (1 calls)
   game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
 
-Frame 18
+Frame 6
 name: draw_callback
-total_ms: 1.433
+total_ms: 1.570
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2850.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2850.000
+  renderer_last_sprites: 2850.000
+  renderer_visible_items: 2850.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2850.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.002
-  renderer_body_ms: 0.016
-  renderer_overlay_ms: 0.009
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.138
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.472
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.426
-  stats_frame_ms: 7.945
+  stats_draw_ms: 1.560
+  stats_frame_ms: 7.466
 scopes:
-  draw.debug_world: 0.156ms (1 calls)
-  draw.renderer: 0.103ms (1 calls)
-  draw.debug_ui: 0.056ms (1 calls)
+  draw.renderer: 0.947ms (1 calls)
+  draw.debug_ui: 0.069ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
-Frame 19
-name: update_callback
-total_ms: 0.004
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.000ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 20
-name: game_simulation
-total_ms: 0.362
-metadata:
-  dt_ms: 4.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.342
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.228
-  player_y: 1066.000
-  player_vx: -0.333
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.physics: 0.341ms (1 calls)
-  game.debug_entities: 0.002ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 21
-name: draw_callback
-total_ms: 2.116
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.005
-  renderer_body_ms: 0.022
-  renderer_overlay_ms: 0.015
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 2.105
-  stats_frame_ms: 5.515
-scopes:
-  draw.debug_world: 0.169ms (1 calls)
-  draw.renderer: 0.125ms (1 calls)
-  draw.debug_ui: 0.065ms (1 calls)
-
-Frame 22
+Frame 7
 name: update_callback
 total_ms: 0.009
 metadata:
@@ -493,136 +158,294 @@ scopes:
   engine.frame: 0.001ms (1 calls)
   engine.input: 0.000ms (1 calls)
 
-Frame 23
+Frame 8
 name: game_simulation
-total_ms: 0.050
+total_ms: 45.822
 metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
+  dt_ms: 8.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2850.000
+  physics_substeps: 1.000
+  physics_ms: 45.460
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.228
-  player_y: 1066.000
-  player_vx: -0.333
-  player_vy: 0.000
+  player_x: 30.234
+  player_y: 716.757
+  player_vx: 0.441
+  player_vy: 2.823
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 422.278
 scopes:
-  game.debug_entities: 0.013ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.physics: 0.001ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
+  game.physics: 45.458ms (1 calls)
+  game.renderables: 0.338ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
-Frame 24
+Frame 9
 name: draw_callback
-total_ms: 1.667
+total_ms: 1.558
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2850.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2850.000
+  renderer_last_sprites: 2850.000
+  renderer_visible_items: 2850.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2850.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.016
-  renderer_overlay_ms: 0.010
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.134
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.497
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.652
-  stats_frame_ms: 5.234
+  stats_draw_ms: 1.549
+  stats_frame_ms: 52.669
 scopes:
-  draw.debug_world: 0.169ms (1 calls)
-  draw.renderer: 0.118ms (1 calls)
-  draw.debug_ui: 0.059ms (1 calls)
+  draw.renderer: 0.963ms (1 calls)
+  draw.debug_ui: 0.063ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
-Frame 25
+Frame 10
 name: update_callback
-total_ms: 0.006
+total_ms: 0.004
 metadata:
   stats_update_ms: 0.000
 scopes:
-  engine.input: 0.000ms (1 calls)
   engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
 
-Frame 26
+Frame 11
 name: game_simulation
-total_ms: 0.041
+total_ms: 0.557
 metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
+  dt_ms: 52.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2852.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.234
+  player_y: 716.757
+  player_vx: 0.441
+  player_vy: 2.823
+  camera_x: 0.000
+  camera_y: 422.278
+scopes:
+  game.renderables: 0.537ms (1 calls)
+  game.physics: 0.002ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 12
+name: draw_callback
+total_ms: 1.537
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2852.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2852.000
+  renderer_last_sprites: 2852.000
+  renderer_visible_items: 2852.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2852.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.130
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.468
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.530
+  stats_frame_ms: 7.617
+scopes:
+  draw.renderer: 0.934ms (1 calls)
+  draw.debug_ui: 0.120ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 13
+name: update_callback
+total_ms: 0.007
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.001ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 14
+name: game_simulation
+total_ms: 49.914
+metadata:
+  dt_ms: 8.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2852.000
+  physics_substeps: 1.000
+  physics_ms: 49.542
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.265
+  player_y: 716.949
+  player_vx: 0.439
+  player_vy: 2.853
+  camera_x: 0.000
+  camera_y: 422.460
+scopes:
+  game.physics: 49.540ms (1 calls)
+  game.renderables: 0.347ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 15
+name: draw_callback
+total_ms: 1.435
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2852.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2852.000
+  renderer_last_sprites: 2852.000
+  renderer_visible_items: 2852.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2852.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.136
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.474
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.425
+  stats_frame_ms: 57.216
+scopes:
+  draw.renderer: 0.915ms (1 calls)
+  draw.debug_ui: 0.062ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 16
+name: update_callback
+total_ms: 0.007
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 17
+name: game_simulation
+total_ms: 0.507
+metadata:
+  dt_ms: 62.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2852.000
   physics_substeps: 0.000
   physics_ms: 0.001
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.228
-  player_y: 1066.000
-  player_vx: -0.333
-  player_vy: 0.000
+  player_x: 30.265
+  player_y: 716.949
+  player_vx: 0.439
+  player_vy: 2.853
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 422.460
 scopes:
-  game.debug_entities: 0.013ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
+  game.renderables: 0.488ms (1 calls)
   game.physics: 0.001ms (1 calls)
   game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
-Frame 27
+Frame 18
 name: draw_callback
-total_ms: 1.464
+total_ms: 1.451
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2852.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2852.000
+  renderer_last_sprites: 2852.000
+  renderer_visible_items: 2852.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2852.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.011
-  renderer_overlay_ms: 0.009
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.129
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.491
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.455
-  stats_frame_ms: 4.624
+  stats_draw_ms: 1.443
+  stats_frame_ms: 11.894
 scopes:
-  draw.debug_world: 0.163ms (1 calls)
-  draw.renderer: 0.101ms (1 calls)
-  draw.debug_ui: 0.072ms (1 calls)
+  draw.renderer: 0.922ms (1 calls)
+  draw.debug_ui: 0.059ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
-Frame 28
+Frame 19
 name: update_callback
 total_ms: 0.005
 metadata:
@@ -631,65 +454,292 @@ scopes:
   engine.input: 0.000ms (1 calls)
   engine.frame: 0.000ms (1 calls)
 
-Frame 29
+Frame 20
 name: game_simulation
-total_ms: 0.041
+total_ms: 46.875
 metadata:
-  dt_ms: 4.000
-  ball_count: 100.000
+  dt_ms: 7.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2853.000
+  physics_substeps: 1.000
+  physics_ms: 46.416
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.228
-  player_y: 1066.000
-  player_vx: -0.333
-  player_vy: 0.000
+  player_x: 30.295
+  player_y: 717.141
+  player_vx: 0.413
+  player_vy: 2.838
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 422.644
 scopes:
-  game.debug_entities: 0.011ms (1 calls)
-  game.renderables: 0.004ms (1 calls)
-  game.physics: 0.000ms (1 calls)
+  game.physics: 46.413ms (1 calls)
+  game.renderables: 0.435ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 21
+name: draw_callback
+total_ms: 1.460
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2853.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2853.000
+  renderer_last_sprites: 2853.000
+  renderer_visible_items: 2853.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2853.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.136
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.481
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.452
+  stats_frame_ms: 53.922
+scopes:
+  draw.renderer: 0.944ms (1 calls)
+  draw.debug_ui: 0.059ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 22
+name: update_callback
+total_ms: 0.007
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 23
+name: game_simulation
+total_ms: 0.787
+metadata:
+  dt_ms: 54.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2856.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.295
+  player_y: 717.141
+  player_vx: 0.413
+  player_vy: 2.838
+  camera_x: 0.000
+  camera_y: 422.644
+scopes:
+  game.renderables: 0.752ms (1 calls)
+  game.physics: 0.002ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 24
+name: draw_callback
+total_ms: 1.432
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2856.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2856.000
+  renderer_last_sprites: 2856.000
+  renderer_visible_items: 2856.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2856.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.133
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.472
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.424
+  stats_frame_ms: 8.102
+scopes:
+  draw.renderer: 0.945ms (1 calls)
+  draw.debug_ui: 0.058ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 25
+name: update_callback
+total_ms: 0.005
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 26
+name: game_simulation
+total_ms: 0.493
+metadata:
+  dt_ms: 8.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2857.000
+  physics_substeps: 0.000
+  physics_ms: 0.001
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.295
+  player_y: 717.141
+  player_vx: 0.413
+  player_vy: 2.838
+  camera_x: 0.000
+  camera_y: 422.644
+scopes:
+  game.renderables: 0.476ms (1 calls)
+  game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 27
+name: draw_callback
+total_ms: 1.433
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2857.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2857.000
+  renderer_last_sprites: 2857.000
+  renderer_visible_items: 2857.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2857.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.134
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.474
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.425
+  stats_frame_ms: 6.629
+scopes:
+  draw.renderer: 0.908ms (1 calls)
+  draw.debug_ui: 0.074ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 28
+name: update_callback
+total_ms: 0.008
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 29
+name: game_simulation
+total_ms: 45.456
+metadata:
+  dt_ms: 7.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2857.000
+  physics_substeps: 1.000
+  physics_ms: 45.090
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.322
+  player_y: 717.329
+  player_vx: 0.369
+  player_vy: 2.784
+  camera_x: 0.000
+  camera_y: 422.829
+scopes:
+  game.physics: 45.087ms (1 calls)
+  game.renderables: 0.345ms (1 calls)
   game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 30
 name: draw_callback
-total_ms: 1.660
+total_ms: 1.476
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2857.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2857.000
+  renderer_last_sprites: 2856.000
+  renderer_visible_items: 2856.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2856.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.010
-  renderer_overlay_ms: 0.009
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.146
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.461
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.649
-  stats_frame_ms: 4.500
+  stats_draw_ms: 1.464
+  stats_frame_ms: 51.882
 scopes:
-  draw.debug_world: 0.163ms (1 calls)
-  draw.renderer: 0.127ms (1 calls)
-  draw.debug_ui: 0.054ms (1 calls)
+  draw.renderer: 0.913ms (1 calls)
+  draw.debug_ui: 0.062ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 31
 name: update_callback
@@ -702,343 +752,368 @@ scopes:
 
 Frame 32
 name: game_simulation
-total_ms: 0.237
+total_ms: 0.631
 metadata:
-  dt_ms: 10.000
-  ball_count: 100.000
+  dt_ms: 58.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.211
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2860.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.225
-  player_y: 1066.000
-  player_vx: -0.112
-  player_vy: -0.000
+  player_x: 30.322
+  player_y: 717.329
+  player_vx: 0.369
+  player_vy: 2.784
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 422.829
 scopes:
-  game.physics: 0.210ms (1 calls)
-  game.debug_entities: 0.002ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
+  game.renderables: 0.609ms (1 calls)
+  game.physics: 0.001ms (1 calls)
   game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 33
 name: draw_callback
-total_ms: 1.529
+total_ms: 1.533
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2860.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2860.000
+  renderer_last_sprites: 2860.000
+  renderer_visible_items: 2860.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2860.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.002
-  renderer_body_ms: 0.014
-  renderer_overlay_ms: 0.019
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.125
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.481
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.518
-  stats_frame_ms: 9.725
+  stats_draw_ms: 1.525
+  stats_frame_ms: 13.617
 scopes:
-  draw.debug_world: 0.174ms (1 calls)
-  draw.renderer: 0.119ms (1 calls)
-  draw.debug_ui: 0.057ms (1 calls)
+  draw.renderer: 0.938ms (1 calls)
+  draw.debug_ui: 0.059ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 34
 name: update_callback
-total_ms: 0.007
+total_ms: 0.009
 metadata:
   stats_update_ms: 0.000
 scopes:
-  engine.frame: 0.000ms (1 calls)
+  engine.frame: 0.001ms (1 calls)
   engine.input: 0.000ms (1 calls)
 
 Frame 35
 name: game_simulation
-total_ms: 0.050
+total_ms: 45.367
 metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
+  dt_ms: 8.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2859.000
+  physics_substeps: 1.000
+  physics_ms: 44.931
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.225
-  player_y: 1066.000
-  player_vx: -0.112
-  player_vy: -0.000
+  player_x: 30.346
+  player_y: 717.512
+  player_vx: 0.320
+  player_vy: 2.699
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 423.014
 scopes:
-  game.debug_entities: 0.010ms (1 calls)
-  game.renderables: 0.005ms (1 calls)
+  game.physics: 44.928ms (1 calls)
+  game.renderables: 0.410ms (1 calls)
   game.debug_input: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 36
 name: draw_callback
-total_ms: 1.893
+total_ms: 1.660
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2859.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2859.000
+  renderer_last_sprites: 2859.000
+  renderer_visible_items: 2859.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2859.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.007
-  renderer_body_ms: 0.018
-  renderer_overlay_ms: 0.014
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.142
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.482
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.882
-  stats_frame_ms: 5.633
+  stats_draw_ms: 1.648
+  stats_frame_ms: 53.584
 scopes:
-  draw.renderer: 0.445ms (1 calls)
-  draw.debug_world: 0.172ms (1 calls)
-  draw.debug_ui: 0.066ms (1 calls)
+  draw.renderer: 1.063ms (1 calls)
+  draw.debug_ui: 0.065ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 37
 name: update_callback
-total_ms: 0.008
+total_ms: 0.010
 metadata:
   stats_update_ms: 0.000
 scopes:
-  engine.frame: 0.000ms (1 calls)
+  engine.frame: 0.001ms (1 calls)
   engine.input: 0.000ms (1 calls)
 
 Frame 38
 name: game_simulation
-total_ms: 0.486
+total_ms: 0.698
 metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
+  dt_ms: 53.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.448
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2861.000
+  physics_substeps: 0.000
+  physics_ms: 0.003
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.223
-  player_y: 1066.000
-  player_vx: -0.094
-  player_vy: -0.000
+  player_x: 30.346
+  player_y: 717.512
+  player_vx: 0.320
+  player_vy: 2.699
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 423.014
 scopes:
-  game.physics: 0.445ms (1 calls)
-  game.debug_entities: 0.003ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
+  game.renderables: 0.665ms (1 calls)
+  game.physics: 0.002ms (1 calls)
   game.debug_input: 0.001ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 39
 name: draw_callback
-total_ms: 1.748
+total_ms: 1.617
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2861.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2861.000
+  renderer_last_sprites: 2861.000
+  renderer_visible_items: 2861.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2861.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.017
-  renderer_overlay_ms: 0.014
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.124
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.479
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.737
-  stats_frame_ms: 6.056
+  stats_draw_ms: 1.610
+  stats_frame_ms: 8.129
 scopes:
-  draw.debug_world: 0.178ms (1 calls)
-  draw.renderer: 0.126ms (1 calls)
-  draw.debug_ui: 0.064ms (1 calls)
+  draw.renderer: 1.004ms (1 calls)
+  draw.debug_ui: 0.068ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 40
 name: update_callback
-total_ms: 0.012
+total_ms: 0.004
 metadata:
   stats_update_ms: 0.000
 scopes:
-  engine.frame: 0.000ms (1 calls)
   engine.input: 0.000ms (1 calls)
+  engine.frame: 0.000ms (1 calls)
 
 Frame 41
 name: game_simulation
-total_ms: 0.047
+total_ms: 0.486
 metadata:
-  dt_ms: 7.000
-  ball_count: 100.000
+  dt_ms: 8.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2862.000
   physics_substeps: 0.000
-  physics_ms: 0.001
+  physics_ms: 0.002
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.223
-  player_y: 1066.000
-  player_vx: -0.094
-  player_vy: -0.000
+  player_x: 30.346
+  player_y: 717.512
+  player_vx: 0.320
+  player_vy: 2.699
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 423.014
 scopes:
-  game.debug_entities: 0.013ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
+  game.renderables: 0.467ms (1 calls)
   game.physics: 0.001ms (1 calls)
   game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 42
 name: draw_callback
-total_ms: 1.449
+total_ms: 1.448
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2862.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2862.000
+  renderer_last_sprites: 2862.000
+  renderer_visible_items: 2862.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2862.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.002
-  renderer_body_ms: 0.014
-  renderer_overlay_ms: 0.010
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.132
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.471
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.436
-  stats_frame_ms: 4.964
+  stats_draw_ms: 1.439
+  stats_frame_ms: 6.565
 scopes:
-  draw.debug_world: 0.160ms (1 calls)
-  draw.renderer: 0.114ms (1 calls)
-  draw.debug_ui: 0.062ms (1 calls)
+  draw.renderer: 0.906ms (1 calls)
+  draw.debug_ui: 0.064ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 43
 name: update_callback
-total_ms: 0.006
+total_ms: 0.005
 metadata:
   stats_update_ms: 0.000
 scopes:
+  engine.frame: 0.001ms (1 calls)
   engine.input: 0.000ms (1 calls)
-  engine.frame: 0.000ms (1 calls)
 
 Frame 44
 name: game_simulation
-total_ms: 0.039
+total_ms: 45.834
 metadata:
-  dt_ms: 4.000
-  ball_count: 100.000
+  dt_ms: 6.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2861.000
+  physics_substeps: 1.000
+  physics_ms: 45.469
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.223
-  player_y: 1066.000
-  player_vx: -0.094
-  player_vy: -0.000
+  player_x: 30.366
+  player_y: 717.688
+  player_vx: 0.272
+  player_vy: 2.603
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 423.196
 scopes:
-  game.debug_entities: 0.010ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
+  game.physics: 45.466ms (1 calls)
+  game.renderables: 0.343ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
 
 Frame 45
 name: draw_callback
-total_ms: 1.439
+total_ms: 1.474
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2861.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2861.000
+  renderer_last_sprites: 2861.000
+  renderer_visible_items: 2861.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2861.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.016
-  renderer_overlay_ms: 0.010
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.133
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.462
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.432
-  stats_frame_ms: 4.335
+  stats_draw_ms: 1.463
+  stats_frame_ms: 52.118
 scopes:
-  draw.debug_world: 0.161ms (1 calls)
-  draw.renderer: 0.101ms (1 calls)
-  draw.debug_ui: 0.052ms (1 calls)
+  draw.renderer: 0.915ms (1 calls)
+  draw.debug_ui: 0.060ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 46
 name: update_callback
-total_ms: 0.005
+total_ms: 0.004
 metadata:
   stats_update_ms: 0.000
 scopes:
@@ -1047,132 +1122,142 @@ scopes:
 
 Frame 47
 name: game_simulation
-total_ms: 0.276
+total_ms: 0.626
 metadata:
-  dt_ms: 8.000
-  ball_count: 100.000
+  dt_ms: 59.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.245
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2864.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.222
-  player_y: 1066.000
-  player_vx: -0.083
-  player_vy: 0.000
+  player_x: 30.366
+  player_y: 717.688
+  player_vx: 0.272
+  player_vy: 2.603
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 423.196
 scopes:
-  game.physics: 0.243ms (1 calls)
-  game.debug_entities: 0.001ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
+  game.renderables: 0.604ms (1 calls)
+  game.physics: 0.002ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 48
 name: draw_callback
-total_ms: 1.608
+total_ms: 1.572
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2864.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2864.000
+  renderer_last_sprites: 2864.000
+  renderer_visible_items: 2864.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2864.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.005
-  renderer_body_ms: 0.017
-  renderer_overlay_ms: 0.013
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.138
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.476
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.598
-  stats_frame_ms: 8.610
+  stats_draw_ms: 1.561
+  stats_frame_ms: 13.722
 scopes:
-  draw.debug_world: 0.161ms (1 calls)
-  draw.renderer: 0.114ms (1 calls)
-  draw.debug_ui: 0.055ms (1 calls)
+  draw.renderer: 0.948ms (1 calls)
+  draw.debug_ui: 0.063ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 49
 name: update_callback
-total_ms: 0.013
+total_ms: 0.007
 metadata:
   stats_update_ms: 0.000
 scopes:
-  engine.frame: 0.004ms (1 calls)
-  engine.input: 0.000ms (1 calls)
+  engine.frame: 0.001ms (1 calls)
+  engine.input: 0.001ms (1 calls)
 
 Frame 50
 name: game_simulation
-total_ms: 0.038
+total_ms: 46.867
 metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
+  dt_ms: 8.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2864.000
+  physics_substeps: 1.000
+  physics_ms: 46.505
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.222
-  player_y: 1066.000
-  player_vx: -0.083
-  player_vy: 0.000
+  player_x: 30.384
+  player_y: 717.857
+  player_vx: 0.235
+  player_vy: 2.514
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 423.375
 scopes:
-  game.debug_entities: 0.010ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.drag: 0.000ms (1 calls)
+  game.physics: 46.502ms (1 calls)
+  game.renderables: 0.339ms (1 calls)
   game.debug_input: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
 
 Frame 51
 name: draw_callback
-total_ms: 1.694
+total_ms: 1.438
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2864.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2864.000
+  renderer_last_sprites: 2864.000
+  renderer_visible_items: 2864.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2864.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.014
-  renderer_overlay_ms: 0.012
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.131
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.474
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.684
-  stats_frame_ms: 5.604
+  stats_draw_ms: 1.429
+  stats_frame_ms: 53.830
 scopes:
-  draw.debug_world: 0.175ms (1 calls)
-  draw.renderer: 0.117ms (1 calls)
-  draw.debug_ui: 0.061ms (1 calls)
+  draw.renderer: 0.909ms (1 calls)
+  draw.debug_ui: 0.060ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 52
 name: update_callback
@@ -1185,134 +1270,70 @@ scopes:
 
 Frame 53
 name: game_simulation
-total_ms: 0.056
+total_ms: 0.653
 metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
+  dt_ms: 53.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2864.000
   physics_substeps: 0.000
-  physics_ms: 0.001
+  physics_ms: 0.002
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.222
-  player_y: 1066.000
-  player_vx: -0.083
-  player_vy: 0.000
+  player_x: 30.384
+  player_y: 717.857
+  player_vx: 0.235
+  player_vy: 2.514
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 423.375
 scopes:
-  game.debug_entities: 0.012ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
+  game.renderables: 0.631ms (1 calls)
+  game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
 
 Frame 54
 name: draw_callback
-total_ms: 1.556
+total_ms: 1.391
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2864.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2864.000
+  renderer_last_sprites: 2864.000
+  renderer_visible_items: 2864.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2864.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.005
-  renderer_body_ms: 0.012
-  renderer_overlay_ms: 0.012
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.133
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.469
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.549
-  stats_frame_ms: 4.980
+  stats_draw_ms: 1.385
+  stats_frame_ms: 7.605
 scopes:
-  draw.debug_world: 0.199ms (1 calls)
-  draw.renderer: 0.111ms (1 calls)
-  draw.debug_ui: 0.056ms (1 calls)
+  draw.renderer: 0.908ms (1 calls)
+  draw.debug_ui: 0.060ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 55
-name: update_callback
-total_ms: 0.011
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.001ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 56
-name: game_simulation
-total_ms: 0.305
-metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.278
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.221
-  player_y: 1066.000
-  player_vx: -0.073
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.physics: 0.275ms (1 calls)
-  game.debug_entities: 0.002ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 57
-name: draw_callback
-total_ms: 1.649
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.016
-  renderer_overlay_ms: 0.016
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.641
-  stats_frame_ms: 6.335
-scopes:
-  draw.debug_world: 0.172ms (1 calls)
-  draw.renderer: 0.120ms (1 calls)
-  draw.debug_ui: 0.060ms (1 calls)
-
-Frame 58
 name: update_callback
 total_ms: 0.007
 metadata:
@@ -1321,69 +1342,148 @@ scopes:
   engine.input: 0.001ms (1 calls)
   engine.frame: 0.000ms (1 calls)
 
-Frame 59
+Frame 56
 name: game_simulation
-total_ms: 0.047
+total_ms: 45.947
 metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
+  dt_ms: 8.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2864.000
+  physics_substeps: 1.000
+  physics_ms: 45.530
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.221
-  player_y: 1066.000
-  player_vx: -0.073
-  player_vy: 0.000
+  player_x: 30.401
+  player_y: 718.022
+  player_vx: 0.208
+  player_vy: 2.442
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 423.549
 scopes:
-  game.debug_entities: 0.011ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.physics: 0.001ms (1 calls)
+  game.physics: 45.528ms (1 calls)
+  game.renderables: 0.393ms (1 calls)
   game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 57
+name: draw_callback
+total_ms: 1.496
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2864.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2864.000
+  renderer_last_sprites: 2864.000
+  renderer_visible_items: 2864.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2864.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.136
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.476
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.482
+  stats_frame_ms: 52.525
+scopes:
+  draw.renderer: 0.936ms (1 calls)
+  draw.debug_ui: 0.059ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 58
+name: update_callback
+total_ms: 0.008
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.001ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 59
+name: game_simulation
+total_ms: 0.721
+metadata:
+  dt_ms: 53.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2866.000
+  physics_substeps: 0.000
+  physics_ms: 0.003
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.401
+  player_y: 718.022
+  player_vx: 0.208
+  player_vy: 2.442
+  camera_x: 0.000
+  camera_y: 423.549
+scopes:
+  game.renderables: 0.692ms (1 calls)
+  game.physics: 0.002ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 60
 name: draw_callback
-total_ms: 1.434
+total_ms: 1.757
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2866.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2866.000
+  renderer_last_sprites: 2866.000
+  renderer_visible_items: 2866.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2866.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.002
-  renderer_body_ms: 0.015
-  renderer_overlay_ms: 0.012
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.145
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.490
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.426
-  stats_frame_ms: 4.490
+  stats_draw_ms: 1.746
+  stats_frame_ms: 8.774
 scopes:
-  draw.debug_world: 0.161ms (1 calls)
-  draw.renderer: 0.114ms (1 calls)
-  draw.debug_ui: 0.056ms (1 calls)
+  draw.renderer: 0.990ms (1 calls)
+  draw.debug_ui: 0.105ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 61
 name: update_callback
-total_ms: 0.002
+total_ms: 0.003
 metadata:
   stats_update_ms: 0.000
 scopes:
@@ -1392,1169 +1492,70 @@ scopes:
 
 Frame 62
 name: game_simulation
-total_ms: 0.221
+total_ms: 47.313
 metadata:
-  dt_ms: 8.000
-  ball_count: 100.000
+  dt_ms: 14.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2865.000
   physics_substeps: 1.000
-  physics_ms: 0.198
+  physics_ms: 46.956
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.220
-  player_y: 1066.000
-  player_vx: -0.065
-  player_vy: 0.000
+  player_x: 30.416
+  player_y: 718.183
+  player_vx: 0.189
+  player_vy: 2.404
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 423.721
 scopes:
-  game.physics: 0.196ms (1 calls)
-  game.debug_entities: 0.002ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
+  game.physics: 46.954ms (1 calls)
+  game.renderables: 0.335ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 63
 name: draw_callback
-total_ms: 1.824
+total_ms: 1.455
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2865.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2865.000
+  renderer_last_sprites: 2865.000
+  renderer_visible_items: 2865.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2865.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.005
-  renderer_body_ms: 0.020
-  renderer_overlay_ms: 0.012
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.131
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.469
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.815
-  stats_frame_ms: 8.583
+  stats_draw_ms: 1.445
+  stats_frame_ms: 59.792
 scopes:
-  draw.debug_world: 0.206ms (1 calls)
-  draw.renderer: 0.122ms (1 calls)
-  draw.debug_ui: 0.081ms (1 calls)
+  draw.renderer: 0.941ms (1 calls)
+  draw.debug_ui: 0.098ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 64
-name: update_callback
-total_ms: 0.009
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.001ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 65
-name: game_simulation
-total_ms: 0.047
-metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.220
-  player_y: 1066.000
-  player_vx: -0.065
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.013ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
-
-Frame 66
-name: draw_callback
-total_ms: 1.936
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.016
-  renderer_overlay_ms: 0.017
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.925
-  stats_frame_ms: 5.310
-scopes:
-  draw.debug_world: 0.170ms (1 calls)
-  draw.renderer: 0.115ms (1 calls)
-  draw.debug_ui: 0.055ms (1 calls)
-
-Frame 67
-name: update_callback
-total_ms: 0.004
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.000ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 68
-name: game_simulation
-total_ms: 0.041
-metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.000
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.220
-  player_y: 1066.000
-  player_vx: -0.065
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.011ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
-
-Frame 69
-name: draw_callback
-total_ms: 1.428
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.001
-  renderer_body_ms: 0.012
-  renderer_overlay_ms: 0.010
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.420
-  stats_frame_ms: 4.396
-scopes:
-  draw.debug_world: 0.156ms (1 calls)
-  draw.renderer: 0.102ms (1 calls)
-  draw.debug_ui: 0.056ms (1 calls)
-
-Frame 70
-name: update_callback
-total_ms: 0.004
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.001ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 71
-name: game_simulation
-total_ms: 0.040
-metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.000
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.220
-  player_y: 1066.000
-  player_vx: -0.065
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.012ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 72
-name: draw_callback
-total_ms: 1.520
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.012
-  renderer_overlay_ms: 0.011
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.514
-  stats_frame_ms: 4.549
-scopes:
-  draw.renderer: 0.192ms (1 calls)
-  draw.debug_world: 0.189ms (1 calls)
-  draw.debug_ui: 0.054ms (1 calls)
-
-Frame 73
-name: update_callback
-total_ms: 0.006
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.input: 0.000ms (1 calls)
-  engine.frame: 0.000ms (1 calls)
-
-Frame 74
-name: game_simulation
-total_ms: 0.272
-metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.245
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.219
-  player_y: 1066.000
-  player_vx: -0.057
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.physics: 0.243ms (1 calls)
-  game.debug_entities: 0.002ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 75
-name: draw_callback
-total_ms: 1.979
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.016
-  renderer_overlay_ms: 0.015
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.967
-  stats_frame_ms: 5.894
-scopes:
-  draw.debug_world: 0.169ms (1 calls)
-  draw.renderer: 0.118ms (1 calls)
-  draw.debug_ui: 0.065ms (1 calls)
-
-Frame 76
-name: update_callback
-total_ms: 0.003
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.000ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 77
-name: game_simulation
-total_ms: 0.065
-metadata:
-  dt_ms: 10.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.219
-  player_y: 1066.000
-  player_vx: -0.057
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.016ms (1 calls)
-  game.renderables: 0.003ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
-  game.physics: 0.001ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 78
-name: draw_callback
-total_ms: 1.655
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.005
-  renderer_body_ms: 0.017
-  renderer_overlay_ms: 0.015
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.641
-  stats_frame_ms: 9.686
-scopes:
-  draw.debug_world: 0.172ms (1 calls)
-  draw.renderer: 0.117ms (1 calls)
-  draw.debug_ui: 0.064ms (1 calls)
-
-Frame 79
-name: update_callback
-total_ms: 0.007
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.001ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 80
-name: game_simulation
-total_ms: 0.287
-metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.262
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.218
-  player_y: 1066.000
-  player_vx: -0.050
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.physics: 0.261ms (1 calls)
-  game.debug_entities: 0.002ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 81
-name: draw_callback
-total_ms: 1.684
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.005
-  renderer_body_ms: 0.013
-  renderer_overlay_ms: 0.011
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.677
-  stats_frame_ms: 5.405
-scopes:
-  draw.renderer: 0.324ms (1 calls)
-  draw.debug_world: 0.167ms (1 calls)
-  draw.debug_ui: 0.055ms (1 calls)
-
-Frame 82
-name: update_callback
-total_ms: 0.006
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.000ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 83
-name: game_simulation
-total_ms: 0.043
-metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.002
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.218
-  player_y: 1066.000
-  player_vx: -0.050
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.012ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.physics: 0.001ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 84
-name: draw_callback
-total_ms: 1.440
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.002
-  renderer_body_ms: 0.012
-  renderer_overlay_ms: 0.010
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.431
-  stats_frame_ms: 4.552
-scopes:
-  draw.debug_world: 0.156ms (1 calls)
-  draw.renderer: 0.105ms (1 calls)
-  draw.debug_ui: 0.052ms (1 calls)
-
-Frame 85
-name: update_callback
-total_ms: 0.006
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.000ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 86
-name: game_simulation
-total_ms: 0.038
-metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.218
-  player_y: 1066.000
-  player_vx: -0.050
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.010ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
-
-Frame 87
-name: draw_callback
-total_ms: 1.481
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.013
-  renderer_overlay_ms: 0.010
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.477
-  stats_frame_ms: 4.521
-scopes:
-  draw.renderer: 0.166ms (1 calls)
-  draw.debug_world: 0.157ms (1 calls)
-  draw.debug_ui: 0.059ms (1 calls)
-
-Frame 88
-name: update_callback
-total_ms: 0.004
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.input: 0.000ms (1 calls)
-  engine.frame: 0.000ms (1 calls)
-
-Frame 89
-name: game_simulation
-total_ms: 0.352
-metadata:
-  dt_ms: 4.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.333
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.217
-  player_y: 1066.000
-  player_vx: -0.044
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.physics: 0.331ms (1 calls)
-  game.debug_entities: 0.001ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 90
-name: draw_callback
-total_ms: 1.952
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.018
-  renderer_overlay_ms: 0.012
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.939
-  stats_frame_ms: 4.966
-scopes:
-  draw.debug_world: 0.159ms (1 calls)
-  draw.renderer: 0.113ms (1 calls)
-  draw.debug_ui: 0.057ms (1 calls)
-
-Frame 91
-name: update_callback
-total_ms: 0.004
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.001ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 92
-name: game_simulation
-total_ms: 0.042
-metadata:
-  dt_ms: 10.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.000
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.217
-  player_y: 1066.000
-  player_vx: -0.044
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.010ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
-
-Frame 93
-name: draw_callback
-total_ms: 1.560
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.018
-  renderer_overlay_ms: 0.014
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.547
-  stats_frame_ms: 9.801
-scopes:
-  draw.debug_world: 0.164ms (1 calls)
-  draw.renderer: 0.115ms (1 calls)
-  draw.debug_ui: 0.057ms (1 calls)
-
-Frame 94
-name: update_callback
-total_ms: 0.009
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.input: 0.000ms (1 calls)
-  engine.frame: 0.000ms (1 calls)
-
-Frame 95
-name: game_simulation
-total_ms: 0.050
-metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.002
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.217
-  player_y: 1066.000
-  player_vx: -0.044
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.013ms (1 calls)
-  game.renderables: 0.003ms (1 calls)
-  game.physics: 0.001ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 96
-name: draw_callback
-total_ms: 1.854
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.016
-  renderer_overlay_ms: 0.014
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.838
-  stats_frame_ms: 6.259
-scopes:
-  draw.debug_world: 0.173ms (1 calls)
-  draw.renderer: 0.119ms (1 calls)
-  draw.debug_ui: 0.066ms (1 calls)
-
-Frame 97
-name: update_callback
-total_ms: 0.007
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.input: 0.000ms (1 calls)
-  engine.frame: 0.000ms (1 calls)
-
-Frame 98
-name: game_simulation
-total_ms: 0.299
-metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.259
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.217
-  player_y: 1066.000
-  player_vx: -0.039
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.physics: 0.256ms (1 calls)
-  game.debug_entities: 0.002ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 99
-name: draw_callback
-total_ms: 1.591
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.014
-  renderer_overlay_ms: 0.014
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.584
-  stats_frame_ms: 5.685
-scopes:
-  draw.debug_world: 0.172ms (1 calls)
-  draw.renderer: 0.114ms (1 calls)
-  draw.debug_ui: 0.060ms (1 calls)
-
-Frame 100
-name: update_callback
-total_ms: 0.007
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.000ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 101
-name: game_simulation
-total_ms: 0.036
-metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.217
-  player_y: 1066.000
-  player_vx: -0.039
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.009ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.physics: 0.000ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 102
-name: draw_callback
-total_ms: 1.416
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.012
-  renderer_overlay_ms: 0.009
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.408
-  stats_frame_ms: 4.748
-scopes:
-  draw.debug_world: 0.156ms (1 calls)
-  draw.renderer: 0.103ms (1 calls)
-  draw.debug_ui: 0.053ms (1 calls)
-
-Frame 103
-name: update_callback
-total_ms: 0.006
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.000ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 104
-name: game_simulation
-total_ms: 0.039
-metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.217
-  player_y: 1066.000
-  player_vx: -0.039
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.010ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
-  game.physics: 0.001ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 105
-name: draw_callback
-total_ms: 1.541
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.013
-  renderer_overlay_ms: 0.010
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.529
-  stats_frame_ms: 4.469
-scopes:
-  draw.debug_world: 0.163ms (1 calls)
-  draw.renderer: 0.101ms (1 calls)
-  draw.debug_ui: 0.054ms (1 calls)
-
-Frame 106
-name: update_callback
-total_ms: 0.003
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.000ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 107
-name: game_simulation
-total_ms: 0.218
-metadata:
-  dt_ms: 9.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.198
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.216
-  player_y: 1066.000
-  player_vx: -0.034
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.physics: 0.196ms (1 calls)
-  game.debug_entities: 0.002ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 108
-name: draw_callback
-total_ms: 1.502
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.013
-  renderer_overlay_ms: 0.010
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.489
-  stats_frame_ms: 9.363
-scopes:
-  draw.debug_world: 0.158ms (1 calls)
-  draw.renderer: 0.111ms (1 calls)
-  draw.debug_ui: 0.056ms (1 calls)
-
-Frame 109
-name: update_callback
-total_ms: 0.006
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.000ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 110
-name: game_simulation
-total_ms: 0.037
-metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.216
-  player_y: 1066.000
-  player_vx: -0.034
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.010ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
-
-Frame 111
-name: draw_callback
-total_ms: 1.622
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.013
-  renderer_overlay_ms: 0.010
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.609
-  stats_frame_ms: 4.647
-scopes:
-  draw.debug_world: 0.156ms (1 calls)
-  draw.renderer: 0.105ms (1 calls)
-  draw.debug_ui: 0.062ms (1 calls)
-
-Frame 112
 name: update_callback
 total_ms: 0.005
 metadata:
@@ -2563,67 +1564,220 @@ scopes:
   engine.frame: 0.000ms (1 calls)
   engine.input: 0.000ms (1 calls)
 
-Frame 113
+Frame 65
 name: game_simulation
-total_ms: 0.326
+total_ms: 0.635
 metadata:
-  dt_ms: 4.000
-  ball_count: 100.000
+  dt_ms: 54.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.307
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2868.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.216
-  player_y: 1066.000
-  player_vx: -0.030
-  player_vy: 0.000
+  player_x: 30.416
+  player_y: 718.183
+  player_vx: 0.189
+  player_vy: 2.404
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 423.721
 scopes:
-  game.physics: 0.306ms (1 calls)
-  game.debug_entities: 0.002ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
+  game.renderables: 0.607ms (1 calls)
+  game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
-Frame 114
+Frame 66
 name: draw_callback
-total_ms: 1.742
+total_ms: 1.608
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2868.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2868.000
+  renderer_last_sprites: 2868.000
+  renderer_visible_items: 2868.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2868.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.012
-  renderer_overlay_ms: 0.009
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.139
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.493
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.732
-  stats_frame_ms: 4.782
+  stats_draw_ms: 1.599
+  stats_frame_ms: 8.108
 scopes:
-  draw.debug_world: 0.162ms (1 calls)
-  draw.renderer: 0.105ms (1 calls)
-  draw.debug_ui: 0.056ms (1 calls)
+  draw.renderer: 0.974ms (1 calls)
+  draw.debug_ui: 0.098ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
-Frame 115
+Frame 67
+name: update_callback
+total_ms: 0.006
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 68
+name: game_simulation
+total_ms: 0.609
+metadata:
+  dt_ms: 8.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2868.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.416
+  player_y: 718.183
+  player_vx: 0.189
+  player_vy: 2.404
+  camera_x: 0.000
+  camera_y: 423.721
+scopes:
+  game.renderables: 0.587ms (1 calls)
+  game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 69
+name: draw_callback
+total_ms: 1.555
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2868.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2868.000
+  renderer_last_sprites: 2868.000
+  renderer_visible_items: 2868.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2868.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.141
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.472
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.542
+  stats_frame_ms: 7.913
+scopes:
+  draw.renderer: 0.939ms (1 calls)
+  draw.debug_ui: 0.069ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 70
+name: update_callback
+total_ms: 0.013
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.input: 0.001ms (1 calls)
+  engine.frame: 0.000ms (1 calls)
+
+Frame 71
+name: game_simulation
+total_ms: 57.949
+metadata:
+  dt_ms: 8.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2868.000
+  physics_substeps: 1.000
+  physics_ms: 57.517
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.430
+  player_y: 718.344
+  player_vx: 0.179
+  player_vy: 2.387
+  camera_x: 0.000
+  camera_y: 423.889
+scopes:
+  game.physics: 57.513ms (1 calls)
+  game.renderables: 0.404ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 72
+name: draw_callback
+total_ms: 1.467
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2868.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2868.000
+  renderer_last_sprites: 2868.000
+  renderer_visible_items: 2868.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2868.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.128
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.468
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.461
+  stats_frame_ms: 66.241
+scopes:
+  draw.renderer: 0.947ms (1 calls)
+  draw.debug_ui: 0.061ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 73
 name: update_callback
 total_ms: 0.007
 metadata:
@@ -2632,134 +1786,1180 @@ scopes:
   engine.frame: 0.001ms (1 calls)
   engine.input: 0.000ms (1 calls)
 
-Frame 116
+Frame 74
 name: game_simulation
-total_ms: 0.056
+total_ms: 51.065
 metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
+  dt_ms: 66.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2869.000
+  physics_substeps: 1.000
+  physics_ms: 50.718
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.444
+  player_y: 718.503
+  player_vx: 0.177
+  player_vy: 2.375
+  camera_x: 0.000
+  camera_y: 424.055
+scopes:
+  game.physics: 50.715ms (1 calls)
+  game.renderables: 0.324ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 75
+name: draw_callback
+total_ms: 1.687
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2869.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2869.000
+  renderer_last_sprites: 2869.000
+  renderer_visible_items: 2869.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2869.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.126
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.516
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.679
+  stats_frame_ms: 58.069
+scopes:
+  draw.renderer: 0.946ms (1 calls)
+  draw.debug_ui: 0.059ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 76
+name: update_callback
+total_ms: 0.002
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 77
+name: game_simulation
+total_ms: 49.624
+metadata:
+  dt_ms: 65.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2873.000
+  physics_substeps: 1.000
+  physics_ms: 49.278
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.458
+  player_y: 718.663
+  player_vx: 0.175
+  player_vy: 2.369
+  camera_x: 0.000
+  camera_y: 424.219
+scopes:
+  game.physics: 49.274ms (1 calls)
+  game.renderables: 0.321ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 78
+name: draw_callback
+total_ms: 1.439
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2873.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2873.000
+  renderer_last_sprites: 2873.000
+  renderer_visible_items: 2873.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2873.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.131
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.458
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.430
+  stats_frame_ms: 62.882
+scopes:
+  draw.renderer: 0.894ms (1 calls)
+  draw.debug_ui: 0.058ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 79
+name: update_callback
+total_ms: 0.008
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 80
+name: game_simulation
+total_ms: 0.813
+metadata:
+  dt_ms: 56.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2875.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.458
+  player_y: 718.663
+  player_vx: 0.175
+  player_vy: 2.369
+  camera_x: 0.000
+  camera_y: 424.219
+scopes:
+  game.renderables: 0.789ms (1 calls)
+  game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 81
+name: draw_callback
+total_ms: 1.379
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2875.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2875.000
+  renderer_last_sprites: 2875.000
+  renderer_visible_items: 2875.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2875.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.129
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.460
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.375
+  stats_frame_ms: 7.671
+scopes:
+  draw.renderer: 0.896ms (1 calls)
+  draw.debug_ui: 0.059ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 82
+name: update_callback
+total_ms: 0.005
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 83
+name: game_simulation
+total_ms: 0.758
+metadata:
+  dt_ms: 8.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2876.000
   physics_substeps: 0.000
   physics_ms: 0.001
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.216
-  player_y: 1066.000
-  player_vx: -0.030
-  player_vy: 0.000
+  player_x: 30.458
+  player_y: 718.663
+  player_vx: 0.175
+  player_vy: 2.369
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 424.219
 scopes:
-  game.debug_entities: 0.014ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.physics: 0.001ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
+  game.renderables: 0.736ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.physics: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
-Frame 117
+Frame 84
 name: draw_callback
-total_ms: 2.806
+total_ms: 1.481
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2876.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2876.000
+  renderer_last_sprites: 2876.000
+  renderer_visible_items: 2876.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2876.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.018
-  renderer_overlay_ms: 0.013
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.123
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.474
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 2.799
-  stats_frame_ms: 7.093
+  stats_draw_ms: 1.471
+  stats_frame_ms: 7.381
 scopes:
-  draw.debug_world: 0.170ms (1 calls)
-  draw.renderer: 0.117ms (1 calls)
-  draw.debug_ui: 0.064ms (1 calls)
+  draw.renderer: 0.913ms (1 calls)
+  draw.debug_ui: 0.063ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
-Frame 118
+Frame 85
 name: update_callback
-total_ms: 0.006
+total_ms: 0.007
 metadata:
   stats_update_ms: 0.000
 scopes:
   engine.input: 0.000ms (1 calls)
   engine.frame: 0.000ms (1 calls)
 
-Frame 119
+Frame 86
 name: game_simulation
-total_ms: 0.050
+total_ms: 48.531
 metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
+  dt_ms: 7.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2875.000
+  physics_substeps: 1.000
+  physics_ms: 48.083
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.216
-  player_y: 1066.000
-  player_vx: -0.030
-  player_vy: 0.000
+  player_x: 30.472
+  player_y: 718.823
+  player_vx: 0.174
+  player_vy: 2.371
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 424.382
 scopes:
-  game.debug_entities: 0.014ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
+  game.physics: 48.079ms (1 calls)
+  game.renderables: 0.425ms (1 calls)
   game.debug_input: 0.001ms (1 calls)
   game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
 
-Frame 120
+Frame 87
 name: draw_callback
-total_ms: 1.618
+total_ms: 1.537
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2875.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2875.000
+  renderer_last_sprites: 2875.000
+  renderer_visible_items: 2875.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2875.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.023
-  renderer_overlay_ms: 0.014
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.129
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.472
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.609
-  stats_frame_ms: 5.389
+  stats_draw_ms: 1.526
+  stats_frame_ms: 55.261
 scopes:
-  draw.debug_world: 0.185ms (1 calls)
-  draw.renderer: 0.140ms (1 calls)
-  draw.debug_ui: 0.065ms (1 calls)
+  draw.renderer: 0.960ms (1 calls)
+  draw.debug_ui: 0.071ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 88
+name: update_callback
+total_ms: 0.006
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.001ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 89
+name: game_simulation
+total_ms: 0.896
+metadata:
+  dt_ms: 56.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2878.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.472
+  player_y: 718.823
+  player_vx: 0.174
+  player_vy: 2.371
+  camera_x: 0.000
+  camera_y: 424.382
+scopes:
+  game.renderables: 0.869ms (1 calls)
+  game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 90
+name: draw_callback
+total_ms: 2.180
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2878.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2878.000
+  renderer_last_sprites: 2878.000
+  renderer_visible_items: 2878.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2878.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.128
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.475
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 2.172
+  stats_frame_ms: 9.326
+scopes:
+  draw.renderer: 0.967ms (1 calls)
+  draw.debug_ui: 0.067ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 91
+name: update_callback
+total_ms: 0.004
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 92
+name: game_simulation
+total_ms: 46.448
+metadata:
+  dt_ms: 15.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2878.000
+  physics_substeps: 1.000
+  physics_ms: 46.037
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.487
+  player_y: 718.982
+  player_vx: 0.179
+  player_vy: 2.374
+  camera_x: 0.000
+  camera_y: 424.545
+scopes:
+  game.physics: 46.034ms (1 calls)
+  game.renderables: 0.389ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 93
+name: draw_callback
+total_ms: 1.423
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2878.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2878.000
+  renderer_last_sprites: 2878.000
+  renderer_visible_items: 2878.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2878.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.128
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.467
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.416
+  stats_frame_ms: 58.818
+scopes:
+  draw.renderer: 0.910ms (1 calls)
+  draw.debug_ui: 0.060ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 94
+name: update_callback
+total_ms: 0.005
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 95
+name: game_simulation
+total_ms: 0.760
+metadata:
+  dt_ms: 52.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2880.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.487
+  player_y: 718.982
+  player_vx: 0.179
+  player_vy: 2.374
+  camera_x: 0.000
+  camera_y: 424.545
+scopes:
+  game.renderables: 0.739ms (1 calls)
+  game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 96
+name: draw_callback
+total_ms: 1.616
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2880.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2880.000
+  renderer_last_sprites: 2880.000
+  renderer_visible_items: 2880.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2880.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.128
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.647
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.610
+  stats_frame_ms: 8.097
+scopes:
+  draw.renderer: 1.095ms (1 calls)
+  draw.debug_ui: 0.061ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 97
+name: update_callback
+total_ms: 0.009
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 98
+name: game_simulation
+total_ms: 45.559
+metadata:
+  dt_ms: 9.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2880.000
+  physics_substeps: 1.000
+  physics_ms: 45.101
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.501
+  player_y: 719.142
+  player_vx: 0.190
+  player_vy: 2.364
+  camera_x: 0.000
+  camera_y: 424.706
+scopes:
+  game.physics: 45.098ms (1 calls)
+  game.renderables: 0.436ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 99
+name: draw_callback
+total_ms: 1.591
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2880.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2880.000
+  renderer_last_sprites: 2880.000
+  renderer_visible_items: 2880.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2880.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.125
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.477
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.580
+  stats_frame_ms: 53.624
+scopes:
+  draw.renderer: 0.939ms (1 calls)
+  draw.debug_ui: 0.072ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 100
+name: update_callback
+total_ms: 0.007
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.input: 0.000ms (1 calls)
+  engine.frame: 0.000ms (1 calls)
+
+Frame 101
+name: game_simulation
+total_ms: 0.733
+metadata:
+  dt_ms: 53.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2880.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.501
+  player_y: 719.142
+  player_vx: 0.190
+  player_vy: 2.364
+  camera_x: 0.000
+  camera_y: 424.706
+scopes:
+  game.renderables: 0.708ms (1 calls)
+  game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 102
+name: draw_callback
+total_ms: 1.595
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2880.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2880.000
+  renderer_last_sprites: 2880.000
+  renderer_visible_items: 2880.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2880.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.137
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.478
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.587
+  stats_frame_ms: 7.846
+scopes:
+  draw.renderer: 0.964ms (1 calls)
+  draw.debug_ui: 0.077ms (1 calls)
+  draw.debug_world: 0.001ms (1 calls)
+
+Frame 103
+name: update_callback
+total_ms: 0.009
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 104
+name: game_simulation
+total_ms: 0.728
+metadata:
+  dt_ms: 8.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2880.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.501
+  player_y: 719.142
+  player_vx: 0.190
+  player_vy: 2.364
+  camera_x: 0.000
+  camera_y: 424.706
+scopes:
+  game.renderables: 0.708ms (1 calls)
+  game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 105
+name: draw_callback
+total_ms: 2.617
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2880.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2880.000
+  renderer_last_sprites: 2880.000
+  renderer_visible_items: 2880.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2880.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.133
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.474
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 2.604
+  stats_frame_ms: 8.823
+scopes:
+  draw.renderer: 0.938ms (1 calls)
+  draw.debug_ui: 0.068ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 106
+name: update_callback
+total_ms: 0.004
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 107
+name: game_simulation
+total_ms: 51.396
+metadata:
+  dt_ms: 15.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2880.000
+  physics_substeps: 1.000
+  physics_ms: 50.942
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.518
+  player_y: 719.301
+  player_vx: 0.207
+  player_vy: 2.357
+  camera_x: 0.000
+  camera_y: 424.867
+scopes:
+  game.physics: 50.939ms (1 calls)
+  game.renderables: 0.426ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 108
+name: draw_callback
+total_ms: 2.199
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2880.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2880.000
+  renderer_last_sprites: 2880.000
+  renderer_visible_items: 2880.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2880.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.130
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 1.141
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 2.193
+  stats_frame_ms: 64.928
+scopes:
+  draw.renderer: 1.597ms (1 calls)
+  draw.debug_ui: 0.062ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 109
+name: update_callback
+total_ms: 0.010
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 110
+name: game_simulation
+total_ms: 47.632
+metadata:
+  dt_ms: 59.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2881.000
+  physics_substeps: 1.000
+  physics_ms: 47.275
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.536
+  player_y: 719.458
+  player_vx: 0.227
+  player_vy: 2.330
+  camera_x: 0.000
+  camera_y: 425.027
+scopes:
+  game.physics: 47.272ms (1 calls)
+  game.renderables: 0.330ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 111
+name: draw_callback
+total_ms: 1.711
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2881.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2881.000
+  renderer_last_sprites: 2881.000
+  renderer_visible_items: 2881.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2881.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.130
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.460
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.704
+  stats_frame_ms: 54.933
+scopes:
+  draw.renderer: 1.092ms (1 calls)
+  draw.debug_ui: 0.060ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 112
+name: update_callback
+total_ms: 0.006
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 113
+name: game_simulation
+total_ms: 0.656
+metadata:
+  dt_ms: 55.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2889.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.536
+  player_y: 719.458
+  player_vx: 0.227
+  player_vy: 2.330
+  camera_x: 0.000
+  camera_y: 425.027
+scopes:
+  game.renderables: 0.633ms (1 calls)
+  game.physics: 0.002ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 114
+name: draw_callback
+total_ms: 1.440
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2889.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2889.000
+  renderer_last_sprites: 2889.000
+  renderer_visible_items: 2889.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2889.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.126
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.461
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.433
+  stats_frame_ms: 7.182
+scopes:
+  draw.renderer: 0.895ms (1 calls)
+  draw.debug_ui: 0.060ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 115
+name: update_callback
+total_ms: 0.004
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 116
+name: game_simulation
+total_ms: 48.724
+metadata:
+  dt_ms: 7.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2886.000
+  physics_substeps: 1.000
+  physics_ms: 48.254
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.556
+  player_y: 719.614
+  player_vx: 0.251
+  player_vy: 2.299
+  camera_x: 0.000
+  camera_y: 425.185
+scopes:
+  game.physics: 48.251ms (1 calls)
+  game.renderables: 0.447ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 117
+name: draw_callback
+total_ms: 1.670
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2886.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2886.000
+  renderer_last_sprites: 2886.000
+  renderer_visible_items: 2886.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2886.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.197
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.478
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.664
+  stats_frame_ms: 56.109
+scopes:
+  draw.renderer: 1.162ms (1 calls)
+  draw.debug_ui: 0.069ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 118
+name: update_callback
+total_ms: 0.010
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 119
+name: game_simulation
+total_ms: 0.856
+metadata:
+  dt_ms: 56.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2893.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.556
+  player_y: 719.614
+  player_vx: 0.251
+  player_vy: 2.299
+  camera_x: 0.000
+  camera_y: 425.185
+scopes:
+  game.renderables: 0.826ms (1 calls)
+  game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 120
+name: draw_callback
+total_ms: 1.582
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2893.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2893.000
+  renderer_last_sprites: 2893.000
+  renderer_visible_items: 2893.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2893.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.127
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.473
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.578
+  stats_frame_ms: 8.637
+scopes:
+  draw.renderer: 0.972ms (1 calls)
+  draw.debug_ui: 0.066ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 121
 name: update_callback
@@ -2772,67 +2972,72 @@ scopes:
 
 Frame 122
 name: game_simulation
-total_ms: 0.214
+total_ms: 45.108
 metadata:
-  dt_ms: 11.000
-  ball_count: 100.000
+  dt_ms: 16.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2893.000
   physics_substeps: 1.000
-  physics_ms: 0.194
+  physics_ms: 44.731
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.215
-  player_y: 1066.000
-  player_vx: -0.027
-  player_vy: 0.000
+  player_x: 30.576
+  player_y: 719.766
+  player_vx: 0.273
+  player_vy: 2.248
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 425.342
 scopes:
-  game.physics: 0.193ms (1 calls)
-  game.debug_entities: 0.002ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
+  game.physics: 44.729ms (1 calls)
+  game.renderables: 0.354ms (1 calls)
   game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 123
 name: draw_callback
-total_ms: 1.481
+total_ms: 1.557
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2893.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2893.000
+  renderer_last_sprites: 2893.000
+  renderer_visible_items: 2893.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2893.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.013
-  renderer_overlay_ms: 0.011
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.132
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.610
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.471
-  stats_frame_ms: 9.367
+  stats_draw_ms: 1.551
+  stats_frame_ms: 58.660
 scopes:
-  draw.debug_world: 0.160ms (1 calls)
-  draw.renderer: 0.105ms (1 calls)
-  draw.debug_ui: 0.057ms (1 calls)
+  draw.renderer: 1.047ms (1 calls)
+  draw.debug_ui: 0.059ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 124
 name: update_callback
-total_ms: 0.007
+total_ms: 0.006
 metadata:
   stats_update_ms: 0.000
 scopes:
@@ -2841,136 +3046,146 @@ scopes:
 
 Frame 125
 name: game_simulation
-total_ms: 0.037
+total_ms: 0.819
 metadata:
-  dt_ms: 4.000
-  ball_count: 100.000
+  dt_ms: 52.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2895.000
   physics_substeps: 0.000
-  physics_ms: 0.000
+  physics_ms: 0.001
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.215
-  player_y: 1066.000
-  player_vx: -0.027
-  player_vy: 0.000
+  player_x: 30.576
+  player_y: 719.766
+  player_vx: 0.273
+  player_vy: 2.248
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 425.342
 scopes:
-  game.debug_entities: 0.010ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
+  game.renderables: 0.799ms (1 calls)
+  game.physics: 0.001ms (1 calls)
   game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
 
 Frame 126
 name: draw_callback
-total_ms: 1.612
+total_ms: 1.453
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2895.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2895.000
+  renderer_last_sprites: 2895.000
+  renderer_visible_items: 2895.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2895.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.013
-  renderer_overlay_ms: 0.010
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.134
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.463
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.603
-  stats_frame_ms: 4.741
+  stats_draw_ms: 1.446
+  stats_frame_ms: 7.953
 scopes:
-  draw.debug_world: 0.162ms (1 calls)
-  draw.renderer: 0.106ms (1 calls)
-  draw.debug_ui: 0.058ms (1 calls)
+  draw.renderer: 0.902ms (1 calls)
+  draw.debug_ui: 0.060ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 127
 name: update_callback
-total_ms: 0.005
+total_ms: 0.009
 metadata:
   stats_update_ms: 0.000
 scopes:
-  engine.input: 0.000ms (1 calls)
-  engine.frame: 0.000ms (1 calls)
+  engine.frame: 0.001ms (1 calls)
+  engine.input: 0.001ms (1 calls)
 
 Frame 128
 name: game_simulation
-total_ms: 0.039
+total_ms: 45.273
 metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
+  dt_ms: 8.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2894.000
+  physics_substeps: 1.000
+  physics_ms: 44.806
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.215
-  player_y: 1066.000
-  player_vx: -0.027
-  player_vy: 0.000
+  player_x: 30.599
+  player_y: 719.915
+  player_vx: 0.292
+  player_vy: 2.196
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 425.497
 scopes:
-  game.debug_entities: 0.010ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
+  game.physics: 44.803ms (1 calls)
+  game.renderables: 0.444ms (1 calls)
   game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
 
 Frame 129
 name: draw_callback
-total_ms: 1.619
+total_ms: 1.761
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2894.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2894.000
+  renderer_last_sprites: 2894.000
+  renderer_visible_items: 2894.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2894.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.016
-  renderer_overlay_ms: 0.010
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.131
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.724
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.606
-  stats_frame_ms: 4.758
+  stats_draw_ms: 1.756
+  stats_frame_ms: 52.808
 scopes:
-  draw.debug_world: 0.199ms (1 calls)
-  draw.renderer: 0.107ms (1 calls)
-  draw.debug_ui: 0.055ms (1 calls)
+  draw.renderer: 1.182ms (1 calls)
+  draw.debug_ui: 0.104ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 130
 name: update_callback
-total_ms: 0.008
+total_ms: 0.006
 metadata:
   stats_update_ms: 0.000
 scopes:
@@ -2979,67 +3194,72 @@ scopes:
 
 Frame 131
 name: game_simulation
-total_ms: 0.454
+total_ms: 0.903
 metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
+  dt_ms: 52.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.381
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2896.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.215
-  player_y: 1066.000
-  player_vx: -0.023
-  player_vy: 0.000
+  player_x: 30.599
+  player_y: 719.915
+  player_vx: 0.292
+  player_vy: 2.196
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 425.497
 scopes:
-  game.physics: 0.378ms (1 calls)
-  game.debug_entities: 0.006ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
+  game.renderables: 0.879ms (1 calls)
+  game.physics: 0.002ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 132
 name: draw_callback
-total_ms: 1.822
+total_ms: 1.716
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2896.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2896.000
+  renderer_last_sprites: 2896.000
+  renderer_visible_items: 2896.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2896.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.018
-  renderer_overlay_ms: 0.012
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.137
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.639
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.812
-  stats_frame_ms: 6.420
+  stats_draw_ms: 1.710
+  stats_frame_ms: 8.672
 scopes:
-  draw.debug_world: 0.184ms (1 calls)
-  draw.renderer: 0.124ms (1 calls)
-  draw.debug_ui: 0.065ms (1 calls)
+  draw.renderer: 1.128ms (1 calls)
+  draw.debug_ui: 0.068ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 133
 name: update_callback
-total_ms: 0.010
+total_ms: 0.005
 metadata:
   stats_update_ms: 0.000
 scopes:
@@ -3048,63 +3268,68 @@ scopes:
 
 Frame 134
 name: game_simulation
-total_ms: 0.049
+total_ms: 0.854
 metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
+  dt_ms: 9.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2897.000
   physics_substeps: 0.000
-  physics_ms: 0.000
+  physics_ms: 0.004
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.215
-  player_y: 1066.000
-  player_vx: -0.023
-  player_vy: 0.000
+  player_x: 30.599
+  player_y: 719.915
+  player_vx: 0.292
+  player_vy: 2.196
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 425.497
 scopes:
-  game.debug_entities: 0.015ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
+  game.renderables: 0.824ms (1 calls)
+  game.physics: 0.004ms (1 calls)
   game.debug_input: 0.001ms (1 calls)
   game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
 
 Frame 135
 name: draw_callback
-total_ms: 1.786
+total_ms: 2.396
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2897.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2897.000
+  renderer_last_sprites: 2897.000
+  renderer_visible_items: 2897.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2897.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.020
-  renderer_overlay_ms: 0.020
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.123
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.627
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.776
-  stats_frame_ms: 5.775
+  stats_draw_ms: 2.388
+  stats_frame_ms: 9.259
 scopes:
-  draw.debug_world: 0.199ms (1 calls)
-  draw.renderer: 0.125ms (1 calls)
-  draw.debug_ui: 0.066ms (1 calls)
+  draw.renderer: 1.087ms (1 calls)
+  draw.debug_ui: 0.064ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 136
 name: update_callback
@@ -3112,141 +3337,151 @@ total_ms: 0.004
 metadata:
   stats_update_ms: 0.000
 scopes:
-  engine.frame: 0.001ms (1 calls)
-  engine.input: 0.000ms (1 calls)
+  engine.input: 0.001ms (1 calls)
+  engine.frame: 0.000ms (1 calls)
 
 Frame 137
 name: game_simulation
-total_ms: 0.297
+total_ms: 45.507
 metadata:
-  dt_ms: 10.000
-  ball_count: 100.000
+  dt_ms: 17.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2897.000
   physics_substeps: 1.000
-  physics_ms: 0.266
+  physics_ms: 45.091
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.214
-  player_y: 1066.000
-  player_vx: -0.021
-  player_vy: 0.000
+  player_x: 30.622
+  player_y: 720.058
+  player_vx: 0.303
+  player_vy: 2.124
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 425.649
 scopes:
-  game.physics: 0.265ms (1 calls)
-  game.debug_entities: 0.002ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
+  game.physics: 45.087ms (1 calls)
+  game.renderables: 0.391ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 138
 name: draw_callback
-total_ms: 1.717
+total_ms: 1.438
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2897.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2897.000
+  renderer_last_sprites: 2897.000
+  renderer_visible_items: 2897.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2897.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.006
-  renderer_body_ms: 0.020
-  renderer_overlay_ms: 0.012
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.134
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.462
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.709
-  stats_frame_ms: 10.074
+  stats_draw_ms: 1.433
+  stats_frame_ms: 59.921
 scopes:
-  draw.debug_world: 0.183ms (1 calls)
-  draw.renderer: 0.127ms (1 calls)
-  draw.debug_ui: 0.066ms (1 calls)
+  draw.renderer: 0.911ms (1 calls)
+  draw.debug_ui: 0.059ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 139
 name: update_callback
-total_ms: 0.007
+total_ms: 0.003
 metadata:
   stats_update_ms: 0.000
 scopes:
-  engine.frame: 0.000ms (1 calls)
   engine.input: 0.000ms (1 calls)
+  engine.frame: 0.000ms (1 calls)
 
 Frame 140
 name: game_simulation
-total_ms: 0.040
+total_ms: 0.834
 metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
+  dt_ms: 52.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2897.000
   physics_substeps: 0.000
-  physics_ms: 0.001
+  physics_ms: 0.002
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.214
-  player_y: 1066.000
-  player_vx: -0.021
-  player_vy: 0.000
+  player_x: 30.622
+  player_y: 720.058
+  player_vx: 0.303
+  player_vy: 2.124
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 425.649
 scopes:
-  game.debug_entities: 0.011ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
+  game.renderables: 0.807ms (1 calls)
+  game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
   game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
 
 Frame 141
 name: draw_callback
-total_ms: 1.449
+total_ms: 1.876
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2897.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2897.000
+  renderer_last_sprites: 2897.000
+  renderer_visible_items: 2897.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2897.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.001
-  renderer_body_ms: 0.012
-  renderer_overlay_ms: 0.011
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.141
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.491
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.441
-  stats_frame_ms: 4.785
+  stats_draw_ms: 1.864
+  stats_frame_ms: 8.415
 scopes:
-  draw.debug_world: 0.161ms (1 calls)
-  draw.renderer: 0.103ms (1 calls)
-  draw.debug_ui: 0.054ms (1 calls)
+  draw.renderer: 0.981ms (1 calls)
+  draw.debug_ui: 0.072ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 142
 name: update_callback
-total_ms: 0.004
+total_ms: 0.010
 metadata:
   stats_update_ms: 0.000
 scopes:
@@ -3255,132 +3490,142 @@ scopes:
 
 Frame 143
 name: game_simulation
-total_ms: 0.042
+total_ms: 46.853
 metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
+  dt_ms: 9.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2897.000
+  physics_substeps: 1.000
+  physics_ms: 46.492
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.646
+  player_y: 720.198
+  player_vx: 0.306
+  player_vy: 2.056
+  camera_x: 0.000
+  camera_y: 425.797
+scopes:
+  game.physics: 46.489ms (1 calls)
+  game.renderables: 0.333ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 144
+name: draw_callback
+total_ms: 1.367
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2897.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2897.000
+  renderer_last_sprites: 2897.000
+  renderer_visible_items: 2897.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2897.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.126
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.462
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.361
+  stats_frame_ms: 53.777
+scopes:
+  draw.renderer: 0.895ms (1 calls)
+  draw.debug_ui: 0.058ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 145
+name: update_callback
+total_ms: 0.007
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 146
+name: game_simulation
+total_ms: 0.835
+metadata:
+  dt_ms: 53.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2898.000
   physics_substeps: 0.000
   physics_ms: 0.001
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.214
-  player_y: 1066.000
-  player_vx: -0.021
-  player_vy: 0.000
+  player_x: 30.646
+  player_y: 720.198
+  player_vx: 0.306
+  player_vy: 2.056
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 425.797
 scopes:
-  game.debug_entities: 0.012ms (1 calls)
+  game.renderables: 0.814ms (1 calls)
   game.physics: 0.001ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 144
-name: draw_callback
-total_ms: 1.459
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.011
-  renderer_overlay_ms: 0.014
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.453
-  stats_frame_ms: 4.380
-scopes:
-  draw.debug_world: 0.155ms (1 calls)
-  draw.renderer: 0.104ms (1 calls)
-  draw.debug_ui: 0.053ms (1 calls)
-
-Frame 145
-name: update_callback
-total_ms: 0.004
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.input: 0.000ms (1 calls)
-  engine.frame: 0.000ms (1 calls)
-
-Frame 146
-name: game_simulation
-total_ms: 0.219
-metadata:
-  dt_ms: 4.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.196
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.214
-  player_y: 1066.000
-  player_vx: -0.018
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.physics: 0.194ms (1 calls)
-  game.debug_entities: 0.003ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
   game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 147
 name: draw_callback
-total_ms: 1.929
+total_ms: 1.375
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2898.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2898.000
+  renderer_last_sprites: 2898.000
+  renderer_visible_items: 2898.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2898.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.017
-  renderer_overlay_ms: 0.013
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.132
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.465
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.921
-  stats_frame_ms: 5.585
+  stats_draw_ms: 1.369
+  stats_frame_ms: 7.839
 scopes:
-  draw.debug_world: 0.200ms (1 calls)
-  draw.renderer: 0.175ms (1 calls)
-  draw.debug_ui: 0.074ms (1 calls)
+  draw.renderer: 0.910ms (1 calls)
+  draw.debug_ui: 0.059ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 148
 name: update_callback
@@ -3393,132 +3638,142 @@ scopes:
 
 Frame 149
 name: game_simulation
-total_ms: 0.051
+total_ms: 47.114
 metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
+  dt_ms: 8.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2898.000
+  physics_substeps: 1.000
+  physics_ms: 46.671
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.214
-  player_y: 1066.000
-  player_vx: -0.018
-  player_vy: 0.000
+  player_x: 30.669
+  player_y: 720.332
+  player_vx: 0.301
+  player_vy: 1.988
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 425.942
 scopes:
-  game.debug_entities: 0.014ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.physics: 0.000ms (1 calls)
+  game.physics: 46.667ms (1 calls)
+  game.renderables: 0.422ms (1 calls)
   game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 150
 name: draw_callback
-total_ms: 1.908
+total_ms: 1.814
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2898.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2898.000
+  renderer_last_sprites: 2898.000
+  renderer_visible_items: 2898.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2898.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.002
-  renderer_body_ms: 0.014
-  renderer_overlay_ms: 0.012
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.130
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.785
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.897
-  stats_frame_ms: 5.203
+  stats_draw_ms: 1.808
+  stats_frame_ms: 54.134
 scopes:
-  draw.debug_world: 0.175ms (1 calls)
-  draw.renderer: 0.113ms (1 calls)
-  draw.debug_ui: 0.056ms (1 calls)
+  draw.renderer: 1.291ms (1 calls)
+  draw.debug_ui: 0.061ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 151
 name: update_callback
-total_ms: 0.003
+total_ms: 0.004
 metadata:
   stats_update_ms: 0.000
 scopes:
-  engine.frame: 0.000ms (1 calls)
+  engine.frame: 0.001ms (1 calls)
   engine.input: 0.000ms (1 calls)
 
 Frame 152
 name: game_simulation
-total_ms: 0.033
+total_ms: 0.979
 metadata:
-  dt_ms: 8.000
-  ball_count: 100.000
+  dt_ms: 61.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2898.000
   physics_substeps: 0.000
-  physics_ms: 0.000
+  physics_ms: 0.002
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.214
-  player_y: 1066.000
-  player_vx: -0.018
-  player_vy: 0.000
+  player_x: 30.669
+  player_y: 720.332
+  player_vx: 0.301
+  player_vy: 1.988
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 425.942
 scopes:
-  game.debug_entities: 0.008ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
+  game.renderables: 0.948ms (1 calls)
+  game.physics: 0.002ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
   game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
 
 Frame 153
 name: draw_callback
-total_ms: 1.660
+total_ms: 1.416
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2898.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2898.000
+  renderer_last_sprites: 2898.000
+  renderer_visible_items: 2898.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2898.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.001
-  renderer_body_ms: 0.011
-  renderer_overlay_ms: 0.010
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.131
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.462
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.652
-  stats_frame_ms: 7.968
+  stats_draw_ms: 1.409
+  stats_frame_ms: 14.071
 scopes:
-  draw.debug_world: 0.156ms (1 calls)
-  draw.renderer: 0.109ms (1 calls)
+  draw.renderer: 0.913ms (1 calls)
   draw.debug_ui: 0.060ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 154
 name: update_callback
@@ -3526,72 +3781,77 @@ total_ms: 0.009
 metadata:
   stats_update_ms: 0.000
 scopes:
-  engine.input: 0.000ms (1 calls)
   engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
 
 Frame 155
 name: game_simulation
-total_ms: 0.310
+total_ms: 48.159
 metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
+  dt_ms: 7.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2898.000
   physics_substeps: 1.000
-  physics_ms: 0.282
+  physics_ms: 47.760
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.214
-  player_y: 1066.000
-  player_vx: -0.016
-  player_vy: 0.000
+  player_x: 30.691
+  player_y: 720.463
+  player_vx: 0.293
+  player_vy: 1.937
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 426.082
 scopes:
-  game.physics: 0.280ms (1 calls)
-  game.debug_entities: 0.002ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
+  game.physics: 47.758ms (1 calls)
+  game.renderables: 0.378ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 156
 name: draw_callback
-total_ms: 2.122
+total_ms: 1.387
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2898.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2898.000
+  renderer_last_sprites: 2898.000
+  renderer_visible_items: 2898.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2898.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.016
-  renderer_overlay_ms: 0.016
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.131
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.463
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 2.113
-  stats_frame_ms: 6.081
+  stats_draw_ms: 1.380
+  stats_frame_ms: 54.941
 scopes:
-  draw.debug_world: 0.525ms (1 calls)
-  draw.renderer: 0.127ms (1 calls)
-  draw.debug_ui: 0.066ms (1 calls)
+  draw.renderer: 0.900ms (1 calls)
+  draw.debug_ui: 0.059ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 157
 name: update_callback
-total_ms: 0.008
+total_ms: 0.006
 metadata:
   stats_update_ms: 0.000
 scopes:
@@ -3600,410 +3860,70 @@ scopes:
 
 Frame 158
 name: game_simulation
-total_ms: 0.059
+total_ms: 0.907
 metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
+  dt_ms: 55.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2898.000
   physics_substeps: 0.000
-  physics_ms: 0.001
+  physics_ms: 0.002
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.214
-  player_y: 1066.000
-  player_vx: -0.016
-  player_vy: 0.000
+  player_x: 30.691
+  player_y: 720.463
+  player_vx: 0.293
+  player_vy: 1.937
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 426.082
 scopes:
-  game.debug_entities: 0.014ms (1 calls)
-  game.renderables: 0.003ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
+  game.renderables: 0.879ms (1 calls)
   game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 159
 name: draw_callback
-total_ms: 1.536
+total_ms: 1.450
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2898.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2898.000
+  renderer_last_sprites: 2898.000
+  renderer_visible_items: 2898.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2898.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.013
-  renderer_overlay_ms: 0.009
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.134
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.478
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.524
-  stats_frame_ms: 5.530
+  stats_draw_ms: 1.446
+  stats_frame_ms: 8.471
 scopes:
-  draw.debug_world: 0.188ms (1 calls)
-  draw.renderer: 0.118ms (1 calls)
-  draw.debug_ui: 0.060ms (1 calls)
+  draw.renderer: 0.943ms (1 calls)
+  draw.debug_ui: 0.072ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 160
-name: update_callback
-total_ms: 0.010
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.001ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 161
-name: game_simulation
-total_ms: 0.048
-metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.214
-  player_y: 1066.000
-  player_vx: -0.016
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.014ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.physics: 0.000ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 162
-name: draw_callback
-total_ms: 1.766
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.007
-  renderer_body_ms: 0.016
-  renderer_overlay_ms: 0.012
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.750
-  stats_frame_ms: 5.680
-scopes:
-  draw.renderer: 0.306ms (1 calls)
-  draw.debug_world: 0.175ms (1 calls)
-  draw.debug_ui: 0.064ms (1 calls)
-
-Frame 163
-name: update_callback
-total_ms: 0.010
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.001ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 164
-name: game_simulation
-total_ms: 0.321
-metadata:
-  dt_ms: 5.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.289
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.214
-  player_y: 1066.000
-  player_vx: -0.014
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.physics: 0.286ms (1 calls)
-  game.debug_entities: 0.003ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 165
-name: draw_callback
-total_ms: 1.671
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.002
-  renderer_body_ms: 0.020
-  renderer_overlay_ms: 0.013
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.662
-  stats_frame_ms: 6.140
-scopes:
-  draw.debug_world: 0.180ms (1 calls)
-  draw.renderer: 0.118ms (1 calls)
-  draw.debug_ui: 0.064ms (1 calls)
-
-Frame 166
-name: update_callback
-total_ms: 0.002
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.000ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 167
-name: game_simulation
-total_ms: 0.036
-metadata:
-  dt_ms: 10.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.214
-  player_y: 1066.000
-  player_vx: -0.014
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.009ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 168
-name: draw_callback
-total_ms: 1.440
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.014
-  renderer_overlay_ms: 0.013
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 1.434
-  stats_frame_ms: 7.950
-scopes:
-  draw.debug_world: 0.157ms (1 calls)
-  draw.renderer: 0.107ms (1 calls)
-  draw.debug_ui: 0.056ms (1 calls)
-
-Frame 169
-name: update_callback
-total_ms: 0.007
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.000ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 170
-name: game_simulation
-total_ms: 0.214
-metadata:
-  dt_ms: 4.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.194
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.213
-  player_y: 1066.000
-  player_vx: -0.012
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.physics: 0.193ms (1 calls)
-  game.debug_entities: 0.001ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
-  game.debug_input: 0.000ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-
-Frame 171
-name: draw_callback
-total_ms: 2.190
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.016
-  renderer_overlay_ms: 0.013
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 2.179
-  stats_frame_ms: 5.692
-scopes:
-  draw.debug_world: 0.171ms (1 calls)
-  draw.renderer: 0.128ms (1 calls)
-  draw.debug_ui: 0.066ms (1 calls)
-
-Frame 172
-name: update_callback
-total_ms: 0.008
-metadata:
-  stats_update_ms: 0.000
-scopes:
-  engine.frame: 0.001ms (1 calls)
-  engine.input: 0.000ms (1 calls)
-
-Frame 173
-name: game_simulation
-total_ms: 0.058
-metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
-  physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 0.000
-  physics_ms: 0.001
-  tracked_ball_index: 0.000
-  selected_ball_index: -1.000
-  drag_active: false
-  player_x: 42.213
-  player_y: 1066.000
-  player_vx: -0.012
-  player_vy: 0.000
-  camera_x: 0.000
-  camera_y: 540.000
-scopes:
-  game.debug_entities: 0.016ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
-  game.drag: 0.000ms (1 calls)
-  game.physics: 0.000ms (1 calls)
-
-Frame 174
-name: draw_callback
-total_ms: 2.204
-metadata:
-  world_width: 1920.000
-  world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
-  resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
-  resource_prebake_budget: 20.000
-  resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
-  resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
-  renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.003
-  renderer_body_ms: 0.017
-  renderer_overlay_ms: 0.012
-  debug_visible_entities: 46.000
-  debug_active_collisions: 0.000
-  debug_enabled: true
-  stats_draw_ms: 2.191
-  stats_frame_ms: 6.366
-scopes:
-  draw.debug_world: 0.167ms (1 calls)
-  draw.renderer: 0.137ms (1 calls)
-  draw.debug_ui: 0.074ms (1 calls)
-
-Frame 175
 name: update_callback
 total_ms: 0.009
 metadata:
@@ -4012,65 +3932,440 @@ scopes:
   engine.frame: 0.001ms (1 calls)
   engine.input: 0.000ms (1 calls)
 
-Frame 176
+Frame 161
 name: game_simulation
-total_ms: 0.062
+total_ms: 0.860
 metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
+  dt_ms: 9.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2898.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.691
+  player_y: 720.463
+  player_vx: 0.293
+  player_vy: 1.937
+  camera_x: 0.000
+  camera_y: 426.082
+scopes:
+  game.renderables: 0.837ms (1 calls)
+  game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.001ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 162
+name: draw_callback
+total_ms: 2.050
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2898.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2898.000
+  renderer_last_sprites: 2898.000
+  renderer_visible_items: 2898.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2898.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.125
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.466
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 2.042
+  stats_frame_ms: 8.672
+scopes:
+  draw.renderer: 0.970ms (1 calls)
+  draw.debug_ui: 0.064ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 163
+name: update_callback
+total_ms: 0.013
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.001ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 164
+name: game_simulation
+total_ms: 44.986
+metadata:
+  dt_ms: 9.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2898.000
+  physics_substeps: 1.000
+  physics_ms: 44.584
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.713
+  player_y: 720.591
+  player_vx: 0.284
+  player_vy: 1.895
+  camera_x: 0.000
+  camera_y: 426.220
+scopes:
+  game.physics: 44.580ms (1 calls)
+  game.renderables: 0.379ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 165
+name: draw_callback
+total_ms: 1.848
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2898.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2898.000
+  renderer_last_sprites: 2898.000
+  renderer_visible_items: 2898.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2898.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.138
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.675
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.837
+  stats_frame_ms: 53.000
+scopes:
+  draw.renderer: 1.170ms (1 calls)
+  draw.debug_ui: 0.069ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 166
+name: update_callback
+total_ms: 0.003
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 167
+name: game_simulation
+total_ms: 0.906
+metadata:
+  dt_ms: 58.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2900.000
   physics_substeps: 0.000
   physics_ms: 0.001
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.213
-  player_y: 1066.000
-  player_vx: -0.012
-  player_vy: 0.000
+  player_x: 30.713
+  player_y: 720.591
+  player_vx: 0.284
+  player_vy: 1.895
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 426.220
 scopes:
-  game.debug_entities: 0.019ms (1 calls)
-  game.renderables: 0.002ms (1 calls)
-  game.debug_input: 0.001ms (1 calls)
+  game.renderables: 0.883ms (1 calls)
   game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 168
+name: draw_callback
+total_ms: 1.561
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2900.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2900.000
+  renderer_last_sprites: 2900.000
+  renderer_visible_items: 2900.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2900.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.196
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.487
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.556
+  stats_frame_ms: 13.905
+scopes:
+  draw.renderer: 1.038ms (1 calls)
+  draw.debug_ui: 0.068ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 169
+name: update_callback
+total_ms: 0.013
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.001ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 170
+name: game_simulation
+total_ms: 46.213
+metadata:
+  dt_ms: 8.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2900.000
+  physics_substeps: 1.000
+  physics_ms: 45.858
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.734
+  player_y: 720.717
+  player_vx: 0.272
+  player_vy: 1.869
+  camera_x: 0.000
+  camera_y: 426.354
+scopes:
+  game.physics: 45.855ms (1 calls)
+  game.renderables: 0.335ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 171
+name: draw_callback
+total_ms: 1.454
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2900.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2900.000
+  renderer_last_sprites: 2900.000
+  renderer_visible_items: 2900.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2900.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.129
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.515
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.448
+  stats_frame_ms: 52.938
+scopes:
+  draw.renderer: 0.951ms (1 calls)
+  draw.debug_ui: 0.065ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 172
+name: update_callback
+total_ms: 0.008
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.input: 0.000ms (1 calls)
+  engine.frame: 0.000ms (1 calls)
+
+Frame 173
+name: game_simulation
+total_ms: 0.719
+metadata:
+  dt_ms: 53.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2902.000
+  physics_substeps: 0.000
+  physics_ms: 0.002
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.734
+  player_y: 720.717
+  player_vx: 0.272
+  player_vy: 1.869
+  camera_x: 0.000
+  camera_y: 426.354
+scopes:
+  game.renderables: 0.702ms (1 calls)
+  game.physics: 0.001ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
+  game.drag: 0.000ms (1 calls)
+
+Frame 174
+name: draw_callback
+total_ms: 1.442
+metadata:
+  world_width: 1920.000
+  world_height: 1080.000
+  render_items: 2902.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
+  resource_shaders: 1.000
+  resource_baked_surfaces: 240.000
+  resource_prebake_budget: 20.000
+  resource_pending_bakes: 0.000
+  resource_bake_interest_entries: 1.000
+  resource_bake_requests_this_frame: 0.000
+  renderer_last_items: 2902.000
+  renderer_last_sprites: 2902.000
+  renderer_visible_items: 2902.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2902.000
+  renderer_sort_ms: 0.000
+  renderer_visibility_ms: 0.127
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.465
+  debug_visible_entities: 0.000
+  debug_active_collisions: 0.000
+  debug_enabled: true
+  stats_draw_ms: 1.435
+  stats_frame_ms: 7.646
+scopes:
+  draw.renderer: 0.894ms (1 calls)
+  draw.debug_ui: 0.059ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
+
+Frame 175
+name: update_callback
+total_ms: 0.006
+metadata:
+  stats_update_ms: 0.000
+scopes:
+  engine.frame: 0.000ms (1 calls)
+  engine.input: 0.000ms (1 calls)
+
+Frame 176
+name: game_simulation
+total_ms: 48.825
+metadata:
+  dt_ms: 8.000
+  ball_count: 10000.000
+  physics_workers: 2.000
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2901.000
+  physics_substeps: 1.000
+  physics_ms: 48.460
+  tracked_ball_index: 0.000
+  selected_ball_index: -1.000
+  drag_active: false
+  player_x: 30.753
+  player_y: 720.841
+  player_vx: 0.239
+  player_vy: 1.841
+  camera_x: 0.000
+  camera_y: 426.486
+scopes:
+  game.physics: 48.457ms (1 calls)
+  game.renderables: 0.344ms (1 calls)
+  game.debug_input: 0.000ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 177
 name: draw_callback
-total_ms: 1.729
+total_ms: 1.384
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2901.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2901.000
+  renderer_last_sprites: 2901.000
+  renderer_visible_items: 2901.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2901.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.004
-  renderer_body_ms: 0.019
-  renderer_overlay_ms: 0.015
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.134
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.463
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.720
-  stats_frame_ms: 5.655
+  stats_draw_ms: 1.378
+  stats_frame_ms: 55.416
 scopes:
-  draw.debug_world: 0.177ms (1 calls)
-  draw.renderer: 0.125ms (1 calls)
-  draw.debug_ui: 0.066ms (1 calls)
+  draw.renderer: 0.899ms (1 calls)
+  draw.debug_ui: 0.058ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)
 
 Frame 178
 name: update_callback
@@ -4083,60 +4378,65 @@ scopes:
 
 Frame 179
 name: game_simulation
-total_ms: 0.354
+total_ms: 0.945
 metadata:
-  dt_ms: 6.000
-  ball_count: 100.000
+  dt_ms: 55.000
+  ball_count: 10000.000
   physics_workers: 2.000
-  visible_candidates: 46.000
-  physics_substeps: 1.000
-  physics_ms: 0.321
+  physics_hz: 15.000
+  physics_step_substeps: 1.000
+  physics_tuner_level: 4.000
+  visible_candidates: 2902.000
+  physics_substeps: 0.000
+  physics_ms: 0.003
   tracked_ball_index: 0.000
   selected_ball_index: -1.000
   drag_active: false
-  player_x: 42.213
-  player_y: 1066.000
-  player_vx: -0.011
-  player_vy: 0.000
+  player_x: 30.753
+  player_y: 720.841
+  player_vx: 0.239
+  player_vy: 1.841
   camera_x: 0.000
-  camera_y: 540.000
+  camera_y: 426.486
 scopes:
-  game.physics: 0.318ms (1 calls)
-  game.debug_entities: 0.003ms (1 calls)
-  game.renderables: 0.001ms (1 calls)
+  game.renderables: 0.917ms (1 calls)
+  game.physics: 0.002ms (1 calls)
   game.debug_input: 0.001ms (1 calls)
   game.drag: 0.000ms (1 calls)
 
 Frame 180
 name: draw_callback
-total_ms: 1.810
+total_ms: 1.697
 metadata:
   world_width: 1920.000
   world_height: 1080.000
-  render_items: 46.000
-  resource_visual_sources: 8.000
-  resource_materials: 100.000
+  render_items: 2902.000
+  resource_visual_sources: 1.000
+  resource_materials: 1.000
   resource_shaders: 1.000
-  resource_baked_surfaces: 674.000
+  resource_baked_surfaces: 240.000
   resource_prebake_budget: 20.000
   resource_pending_bakes: 0.000
-  resource_bake_interest_entries: 0.000
+  resource_bake_interest_entries: 1.000
   resource_bake_requests_this_frame: 0.000
-  renderer_last_items: 46.000
-  renderer_last_sprites: 46.000
-  renderer_visible_items: 46.000
-  renderer_overlay_draws: 46.000
-  renderer_procedural_items: 46.000
+  renderer_last_items: 2902.000
+  renderer_last_sprites: 2902.000
+  renderer_visible_items: 2902.000
+  renderer_overlay_draws: 0.000
+  renderer_procedural_items: 0.000
+  renderer_instanced_batches: 1.000
+  renderer_instanced_draws: 2902.000
   renderer_sort_ms: 0.000
-  renderer_visibility_ms: 0.005
-  renderer_body_ms: 0.020
-  renderer_overlay_ms: 0.079
-  debug_visible_entities: 46.000
+  renderer_visibility_ms: 0.129
+  renderer_body_ms: 0.000
+  renderer_overlay_ms: 0.000
+  renderer_instance_ms: 0.485
+  debug_visible_entities: 0.000
   debug_active_collisions: 0.000
   debug_enabled: true
-  stats_draw_ms: 1.802
-  stats_frame_ms: 5.927
+  stats_draw_ms: 1.687
+  stats_frame_ms: 9.118
 scopes:
-  draw.renderer: 0.198ms (1 calls)
-  draw.debug_world: 0.185ms (1 calls)
-  draw.debug_ui: 0.064ms (1 calls)
+  draw.renderer: 0.978ms (1 calls)
+  draw.debug_ui: 0.074ms (1 calls)
+  draw.debug_world: 0.000ms (1 calls)

@@ -16,6 +16,8 @@ typedef struct RaylibBackend {
     bool should_close;
     bool frame_active;
     bool target_active;
+    bool instancing_enabled;
+    void* instancing_state;
 } RaylibBackend;
 
 bool raylib_backend_init(

@@ -38,6 +38,8 @@ typedef struct SceneTilemapAdapter
 
 typedef struct SceneView
 {
+    float previous_x;
+    float previous_y;
     float x;
     float y;
     float view_width;

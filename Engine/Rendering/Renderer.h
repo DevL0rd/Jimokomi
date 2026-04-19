@@ -54,16 +54,21 @@ typedef struct Renderer {
     int view_height;
     SpriteRenderable* scratch_items;
     size_t scratch_capacity;
+    SurfaceDrawInstance* scratch_instances;
+    size_t scratch_instance_capacity;
     size_t last_render_item_count;
     size_t last_sprite_draw_count;
     size_t last_visible_item_count;
     size_t last_overlay_draw_count;
     size_t last_procedural_item_count;
     size_t last_baked_surface_count;
+    size_t last_instanced_batch_count;
+    size_t last_instanced_draw_count;
     double last_sort_ms;
     double last_visibility_ms;
     double last_body_draw_ms;
     double last_overlay_draw_ms;
+    double last_instance_draw_ms;
 } Renderer;
 
 void renderer_init(Renderer *renderer, RenderBackend *backend, const RendererConfig *config);

@@ -45,6 +45,8 @@ void CameraFollowSystem_Update(struct Scene* scene, float dt_seconds)
         smoothing = camera_target->smoothing > 0.0f ? camera_target->smoothing : scene->view.smoothing;
         target_x = transform->x + camera_target->lead_x - (scene->view.view_width * 0.5f);
         target_y = transform->y + camera_target->lead_y - (scene->view.view_height * 0.5f);
+        scene->view.previous_x = scene->view.x;
+        scene->view.previous_y = scene->view.y;
 
         if (smoothing > 0.0f)
         {

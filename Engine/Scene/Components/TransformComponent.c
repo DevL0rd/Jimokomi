@@ -15,6 +15,9 @@ void TransformComponent_Init(TransformComponent* component, float x, float y, fl
     }
 
     Component_Init(&component->base, COMPONENT_TRANSFORM, TransformComponent_DestroyBase);
+    component->previous_x = x;
+    component->previous_y = y;
+    component->previous_angle_radians = angle_radians;
     component->x = x;
     component->y = y;
     component->angle_radians = angle_radians;

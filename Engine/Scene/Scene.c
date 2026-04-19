@@ -83,7 +83,7 @@ void Scene_Init(Scene* scene, const char* name, const PhysicsWorldConfig* physic
     scene->physics_world = PhysicsWorld_Create(physics_config);
     scene->kill_plane_enabled = true;
     scene->kill_plane_margin = 64.0f;
-    scene->view = (SceneView){0.0f, 0.0f, 480.0f, 270.0f, 0.12f, false, 0.0f, 0.0f, 0.0f, 0.0f};
+    scene->view = (SceneView){0.0f, 0.0f, 0.0f, 0.0f, 480.0f, 270.0f, 0.12f, false, 0.0f, 0.0f, 0.0f, 0.0f};
 }
 
 Scene* Scene_Create(const char* name, const PhysicsWorldConfig* physics_config)

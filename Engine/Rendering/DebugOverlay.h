@@ -52,6 +52,12 @@ typedef struct DebugOverlay {
     bool draw_world_gizmos;
     bool draw_ui_bounds;
     bool layout_initialized;
+    RenderBackend *world_surface_backend;
+    Surface *world_surface;
+    int world_surface_width;
+    int world_surface_height;
+    uint64_t last_world_redraw_ms;
+    uint32_t world_refresh_interval_ms;
     DebugPanelState dashboard_panel;
     DebugPanelState inspector_panel;
     size_t last_visible_entity_count;
@@ -63,6 +69,7 @@ void debug_overlay_dispose(DebugOverlay *overlay);
 void debug_overlay_draw_world(
     DebugOverlay *overlay,
     RenderBackend *backend,
+    uint64_t now_ms,
     const Camera *camera,
     const DebugEntityView *entities,
     size_t entity_count,

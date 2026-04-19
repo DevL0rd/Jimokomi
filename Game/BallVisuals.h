@@ -24,13 +24,6 @@ bool game_register_ball_visuals(
     ResourceHandle* material_handles,
     size_t material_count
 );
-size_t game_queue_required_ball_prebakes(
-    Renderer* renderer,
-    ResourceHandle shader_handle,
-    const ResourceHandle* source_handles,
-    size_t source_count,
-    ResourceHandle representative_material_handle
-);
 void game_draw_world_backdrop(Target* target, const Camera* camera, void* user_data);
 
 #endif

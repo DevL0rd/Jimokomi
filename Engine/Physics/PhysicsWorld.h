@@ -47,6 +47,7 @@ typedef struct PhysicsWorldSnapshot
     float physics_hz;
     float physics_fixed_dt;
     float physics_accumulator;
+    uint32_t physics_step_substeps;
     bool adaptive_enabled;
     uint32_t tuner_level_index;
 } PhysicsWorldSnapshot;
@@ -60,6 +61,7 @@ typedef struct PhysicsWorld
     float target_hz;
     float fixed_dt;
     uint32_t max_substeps;
+    uint32_t base_step_substep_count;
     uint32_t step_substep_count;
     float accumulator;
     bool adaptive_enabled;

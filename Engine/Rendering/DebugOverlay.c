@@ -153,8 +153,7 @@ static bool debug_handle_panel_drag(
     return false;
 }
 
-static void debug_draw_entity(RenderBackend *backend, const Camera *camera, const DebugEntityView *entity) {
-    Target target;
+static void debug_draw_entity(Target *target, const Camera *camera, const DebugEntityView *entity) {
     Vec2 screen_position;
     Vec2 heading;
     Vec2 right;
@@ -165,7 +164,7 @@ static void debug_draw_entity(RenderBackend *backend, const Camera *camera, cons
     Color32 heading_color = { 0x7ee0ffU };
     Color32 velocity_color = { 0xffd166U };
 
-    if (backend == NULL || camera == NULL || entity == NULL) {
+    if (target == NULL || camera == NULL || entity == NULL) {
         return;
     }
 
@@ -175,12 +174,11 @@ static void debug_draw_entity(RenderBackend *backend, const Camera *camera, cons
         outline.value = 0x6b7890U;
     }
 
-    target_init(&target, backend, 0.0f, 0.0f);
     screen_position = camera_world_to_screen(camera, entity->position);
     if (entity->is_circle) {
-        target_circle(&target, screen_position, entity->radius, outline);
+        target_circle(target, screen_position, entity->radius, outline);
     } else {
-        target_rect(&target, (Rect){
+        target_rect(target, (Rect){
             screen_position.x - entity->extent_x,
             screen_position.y - entity->extent_y,
             entity->extent_x * 2.0f,
@@ -193,7 +191,7 @@ static void debug_draw_entity(RenderBackend *backend, const Camera *camera, cons
     right.x = -heading.y;
     right.y = heading.x;
     target_line(
-        &target,
+        target,
         screen_position.x,
         screen_position.y,
         screen_position.x + heading.x * 16.0f,
@@ -201,7 +199,7 @@ static void debug_draw_entity(RenderBackend *backend, const Camera *camera, cons
         heading_color
     );
     target_line(
-        &target,
+        target,
         screen_position.x - right.x * 6.0f,
         screen_position.y - right.y * 6.0f,
         screen_position.x + right.x * 6.0f,
@@ -214,7 +212,7 @@ static void debug_draw_entity(RenderBackend *backend, const Camera *camera, cons
     velocity.x = speed > 0.001f ? (entity->velocity.x / speed) * velocity_scale : 0.0f;
     velocity.y = speed > 0.001f ? (entity->velocity.y / speed) * velocity_scale : 0.0f;
     target_line(
-        &target,
+        target,
         screen_position.x,
         screen_position.y,
         screen_position.x + velocity.x,
@@ -223,11 +221,11 @@ static void debug_draw_entity(RenderBackend *backend, const Camera *camera, cons
     );
 
     if (entity->is_selected) {
-        target_text(&target, screen_position.x + 10.0f, screen_position.y - 18.0f, "T", (Color32){ 0x00ffffU });
+        target_text(target, screen_position.x + 10.0f, screen_position.y - 18.0f, "T", (Color32){ 0x00ffffU });
     } else if (entity->is_sleeping) {
-        target_text(&target, screen_position.x + 10.0f, screen_position.y - 18.0f, "S", (Color32){ 0xa8b4c8U });
+        target_text(target, screen_position.x + 10.0f, screen_position.y - 18.0f, "S", (Color32){ 0xa8b4c8U });
     } else if (entity->is_moving) {
-        target_text(&target, screen_position.x + 10.0f, screen_position.y - 18.0f, "M", (Color32){ 0xffd166U });
+        target_text(target, screen_position.x + 10.0f, screen_position.y - 18.0f, "M", (Color32){ 0xffd166U });
     }
 }
 
@@ -254,8 +252,9 @@ void debug_overlay_init(DebugOverlay *overlay) {
     }
     memset(overlay, 0, sizeof(*overlay));
     overlay->enabled = true;
-    overlay->draw_world_gizmos = true;
+    overlay->draw_world_gizmos = false;
     overlay->draw_ui_bounds = true;
+    overlay->world_refresh_interval_ms = 250U;
     overlay->last_visible_entity_count = 0U;
     overlay->last_active_collision_count = 0U;
 }
@@ -263,6 +262,14 @@ void debug_overlay_init(DebugOverlay *overlay) {
 void debug_overlay_dispose(DebugOverlay *overlay) {
     if (overlay == NULL) {
         return;
+    }
+    if (overlay->world_surface != NULL &&
+        overlay->world_surface_backend != NULL &&
+        overlay->world_surface_backend->destroy_surface != NULL) {
+        overlay->world_surface_backend->destroy_surface(
+            overlay->world_surface_backend->userdata,
+            overlay->world_surface
+        );
     }
     memset(overlay, 0, sizeof(*overlay));
 }
@@ -327,6 +334,7 @@ bool debug_overlay_is_pointer_over_ui(
 void debug_overlay_draw_world(
     DebugOverlay *overlay,
     RenderBackend *backend,
+    uint64_t now_ms,
     const Camera *camera,
     const DebugEntityView *entities,
     size_t entity_count,
@@ -335,38 +343,85 @@ void debug_overlay_draw_world(
 ) {
     size_t index;
     Target target;
+    bool should_redraw;
+
     if (overlay == NULL || !overlay->enabled || !overlay->draw_world_gizmos || backend == NULL || camera == NULL) {
         return;
     }
-    overlay->last_visible_entity_count = 0U;
-    overlay->last_active_collision_count = 0U;
+
+    if (backend->create_surface == NULL ||
+        backend->destroy_surface == NULL ||
+        backend->set_target == NULL ||
+        backend->reset_target == NULL ||
+        backend->clear == NULL) {
+        return;
+    }
+
+    if (overlay->world_surface == NULL ||
+        overlay->world_surface_width != (int)camera->view_width ||
+        overlay->world_surface_height != (int)camera->view_height) {
+        if (overlay->world_surface != NULL) {
+            backend->destroy_surface(backend->userdata, overlay->world_surface);
+        }
+        overlay->world_surface = backend->create_surface(
+            backend->userdata,
+            (int)camera->view_width,
+            (int)camera->view_height
+        );
+        overlay->world_surface_backend = backend;
+        overlay->world_surface_width = (int)camera->view_width;
+        overlay->world_surface_height = (int)camera->view_height;
+        overlay->last_world_redraw_ms = 0U;
+    }
+
+    if (overlay->world_surface == NULL) {
+        return;
+    }
+
+    should_redraw = overlay->last_world_redraw_ms == 0U ||
+        now_ms >= overlay->last_world_redraw_ms + overlay->world_refresh_interval_ms;
+
+    if (should_redraw) {
+        overlay->last_visible_entity_count = 0U;
+        overlay->last_active_collision_count = 0U;
+
+        backend->set_target(backend->userdata, overlay->world_surface);
+        backend->clear(backend->userdata, (Color32){ 0x00000000U });
+        target_init(&target, backend, 0.0f, 0.0f);
+
+        for (index = 0U; index < entity_count; ++index) {
+            if (!debug_entity_visible(camera, &entities[index])) {
+                continue;
+            }
+            overlay->last_visible_entity_count += 1U;
+            debug_draw_entity(&target, camera, &entities[index]);
+        }
+        for (index = 0U; index < collision_count; ++index) {
+            Vec2 a;
+            Vec2 b;
+            Vec2 c;
+            Vec2 n;
+            Color32 color;
+            if (!collisions[index].active) {
+                continue;
+            }
+            overlay->last_active_collision_count += 1U;
+            a = camera_world_to_screen(camera, collisions[index].point_a);
+            b = camera_world_to_screen(camera, collisions[index].point_b);
+            c = camera_world_to_screen(camera, collisions[index].contact_point);
+            n = collisions[index].contact_normal;
+            color.value = collisions[index].sleeping ? 0x666666U : (collisions[index].sensor ? 0xff00ffU : 0xffff00U);
+            target_line(&target, a.x, a.y, b.x, b.y, color);
+            target_circle_filled(&target, c, 1.5f, color);
+            target_line(&target, c.x, c.y, c.x + n.x * 8.0f, c.y + n.y * 8.0f, color);
+        }
+
+        backend->reset_target(backend->userdata);
+        overlay->last_world_redraw_ms = now_ms;
+    }
+
     target_init(&target, backend, 0.0f, 0.0f);
-    for (index = 0U; index < entity_count; ++index) {
-        if (!debug_entity_visible(camera, &entities[index])) {
-            continue;
-        }
-        overlay->last_visible_entity_count += 1U;
-        debug_draw_entity(backend, camera, &entities[index]);
-    }
-    for (index = 0U; index < collision_count; ++index) {
-        Vec2 a;
-        Vec2 b;
-        Vec2 c;
-        Vec2 n;
-        Color32 color;
-        if (!collisions[index].active) {
-            continue;
-        }
-        overlay->last_active_collision_count += 1U;
-        a = camera_world_to_screen(camera, collisions[index].point_a);
-        b = camera_world_to_screen(camera, collisions[index].point_b);
-        c = camera_world_to_screen(camera, collisions[index].contact_point);
-        n = collisions[index].contact_normal;
-        color.value = collisions[index].sleeping ? 0x666666U : (collisions[index].sensor ? 0xff00ffU : 0xffff00U);
-        target_line(&target, a.x, a.y, b.x, b.y, color);
-        target_circle_filled(&target, c, 1.5f, color);
-        target_line(&target, c.x, c.y, c.x + n.x * 8.0f, c.y + n.y * 8.0f, color);
-    }
+    target_surface(&target, overlay->world_surface, 0.0f, 0.0f);
 }
 
 void debug_overlay_draw_ui(

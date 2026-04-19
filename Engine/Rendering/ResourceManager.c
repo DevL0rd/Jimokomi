@@ -4,6 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+enum {
+    SLOT_STATE_EMPTY = 0,
+    SLOT_STATE_FILLED = 1,
+    SLOT_STATE_TOMBSTONE = 2
+};
+
 static bool resource_manager_reserve(
     ResourceEntry** entries,
     void** values,
@@ -70,6 +76,111 @@ static bool resource_manager_reserve_baked_surfaces(
     return true;
 }
 
+static uint64_t resource_manager_hash_baked_key(BakedSurfaceKey key) {
+    uint64_t hash = 1469598103934665603ULL;
+    hash ^= (uint64_t)key.visual_source_id;
+    hash *= 1099511628211ULL;
+    hash ^= (uint64_t)key.material_id;
+    hash *= 1099511628211ULL;
+    hash ^= (uint64_t)key.shader_id;
+    hash *= 1099511628211ULL;
+    hash ^= (uint64_t)key.frame_index;
+    hash *= 1099511628211ULL;
+    hash ^= (uint64_t)key.pass;
+    hash *= 1099511628211ULL;
+    return hash;
+}
+
+static bool resource_manager_baked_key_equals(BakedSurfaceKey a, BakedSurfaceKey b) {
+    return a.visual_source_id == b.visual_source_id &&
+           a.material_id == b.material_id &&
+           a.shader_id == b.shader_id &&
+           a.frame_index == b.frame_index &&
+           a.pass == b.pass;
+}
+
+static bool resource_manager_reserve_baked_surface_slots(
+    ResourceManager* manager,
+    size_t required
+) {
+    BakedSurfaceSlot* next_slots;
+    size_t next_capacity;
+    size_t index;
+
+    if (manager->baked_surface_slot_capacity >= required) {
+        return true;
+    }
+
+    next_capacity = manager->baked_surface_slot_capacity > 0U ? manager->baked_surface_slot_capacity : 64U;
+    while (next_capacity < required) {
+        next_capacity *= 2U;
+    }
+
+    next_slots = (BakedSurfaceSlot*)calloc(next_capacity, sizeof(*next_slots));
+    if (next_slots == NULL) {
+        return false;
+    }
+
+    for (index = 0U; index < manager->baked_surface_slot_capacity; ++index) {
+        BakedSurfaceSlot* slot = &manager->baked_surface_slots[index];
+        if (slot->state != SLOT_STATE_FILLED) {
+            continue;
+        }
+
+        {
+            size_t slot_index = (size_t)(resource_manager_hash_baked_key(slot->key) & (uint64_t)(next_capacity - 1U));
+            while (next_slots[slot_index].state == SLOT_STATE_FILLED) {
+                slot_index = (slot_index + 1U) & (next_capacity - 1U);
+            }
+            next_slots[slot_index] = *slot;
+        }
+    }
+
+    free(manager->baked_surface_slots);
+    manager->baked_surface_slots = next_slots;
+    manager->baked_surface_slot_capacity = next_capacity;
+    return true;
+}
+
+static bool resource_manager_insert_baked_surface_slot(
+    ResourceManager* manager,
+    BakedSurfaceKey key,
+    size_t value_index
+) {
+    size_t slot_index;
+
+    if (manager == NULL) {
+        return false;
+    }
+
+    if ((manager->baked_surface_slot_count + 1U) * 10U >= manager->baked_surface_slot_capacity * 7U) {
+        if (!resource_manager_reserve_baked_surface_slots(
+                manager,
+                manager->baked_surface_slot_capacity > 0U
+                    ? manager->baked_surface_slot_capacity * 2U
+                    : 64U)) {
+            return false;
+        }
+    }
+
+    if (manager->baked_surface_slot_capacity == 0U &&
+        !resource_manager_reserve_baked_surface_slots(manager, 64U)) {
+        return false;
+    }
+
+    slot_index = (size_t)(resource_manager_hash_baked_key(key) &
+        (uint64_t)(manager->baked_surface_slot_capacity - 1U));
+    while (manager->baked_surface_slots[slot_index].state == SLOT_STATE_FILLED) {
+        slot_index = (slot_index + 1U) & (manager->baked_surface_slot_capacity - 1U);
+    }
+
+    manager->baked_surface_slots[slot_index].state = SLOT_STATE_FILLED;
+    manager->baked_surface_slots[slot_index].key = key;
+    manager->baked_surface_slots[slot_index].index = value_index;
+    manager->baked_surface_slot_count += 1U;
+    return true;
+}
+
 static bool resource_manager_reserve_pending_bakes(
     ResourceManager* manager,
     size_t required
@@ -97,6 +208,145 @@ static bool resource_manager_reserve_pending_bakes(
     manager->pending_bake_requests = next_values;
     manager->pending_bake_request_capacity = next_capacity;
     return true;
+}
+
+static bool resource_manager_reserve_pending_bake_slots(
+    ResourceManager* manager,
+    size_t required
+) {
+    PendingBakeSlot* next_slots;
+    size_t next_capacity;
+    size_t index;
+
+    if (manager->pending_bake_slot_capacity >= required) {
+        return true;
+    }
+
+    next_capacity = manager->pending_bake_slot_capacity > 0U ? manager->pending_bake_slot_capacity : 64U;
+    while (next_capacity < required) {
+        next_capacity *= 2U;
+    }
+
+    next_slots = (PendingBakeSlot*)calloc(next_capacity, sizeof(*next_slots));
+    if (next_slots == NULL) {
+        return false;
+    }
+
+    for (index = 0U; index < manager->pending_bake_slot_capacity; ++index) {
+        PendingBakeSlot* slot = &manager->pending_bake_slots[index];
+        if (slot->state != SLOT_STATE_FILLED) {
+            continue;
+        }
+
+        {
+            size_t slot_index = (size_t)(resource_manager_hash_baked_key(slot->key) & (uint64_t)(next_capacity - 1U));
+            while (next_slots[slot_index].state == SLOT_STATE_FILLED) {
+                slot_index = (slot_index + 1U) & (next_capacity - 1U);
+            }
+            next_slots[slot_index] = *slot;
+        }
+    }
+
+    free(manager->pending_bake_slots);
+    manager->pending_bake_slots = next_slots;
+    manager->pending_bake_slot_capacity = next_capacity;
+    return true;
+}
+
+static bool resource_manager_pending_bake_contains(
+    const ResourceManager* manager,
+    BakedSurfaceKey key
+) {
+    size_t slot_index;
+
+    if (manager == NULL || manager->pending_bake_slot_capacity == 0U) {
+        return false;
+    }
+
+    slot_index = (size_t)(resource_manager_hash_baked_key(key) &
+        (uint64_t)(manager->pending_bake_slot_capacity - 1U));
+    while (manager->pending_bake_slots[slot_index].state != SLOT_STATE_EMPTY) {
+        if (manager->pending_bake_slots[slot_index].state == SLOT_STATE_FILLED &&
+            resource_manager_baked_key_equals(manager->pending_bake_slots[slot_index].key, key)) {
+            return true;
+        }
+        slot_index = (slot_index + 1U) & (manager->pending_bake_slot_capacity - 1U);
+    }
+
+    return false;
+}
+
+static bool resource_manager_insert_pending_bake_slot(
+    ResourceManager* manager,
+    BakedSurfaceKey key
+) {
+    size_t slot_index;
+    size_t first_tombstone = (size_t)-1;
+
+    if (manager == NULL) {
+        return false;
+    }
+
+    if ((manager->pending_bake_slot_count + 1U) * 10U >= manager->pending_bake_slot_capacity * 7U) {
+        if (!resource_manager_reserve_pending_bake_slots(
+                manager,
+                manager->pending_bake_slot_capacity > 0U
+                    ? manager->pending_bake_slot_capacity * 2U
+                    : 64U)) {
+            return false;
+        }
+    }
+
+    if (manager->pending_bake_slot_capacity == 0U &&
+        !resource_manager_reserve_pending_bake_slots(manager, 64U)) {
+        return false;
+    }
+
+    slot_index = (size_t)(resource_manager_hash_baked_key(key) &
+        (uint64_t)(manager->pending_bake_slot_capacity - 1U));
+    while (manager->pending_bake_slots[slot_index].state != SLOT_STATE_EMPTY) {
+        if (manager->pending_bake_slots[slot_index].state == SLOT_STATE_FILLED &&
+            resource_manager_baked_key_equals(manager->pending_bake_slots[slot_index].key, key)) {
+            return true;
+        }
+        if (first_tombstone == (size_t)-1 &&
+            manager->pending_bake_slots[slot_index].state == SLOT_STATE_TOMBSTONE) {
+            first_tombstone = slot_index;
+        }
+        slot_index = (slot_index + 1U) & (manager->pending_bake_slot_capacity - 1U);
+    }
+
+    if (first_tombstone != (size_t)-1) {
+        slot_index = first_tombstone;
+    }
+
+    manager->pending_bake_slots[slot_index].state = SLOT_STATE_FILLED;
+    manager->pending_bake_slots[slot_index].key = key;
+    manager->pending_bake_slot_count += 1U;
+    return true;
+}
+
+static void resource_manager_remove_pending_bake_slot(
+    ResourceManager* manager,
+    BakedSurfaceKey key
+) {
+    size_t slot_index;
+
+    if (manager == NULL || manager->pending_bake_slot_capacity == 0U) {
+        return;
+    }
+
+    slot_index = (size_t)(resource_manager_hash_baked_key(key) &
+        (uint64_t)(manager->pending_bake_slot_capacity - 1U));
+    while (manager->pending_bake_slots[slot_index].state != SLOT_STATE_EMPTY) {
+        if (manager->pending_bake_slots[slot_index].state == SLOT_STATE_FILLED &&
+            resource_manager_baked_key_equals(manager->pending_bake_slots[slot_index].key, key)) {
+            manager->pending_bake_slots[slot_index].state = SLOT_STATE_TOMBSTONE;
+            manager->pending_bake_slot_count -= 1U;
+            return;
+        }
+        slot_index = (slot_index + 1U) & (manager->pending_bake_slot_capacity - 1U);
+    }
 }
 
 static bool resource_manager_reserve_bake_interest_entries(
@@ -200,6 +450,8 @@ void resource_manager_dispose(ResourceManager* manager) {
     free(manager->visual_source_values);
     free(manager->baked_surfaces);
     free(manager->pending_bake_requests);
+    free(manager->baked_surface_slots);
+    free(manager->pending_bake_slots);
     free(manager->bake_interest_entries);
     memset(manager, 0, sizeof(*manager));
 }
@@ -214,6 +466,14 @@ void resource_manager_begin_frame(ResourceManager* manager) {
         manager->pending_bake_request_head == manager->pending_bake_request_count) {
         manager->pending_bake_request_head = 0U;
         manager->pending_bake_request_count = 0U;
+        manager->pending_bake_slot_count = 0U;
+        if (manager->pending_bake_slots != NULL && manager->pending_bake_slot_capacity > 0U) {
+            memset(
+                manager->pending_bake_slots,
+                0,
+                manager->pending_bake_slot_capacity * sizeof(*manager->pending_bake_slots)
+            );
+        }
     }
 }
 
@@ -356,8 +616,7 @@ ResourceHandle resource_manager_register_procedural_source(
     manager->visual_source_values[index].bake_animation_fps = desc->bake_animation_fps;
     manager->visual_source_values[index].loop = desc->loop;
     manager->visual_source_values[index].bake_policy = desc->bake_policy;
-    manager->visual_source_values[index].prebake_required =
-        desc->bake_policy != BAKE_POLICY_DISABLED ? true : desc->prebake_required;
+    manager->visual_source_values[index].prebake_required = desc->prebake_required;
     manager->visual_source_values[index].bake_instance_invariant = desc->bake_instance_invariant;
     manager->visual_source_values[index].bake_ignores_material = desc->bake_ignores_material;
     manager->visual_source_values[index].bake_frame_count = desc->bake_frame_count;
@@ -405,14 +664,6 @@ const VisualSourceResource* resource_manager_get_visual_source(
         return NULL;
     }
     return &manager->visual_source_values[handle.id - 1U];
-}
-
-static bool resource_manager_baked_key_equals(BakedSurfaceKey a, BakedSurfaceKey b) {
-    return a.visual_source_id == b.visual_source_id &&
-           a.material_id == b.material_id &&
-           a.shader_id == b.shader_id &&
-           a.frame_index == b.frame_index &&
-           a.pass == b.pass;
 }
 
 static uint32_t resource_manager_normalize_frame_index(
@@ -470,16 +721,20 @@ static const Surface* resource_manager_find_baked_surface(
     const ResourceManager* manager,
     BakedSurfaceKey key
 ) {
-    size_t index;
+    size_t slot_index;
 
-    if (manager == NULL) {
+    if (manager == NULL || manager->baked_surface_slot_capacity == 0U) {
         return NULL;
     }
 
-    for (index = 0U; index < manager->baked_surface_count; ++index) {
-        if (resource_manager_baked_key_equals(manager->baked_surfaces[index].key, key)) {
-            return manager->baked_surfaces[index].surface;
+    slot_index = (size_t)(resource_manager_hash_baked_key(key) &
+        (uint64_t)(manager->baked_surface_slot_capacity - 1U));
+    while (manager->baked_surface_slots[slot_index].state != SLOT_STATE_EMPTY) {
+        if (manager->baked_surface_slots[slot_index].state == SLOT_STATE_FILLED &&
+            resource_manager_baked_key_equals(manager->baked_surface_slots[slot_index].key, key)) {
+            return manager->baked_surfaces[manager->baked_surface_slots[slot_index].index].surface;
         }
+        slot_index = (slot_index + 1U) & (manager->baked_surface_slot_capacity - 1U);
     }
 
     return NULL;
@@ -489,19 +744,7 @@ static bool resource_manager_has_pending_bake(
     const ResourceManager* manager,
     BakedSurfaceKey key
 ) {
-    size_t index;
-
-    if (manager == NULL) {
-        return false;
-    }
-
-    for (index = manager->pending_bake_request_head; index < manager->pending_bake_request_count; ++index) {
-        if (resource_manager_baked_key_equals(manager->pending_bake_requests[index].key, key)) {
-            return true;
-        }
-    }
-
-    return false;
+    return resource_manager_pending_bake_contains(manager, key);
 }
 
 static bool resource_manager_should_admit_bake(
@@ -561,8 +804,77 @@ static bool resource_manager_enqueue_baked_request(
     if (!resource_manager_reserve_pending_bakes(manager, manager->pending_bake_request_count + 1U)) {
         return false;
     }
+    if (!resource_manager_insert_pending_bake_slot(manager, key)) {
+        return false;
+    }
     manager->pending_bake_requests[manager->pending_bake_request_count++].key = key;
     return true;
+}
+
+static uint32_t resource_manager_get_bake_frame_count(
+    const VisualSourceResource* source
+) {
+    uint32_t frame_count;
+
+    if (source == NULL) {
+        return 0U;
+    }
+
+    frame_count = source->bake_frame_count;
+    if (frame_count > 0U && source->animation_fps > 0.0f && source->bake_animation_fps > 0.0f) {
+        float loop_duration_seconds = (float)frame_count / source->animation_fps;
+        frame_count = (uint32_t)ceilf(loop_duration_seconds * source->bake_animation_fps);
+    }
+    if (frame_count == 0U) {
+        frame_count = source->bake_animation_fps > 0.0f
+            ? (uint32_t)ceilf(source->bake_animation_fps)
+            : (source->animation_fps > 0.0f ? (uint32_t)ceilf(source->animation_fps) : 1U);
+    }
+    if (frame_count == 0U) {
+        frame_count = 1U;
+    }
+
+    return frame_count;
+}
+
+static void resource_manager_queue_shared_bake_warmup(
+    ResourceManager* manager,
+    const VisualSourceResource* source,
+    ResourceHandle visual_source_handle,
+    ResourceHandle material_handle,
+    ResourceHandle shader_handle,
+    uint32_t current_frame_index,
+    BakedSurfacePass pass
+) {
+    uint32_t frame_count;
+    uint32_t offset;
+    BakedSurfaceKey key;
+
+    if (manager == NULL || source == NULL || !source->bake_instance_invariant || source->bake_policy == BAKE_POLICY_DISABLED) {
+        return;
+    }
+
+    frame_count = resource_manager_get_bake_frame_count(source);
+    if (frame_count <= 1U) {
+        return;
+    }
+
+    for (offset = 1U; offset < frame_count; ++offset) {
+        uint32_t next_frame_index = source->loop
+            ? ((current_frame_index + offset) % frame_count)
+            : (current_frame_index + offset);
+
+        if (!source->loop && next_frame_index >= frame_count) {
+            break;
+        }
+
+        key.visual_source_id = visual_source_handle.id;
+        key.material_id = source->bake_ignores_material ? 0U : material_handle.id;
+        key.shader_id = shader_handle.id;
+        key.frame_index = next_frame_index;
+        key.pass = (uint8_t)pass;
+        (void)resource_manager_enqueue_baked_request(manager, key, true);
+    }
 }
 
 static const Surface* resource_manager_build_baked_surface(
@@ -644,6 +956,11 @@ static const Surface* resource_manager_build_baked_surface(
     index = manager->baked_surface_count++;
     manager->baked_surfaces[index].key = key;
     manager->baked_surfaces[index].surface = surface;
+    if (!resource_manager_insert_baked_surface_slot(manager, key, index)) {
+        manager->backend->destroy_surface(manager->backend->userdata, surface);
+        manager->baked_surface_count -= 1U;
+        return NULL;
+    }
     return surface;
 }
 
@@ -701,6 +1018,7 @@ void resource_manager_request_baked_surface(
     const VisualSourceResource* source;
     const MaterialResource* material;
     BakedSurfaceKey key;
+    bool enqueued;
 
     if (manager == NULL) {
         return;
@@ -718,7 +1036,18 @@ void resource_manager_request_baked_surface(
     key.frame_index = resource_manager_normalize_frame_index(source, frame_index);
     key.pass = (uint8_t)pass;
 
-    (void)resource_manager_enqueue_baked_request(manager, key, source->prebake_required);
+    enqueued = resource_manager_enqueue_baked_request(manager, key, source->prebake_required);
+    if (enqueued) {
+        resource_manager_queue_shared_bake_warmup(
+            manager,
+            source,
+            visual_source_handle,
+            material_handle,
+            shader_handle,
+            key.frame_index,
+            pass
+        );
+    }
 }
 
 void resource_manager_process_pending_bakes(ResourceManager* manager) {
@@ -731,6 +1060,7 @@ void resource_manager_process_pending_bakes(ResourceManager* manager) {
         const ShaderResource* shader = resource_manager_get_shader(manager, resource_handle(key.shader_id));
 
         manager->pending_bake_request_head += 1U;
+        resource_manager_remove_pending_bake_slot(manager, key);
 
         if (source == NULL || !resource_manager_is_bake_eligible(source, (BakedSurfacePass)key.pass)) {
             continue;
@@ -750,6 +1080,14 @@ void resource_manager_process_pending_bakes(ResourceManager* manager) {
         manager->pending_bake_request_head == manager->pending_bake_request_count) {
         manager->pending_bake_request_head = 0U;
         manager->pending_bake_request_count = 0U;
+        manager->pending_bake_slot_count = 0U;
+        if (manager->pending_bake_slots != NULL && manager->pending_bake_slot_capacity > 0U) {
+            memset(
+                manager->pending_bake_slots,
+                0,
+                manager->pending_bake_slot_capacity * sizeof(*manager->pending_bake_slots)
+            );
+        }
     }
 }
 
@@ -782,19 +1120,7 @@ bool resource_manager_prewarm_procedural_source(
         return false;
     }
 
-    frame_count = source->bake_frame_count;
-    if (frame_count > 0U && source->animation_fps > 0.0f && source->bake_animation_fps > 0.0f) {
-        float loop_duration_seconds = (float)frame_count / source->animation_fps;
-        frame_count = (uint32_t)ceilf(loop_duration_seconds * source->bake_animation_fps);
-    }
-    if (frame_count == 0U) {
-        frame_count = source->bake_animation_fps > 0.0f
-            ? (uint32_t)ceilf(source->bake_animation_fps)
-            : (source->animation_fps > 0.0f ? (uint32_t)ceilf(source->animation_fps) : 1U);
-    }
-    if (frame_count == 0U) {
-        frame_count = 1U;
-    }
+    frame_count = resource_manager_get_bake_frame_count(source);
 
     previous_bake_budget = manager->bake_budget_per_frame;
     manager->bake_budget_per_frame = 0U;
@@ -847,19 +1173,7 @@ size_t resource_manager_queue_required_prebake(
         return 0U;
     }
 
-    frame_count = source->bake_frame_count;
-    if (frame_count > 0U && source->animation_fps > 0.0f && source->bake_animation_fps > 0.0f) {
-        float loop_duration_seconds = (float)frame_count / source->animation_fps;
-        frame_count = (uint32_t)ceilf(loop_duration_seconds * source->bake_animation_fps);
-    }
-    if (frame_count == 0U) {
-        frame_count = source->bake_animation_fps > 0.0f
-            ? (uint32_t)ceilf(source->bake_animation_fps)
-            : (source->animation_fps > 0.0f ? (uint32_t)ceilf(source->animation_fps) : 1U);
-    }
-    if (frame_count == 0U) {
-        frame_count = 1U;
-    }
+    frame_count = resource_manager_get_bake_frame_count(source);
 
     for (frame_index = 0U; frame_index < frame_count; ++frame_index) {
         if (source->draw_body != NULL) {

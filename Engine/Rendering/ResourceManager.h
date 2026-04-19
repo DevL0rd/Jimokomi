@@ -115,9 +115,20 @@ typedef struct BakedSurfaceResource {
     Surface* surface;
 } BakedSurfaceResource;
 
+typedef struct BakedSurfaceSlot {
+    uint8_t state;
+    BakedSurfaceKey key;
+    size_t index;
+} BakedSurfaceSlot;
+
 typedef struct PendingBakeRequest {
     BakedSurfaceKey key;
 } PendingBakeRequest;
+
+typedef struct PendingBakeSlot {
+    uint8_t state;
+    BakedSurfaceKey key;
+} PendingBakeSlot;
 
 typedef struct BakeInterestEntry {
     BakedSurfaceKey key;
@@ -155,10 +166,16 @@ typedef struct ResourceManager {
     BakedSurfaceResource* baked_surfaces;
     size_t baked_surface_count;
     size_t baked_surface_capacity;
+    BakedSurfaceSlot* baked_surface_slots;
+    size_t baked_surface_slot_capacity;
+    size_t baked_surface_slot_count;
     PendingBakeRequest* pending_bake_requests;
     size_t pending_bake_request_count;
     size_t pending_bake_request_capacity;
     size_t pending_bake_request_head;
+    PendingBakeSlot* pending_bake_slots;
+    size_t pending_bake_slot_capacity;
+    size_t pending_bake_slot_count;
     BakeInterestEntry* bake_interest_entries;
     size_t bake_interest_count;
     size_t bake_interest_capacity;

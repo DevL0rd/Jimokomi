@@ -11,6 +11,13 @@ typedef enum RenderBlendMode {
     RENDER_BLEND_MULTIPLY
 } RenderBlendMode;
 
+typedef struct SurfaceDrawInstance {
+    Rect dest;
+    Vec2 origin;
+    float rotation_degrees;
+    Color32 tint;
+} SurfaceDrawInstance;
+
 struct RenderBackend {
     void *userdata;
     Surface *(*create_surface)(void *userdata, int width, int height);
@@ -28,6 +35,7 @@ struct RenderBackend {
     void (*draw_surface)(void *userdata, const Surface *surface, float x, float y);
     void (*draw_surface_tinted)(void *userdata, const Surface *surface, float x, float y, Color32 tint);
     void (*draw_surface_ex)(void *userdata, const Surface *surface, Rect dest, Vec2 origin, float rotation_degrees);
+    void (*draw_surface_batch)(void *userdata, const Surface *surface, const SurfaceDrawInstance *instances, size_t instance_count);
     void (*draw_tilemap)(void *userdata, const void *source, int tile_x, int tile_y, float x, float y, int width_tiles, int height_tiles);
     void (*push_clip)(void *userdata, Rect rect);
     void (*pop_clip)(void *userdata);

@@ -89,6 +89,63 @@ static size_t PhysicsWorld_FindNearestLevelIndex(const PhysicsWorld* world, floa
     return best_index;
 }
 
+static uint32_t PhysicsWorld_ComputeAdaptiveStepSubsteps(const PhysicsWorld* world, size_t level_index)
+{
+    float level_hz = 60.0f;
+    uint32_t base_substeps = 4u;
+
+    if (world != NULL)
+    {
+        if (level_index < world->adaptive_level_count)
+        {
+            level_hz = world->adaptive_levels[level_index];
+        }
+        base_substeps = world->base_step_substep_count > 0u ? world->base_step_substep_count : 4u;
+    }
+
+    if (level_hz >= 50.0f)
+    {
+        return base_substeps;
+    }
+    if (level_hz >= 30.0f)
+    {
+        return base_substeps > 2u ? 2u : base_substeps;
+    }
+    return 1u;
+}
+
+static void PhysicsWorld_ApplyAdaptiveLevel(PhysicsWorld* world, size_t level_index, const char* reason)
+{
+    if (world == NULL)
+    {
+        return;
+    }
+
+    if (world->adaptive_level_count == 0u)
+    {
+        level_index = 0u;
+    }
+    else if (level_index >= world->adaptive_level_count)
+    {
+        level_index = world->adaptive_level_count - 1u;
+    }
+
+    world->current_level_index = (uint32_t)level_index;
+    world->target_hz = world->adaptive_level_count > 0u ? world->adaptive_levels[level_index] : world->target_hz;
+    if (world->target_hz < 1.0f)
+    {
+        world->target_hz = 1.0f;
+    }
+    world->fixed_dt = 1.0f / world->target_hz;
+    world->step_substep_count = PhysicsWorld_ComputeAdaptiveStepSubsteps(world, level_index);
+    world->accumulator = fminf(world->accumulator, world->fixed_dt * (float)world->max_substeps);
+    if (reason != NULL)
+    {
+        memset(world->last_tuner_reason, 0, sizeof(world->last_tuner_reason));
+        strncpy(world->last_tuner_reason, reason, sizeof(world->last_tuner_reason) - 1);
+    }
+}
+
 static int PhysicsWorld_GetTileValue(const PhysicsWorld* world, int tile_x, int tile_y, int layer_index)
 {
     if (world == NULL || world->tilemap_adapter == NULL || world->tilemap == NULL || world->tilemap_adapter->get_tile == NULL)
@@ -338,6 +395,9 @@ static void PhysicsWorld_SyncBodiesToTransforms(PhysicsWorld* world, struct Scen
 
         {
             b2Transform body_transform = b2Body_GetTransform(rigid_body->body_id);
+            transform->previous_x = transform->x;
+            transform->previous_y = transform->y;
+            transform->previous_angle_radians = transform->angle_radians;
             transform->x = body_transform.p.x;
             transform->y = body_transform.p.y;
             transform->angle_radians = b2Rot_GetAngle(body_transform.q);
@@ -395,7 +455,8 @@ void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
     world->target_hz = config != NULL && config->target_hz > 0.0f ? config->target_hz : 30.0f;
     world->fixed_dt = 1.0f / world->target_hz;
     world->max_substeps = config != NULL && config->max_substeps > 0 ? config->max_substeps : 4u;
-    world->step_substep_count = config != NULL && config->step_substep_count > 0 ? config->step_substep_count : 4u;
+    world->base_step_substep_count = config != NULL && config->step_substep_count > 0 ? config->step_substep_count : 4u;
+    world->step_substep_count = world->base_step_substep_count;
     world->adaptive_enabled = config != NULL && config->adaptive_enabled;
     world->downshift_frame_ms = config != NULL && config->downshift_frame_ms > 0.0f ? config->downshift_frame_ms : 33.4f;
     world->upshift_frame_ms = config != NULL && config->upshift_frame_ms > 0.0f ? config->upshift_frame_ms : 20.0f;
@@ -420,6 +481,10 @@ void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
     }
 
     world->current_level_index = (uint32_t)PhysicsWorld_FindNearestLevelIndex(world, world->target_hz);
+    if (world->adaptive_enabled)
+    {
+        PhysicsWorld_ApplyAdaptiveLevel(world, world->current_level_index, "init");
+    }
     world_def.gravity = (b2Vec2){world->gravity_x, world->gravity_y};
     world_def.enableSleep = true;
     if (config != NULL && config->task_system != NULL)
@@ -444,26 +509,59 @@ PhysicsWorld* PhysicsWorld_Create(const PhysicsWorldConfig* config)
 
 void PhysicsWorld_SetTargetHz(PhysicsWorld* world, float target_hz, const char* reason)
 {
+    size_t level_index = 0u;
+
     if (world == NULL)
     {
         return;
     }
 
     world->target_hz = target_hz < 1.0f ? 1.0f : floorf(target_hz);
-    world->fixed_dt = 1.0f / world->target_hz;
-    world->current_level_index = (uint32_t)PhysicsWorld_FindNearestLevelIndex(world, world->target_hz);
-    world->accumulator = fminf(world->accumulator, world->fixed_dt * (float)world->max_substeps);
-    if (reason != NULL)
+    if (world->adaptive_enabled && world->adaptive_level_count > 0u)
     {
-        memset(world->last_tuner_reason, 0, sizeof(world->last_tuner_reason));
-        strncpy(world->last_tuner_reason, reason, sizeof(world->last_tuner_reason) - 1);
+        level_index = PhysicsWorld_FindNearestLevelIndex(world, world->target_hz);
+        PhysicsWorld_ApplyAdaptiveLevel(world, level_index, reason);
+    }
+    else
+    {
+        world->fixed_dt = 1.0f / world->target_hz;
+        world->accumulator = fminf(world->accumulator, world->fixed_dt * (float)world->max_substeps);
+        if (reason != NULL)
+        {
+            memset(world->last_tuner_reason, 0, sizeof(world->last_tuner_reason));
+            strncpy(world->last_tuner_reason, reason, sizeof(world->last_tuner_reason) - 1);
+        }
     }
 }
 
 void PhysicsWorld_UpdateAdaptiveBudget(PhysicsWorld* world, float frame_ms)
 {
+    uint32_t upshift_hold_frames = 0u;
+
     if (world == NULL || !world->adaptive_enabled || world->adaptive_level_count == 0)
     {
+        return;
+    }
+
+    upshift_hold_frames = world->tuner_hold_frames * 4u;
+    if (upshift_hold_frames < world->tuner_hold_frames)
+    {
+        upshift_hold_frames = world->tuner_hold_frames;
+    }
+
+    if (frame_ms >= world->downshift_frame_ms * 3.0f)
+    {
+        world->tuner_over_budget_frames = 0u;
+        world->tuner_under_budget_frames = 0u;
+        if (world->current_level_index + 1u < world->adaptive_level_count)
+        {
+            size_t emergency_index = world->current_level_index + 2u;
+            if (emergency_index >= world->adaptive_level_count)
+            {
+                emergency_index = world->adaptive_level_count - 1u;
+            }
+            PhysicsWorld_ApplyAdaptiveLevel(world, emergency_index, "emergency");
+        }
         return;
     }
 
@@ -471,11 +569,10 @@ void PhysicsWorld_UpdateAdaptiveBudget(PhysicsWorld* world, float frame_ms)
     {
         world->tuner_over_budget_frames += 1u;
         world->tuner_under_budget_frames = 0u;
-        if (world->tuner_over_budget_frames >= world->tuner_hold_frames &&
+        if (world->tuner_over_budget_frames >= 2u &&
             world->current_level_index + 1u < world->adaptive_level_count)
         {
-            world->current_level_index += 1u;
-            PhysicsWorld_SetTargetHz(world, world->adaptive_levels[world->current_level_index], "downshift");
+            PhysicsWorld_ApplyAdaptiveLevel(world, world->current_level_index + 1u, "downshift");
             world->tuner_over_budget_frames = 0u;
         }
     }
@@ -483,10 +580,9 @@ void PhysicsWorld_UpdateAdaptiveBudget(PhysicsWorld* world, float frame_ms)
     {
         world->tuner_under_budget_frames += 1u;
         world->tuner_over_budget_frames = 0u;
-        if (world->tuner_under_budget_frames >= world->tuner_hold_frames && world->current_level_index > 0u)
+        if (world->tuner_under_budget_frames >= upshift_hold_frames && world->current_level_index > 0u)
         {
-            world->current_level_index -= 1u;
-            PhysicsWorld_SetTargetHz(world, world->adaptive_levels[world->current_level_index], "upshift");
+            PhysicsWorld_ApplyAdaptiveLevel(world, world->current_level_index - 1u, "upshift");
             world->tuner_under_budget_frames = 0u;
         }
     }
@@ -550,6 +646,9 @@ void PhysicsWorld_SetEntityPosition(PhysicsWorld* world, struct Entity* entity, 
         return;
     }
 
+    transform->previous_x = x;
+    transform->previous_y = y;
+    transform->previous_angle_radians = transform->angle_radians;
     transform->x = x;
     transform->y = y;
 
@@ -702,6 +801,7 @@ void PhysicsWorld_GetSnapshot(const PhysicsWorld* world, PhysicsWorldSnapshot* s
     snapshot->physics_hz = world->target_hz;
     snapshot->physics_fixed_dt = world->fixed_dt;
     snapshot->physics_accumulator = world->accumulator;
+    snapshot->physics_step_substeps = world->step_substep_count;
     snapshot->adaptive_enabled = world->adaptive_enabled;
     snapshot->tuner_level_index = world->current_level_index;
 }

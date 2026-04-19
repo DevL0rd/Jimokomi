@@ -6,6 +6,9 @@
 typedef struct TransformComponent
 {
     Component base;
+    float previous_x;
+    float previous_y;
+    float previous_angle_radians;
     float x;
     float y;
     float angle_radians;

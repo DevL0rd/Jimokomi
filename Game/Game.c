@@ -21,7 +21,7 @@
 #include <string.h>
 #include <time.h>
 
-#define BALL_COUNT 100
+#define BALL_COUNT 10000
 #define SOURCE_VARIANT_COUNT 8
 #define INVALID_INDEX ((size_t)-1)
 #define PLAYER_INDEX 0U
@@ -35,6 +35,9 @@
 
 typedef struct Ball {
     Entity* entity;
+    TransformComponent* transform;
+    RigidBodyComponent* rigid_body;
+    ColliderComponent* collider;
     float radius;
     ResourceHandle visual_source_handle;
     ResourceHandle material_handle;
@@ -47,7 +50,6 @@ typedef struct GameState {
     Scene* scene;
     TaskSystem task_system;
     Ball balls[BALL_COUNT];
-    uint32_t visible_indices[BALL_COUNT];
     size_t tracked_ball_index;
     size_t selected_ball_index;
     size_t dragged_ball_index;
@@ -62,19 +64,21 @@ typedef struct GameState {
     ResourceHandle ball_material_handles[BALL_COUNT];
 } GameState;
 
+static float game_lerp(float a, float b, float alpha) {
+    return a + ((b - a) * alpha);
+}
+
+static float game_lerp_angle(float a, float b, float alpha) {
+    float delta = fmodf(b - a, 6.28318530718f);
+    if (delta > 3.14159265359f) {
+        delta -= 6.28318530718f;
+    } else if (delta < -3.14159265359f) {
+        delta += 6.28318530718f;
+    }
+    return a + delta * alpha;
+}
+
 static bool game_player_is_grounded(const GameState* game);
-
-static TransformComponent* game_get_transform(Entity* entity) {
-    return entity != NULL ? (TransformComponent*)Entity_GetComponent(entity, COMPONENT_TRANSFORM) : NULL;
-}
-
-static RigidBodyComponent* game_get_rigid_body(Entity* entity) {
-    return entity != NULL ? (RigidBodyComponent*)Entity_GetComponent(entity, COMPONENT_RIGID_BODY) : NULL;
-}
-
-static ColliderComponent* game_get_collider(Entity* entity) {
-    return entity != NULL ? (ColliderComponent*)Entity_GetComponent(entity, COMPONENT_COLLIDER) : NULL;
-}
 
 static size_t game_find_ball_index(const GameState* game, const Entity* entity) {
     size_t index;
@@ -96,52 +100,6 @@ static double game_now_ms(void) {
     struct timespec ts;
     timespec_get(&ts, TIME_UTC);
     return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
-}
-
-static bool game_drain_required_prebakes(GameState* game) {
-    size_t total_required;
-    size_t previous_budget;
-
-    if (game == NULL) {
-        return false;
-    }
-
-    total_required = resource_manager_get_pending_bake_count(&game->renderer.resource_manager);
-    if (total_required == 0U) {
-        return true;
-    }
-    previous_budget = game->renderer.resource_manager.bake_budget_per_frame;
-    game->renderer.resource_manager.bake_budget_per_frame = 32U;
-
-    while (resource_manager_get_pending_bake_count(&game->renderer.resource_manager) > 0U) {
-        size_t pending_count = resource_manager_get_pending_bake_count(&game->renderer.resource_manager);
-        size_t completed_count = total_required > pending_count ? total_required - pending_count : 0U;
-        float progress = total_required > 0U ? (float)completed_count / (float)total_required : 1.0f;
-        Target target;
-        char label[96];
-
-        raylib_backend_pump_events(&game->backend);
-        if (raylib_backend_should_close(&game->backend)) {
-            game->renderer.resource_manager.bake_budget_per_frame = previous_budget;
-            return false;
-        }
-
-        raylib_backend_begin_frame(&game->backend, (Color32){ 0x0b1020U });
-        target_init(&target, &game->backend.render_backend, 0.0f, 0.0f);
-        target_rect_filled(&target, (Rect){ 180.0f, 230.0f, 600.0f, 84.0f }, (Color32){ 0x101828U });
-        target_rect_filled(&target, (Rect){ 196.0f, 276.0f, 568.0f * progress, 16.0f }, (Color32){ 0x60a5faU });
-        target_rect(&target, (Rect){ 196.0f, 276.0f, 568.0f, 16.0f }, (Color32){ 0xdbeafeU });
-        target_text(&target, 212.0f, 246.0f, "Preparing required baked resources...", (Color32){ 0xf8fafcU });
-        snprintf(label, sizeof(label), "%zu / %zu", completed_count, total_required);
-        target_text(&target, 212.0f, 298.0f, label, (Color32){ 0x93c5fdU });
-        raylib_backend_end_frame(&game->backend);
-
-        resource_manager_begin_frame(&game->renderer.resource_manager);
-        resource_manager_process_pending_bakes(&game->renderer.resource_manager);
-    }
-
-    game->renderer.resource_manager.bake_budget_per_frame = previous_budget;
-    return true;
 }
 
 static bool game_add_static_box(
@@ -203,7 +161,7 @@ static void game_scene_input(Scene* scene, const SceneInputState* input_state, f
         return;
     }
 
-    rigid_body = game_get_rigid_body(game->balls[PLAYER_INDEX].entity);
+    rigid_body = game->balls[PLAYER_INDEX].rigid_body;
     if (rigid_body == NULL || !rigid_body->has_body) {
         return;
     }
@@ -231,10 +189,26 @@ static void game_scene_input(Scene* scene, const SceneInputState* input_state, f
 
 static void game_init_world(GameState *game) {
     PhysicsWorldConfig physics_config = {0};
+    static const float adaptive_levels[] = { 60.0f, 45.0f, 30.0f, 20.0f, 15.0f, 10.0f };
     size_t index;
+    const float ball_diameter = 14.0f;
+    const float margin_x = 40.0f;
+    const float margin_y = 40.0f;
+    const float usable_width = WORLD_WIDTH - margin_x * 2.0f;
+    const float usable_height = WORLD_HEIGHT - margin_y * 2.0f;
+    const size_t columns = (size_t)(usable_width / ball_diameter);
+    const size_t rows = (BALL_COUNT + columns - 1U) / columns;
+    const float spacing_x = columns > 1U ? usable_width / (float)(columns - 1U) : 0.0f;
+    const float spacing_y = rows > 1U ? usable_height / (float)(rows - 1U) : 0.0f;
 
     physics_config.gravity_y = 38.0f;
     physics_config.target_hz = 60.0f;
+    physics_config.adaptive_enabled = true;
+    physics_config.adaptive_levels = adaptive_levels;
+    physics_config.adaptive_level_count = sizeof(adaptive_levels) / sizeof(adaptive_levels[0]);
+    physics_config.downshift_frame_ms = 12.0f;
+    physics_config.upshift_frame_ms = 7.5f;
+    physics_config.tuner_hold_frames = 8U;
     physics_config.max_substeps = 4U;
     physics_config.step_substep_count = 4U;
     physics_config.task_system = &game->task_system;
@@ -253,6 +227,7 @@ static void game_init_world(GameState *game) {
     game->backdrop.cell_size = GRID_CELL_SIZE;
     Scene_SetWorldBounds(game->scene, 0.0f, 0.0f, WORLD_WIDTH, WORLD_HEIGHT);
     Scene_SetKillBounds(game->scene, 0.0f, 0.0f, WORLD_WIDTH, WORLD_HEIGHT);
+    game->scene->kill_plane_enabled = false;
 
     game_add_static_box(
         game,
@@ -289,13 +264,10 @@ static void game_init_world(GameState *game) {
         RigidBodyComponent* rigid_body;
         ColliderComponent* collider;
         CameraTargetComponent* camera_target = NULL;
-        const float spacing_x = 42.0f;
-        const float spacing_y = 34.0f;
-        const size_t columns = (size_t)(WORLD_WIDTH / spacing_x) - 2U;
         float row = (float)(index / columns);
         float column = (float)(index % columns);
-        float x = 52.0f + column * spacing_x;
-        float y = 52.0f + row * spacing_y;
+        float x = margin_x + column * spacing_x;
+        float y = margin_y + row * spacing_y;
 
         transform = TransformComponent_Create(x, y, 0.0f);
         rigid_body = RigidBodyComponent_Create();
@@ -315,8 +287,11 @@ static void game_init_world(GameState *game) {
             continue;
         }
 
-        game->balls[index].radius = 14.0f;
+        game->balls[index].radius = 7.0f;
         game->balls[index].entity = entity;
+        game->balls[index].transform = transform;
+        game->balls[index].rigid_body = rigid_body;
+        game->balls[index].collider = collider;
 
         rigid_body->body_type = RIGID_BODY_DYNAMIC;
         rigid_body->initial_velocity_x = ((index % 2U) == 0U) ? 4.0f : -4.0f;
@@ -340,6 +315,9 @@ static void game_init_world(GameState *game) {
         if (!Scene_AddEntity(game->scene, entity)) {
             Entity_Destroy(entity);
             game->balls[index].entity = NULL;
+            game->balls[index].transform = NULL;
+            game->balls[index].rigid_body = NULL;
+            game->balls[index].collider = NULL;
         }
     }
 
@@ -351,7 +329,7 @@ static bool game_player_is_grounded(const GameState *game) {
     if (game == NULL) {
         return false;
     }
-    rigid_body = game_get_rigid_body(game->balls[PLAYER_INDEX].entity);
+    rigid_body = game->balls[PLAYER_INDEX].rigid_body;
     if (rigid_body == NULL || !rigid_body->has_body) {
         return false;
     }
@@ -359,12 +337,20 @@ static bool game_player_is_grounded(const GameState *game) {
 }
 
 static uint32_t game_step_world(GameState *game, double dt_seconds, const EngineInput *input) {
-    const float fixed_dt = 1.0f / 60.0f;
+    float fixed_dt = 1.0f / 60.0f;
     uint32_t substep_count = 0U;
     SceneInputState scene_input = {0};
 
     if (game == NULL || game->scene == NULL) {
         return 0U;
+    }
+
+    if (game->scene->physics_world != NULL) {
+        PhysicsWorldSnapshot physics_snapshot;
+        PhysicsWorld_GetSnapshot(game->scene->physics_world, &physics_snapshot);
+        if (physics_snapshot.physics_fixed_dt > 0.0f) {
+            fixed_dt = physics_snapshot.physics_fixed_dt;
+        }
     }
 
     if (input != NULL) {
@@ -387,91 +373,128 @@ static uint32_t game_step_world(GameState *game, double dt_seconds, const Engine
     return substep_count;
 }
 
-static void game_fill_renderables(
+static bool game_fill_single_debug_entity(
+    const GameState* game,
+    size_t ball_index,
+    DebugEntityView* entity,
+    float render_alpha
+) {
+    const Ball* ball;
+    b2Vec2 velocity;
+
+    if (game == NULL || entity == NULL || ball_index >= BALL_COUNT) {
+        return false;
+    }
+
+    ball = &game->balls[ball_index];
+    if (ball->transform == NULL || ball->rigid_body == NULL || ball->collider == NULL || !ball->rigid_body->has_body) {
+        memset(entity, 0, sizeof(*entity));
+        return false;
+    }
+
+    velocity = b2Body_GetLinearVelocity(ball->rigid_body->body_id);
+    memset(entity, 0, sizeof(*entity));
+    entity->id = (uint64_t)(ball_index + 1U);
+    entity->position.x = game_lerp(ball->transform->previous_x, ball->transform->x, render_alpha);
+    entity->position.y = game_lerp(ball->transform->previous_y, ball->transform->y, render_alpha);
+    entity->velocity.x = velocity.x;
+    entity->velocity.y = velocity.y;
+    entity->angle_radians = game_lerp_angle(
+        ball->transform->previous_angle_radians,
+        ball->transform->angle_radians,
+        render_alpha
+    );
+    entity->extent_x = ball->collider->shape == COLLIDER_SHAPE_CIRCLE ? ball->collider->radius : ball->collider->width * 0.5f;
+    entity->extent_y = ball->collider->shape == COLLIDER_SHAPE_CIRCLE ? ball->collider->radius : ball->collider->height * 0.5f;
+    entity->radius = ball->collider->radius;
+    entity->is_circle = ball->collider->shape == COLLIDER_SHAPE_CIRCLE;
+    entity->is_selected = ball_index == game->selected_ball_index;
+    entity->is_sleeping = !b2Body_IsAwake(ball->rigid_body->body_id);
+    entity->is_moving = fabsf(velocity.x) + fabsf(velocity.y) > 0.05f;
+    return true;
+}
+
+static size_t game_collect_visible_frame_data(
     GameState *game,
-    const uint32_t* indices,
-    size_t index_count,
-    SpriteRenderable *items
+    SpriteRenderable *items,
+    DebugEntityView *entities,
+    size_t item_capacity,
+    float render_alpha
 ) {
     size_t index;
+    size_t visible_count = 0U;
+    bool collect_debug = false;
+    const float camera_x = game != NULL ? game->renderer.camera.x : 0.0f;
+    const float camera_y = game != NULL ? game->renderer.camera.y : 0.0f;
+    const float camera_right = game != NULL ? game->renderer.camera.x + game->renderer.camera.view_width : 0.0f;
+    const float camera_bottom = game != NULL ? game->renderer.camera.y + game->renderer.camera.view_height : 0.0f;
 
-    for (index = 0; index < index_count; ++index) {
-        uint32_t ball_index = indices[index];
-        TransformComponent* transform = game_get_transform(game->balls[ball_index].entity);
+    if (game == NULL || items == NULL) {
+        return 0U;
+    }
+
+    collect_debug = entities != NULL &&
+        game->renderer.debug_overlay.enabled &&
+        game->renderer.debug_overlay.draw_world_gizmos;
+
+    for (index = 0U; index < BALL_COUNT && visible_count < item_capacity; ++index) {
+        Ball* ball = &game->balls[index];
+        TransformComponent* transform = ball->transform;
+        SpriteRenderable* item;
 
         if (transform == NULL) {
-            memset(&items[index], 0, sizeof(items[index]));
+            continue;
+        }
+        if (transform->x + ball->radius < camera_x ||
+            transform->y + ball->radius < camera_y ||
+            transform->x - ball->radius > camera_right ||
+            transform->y - ball->radius > camera_bottom) {
             continue;
         }
 
-        memset(&items[index], 0, sizeof(items[index]));
-        items[index].x = transform->x;
-        items[index].y = transform->y;
-        items[index].angle_radians = transform->angle_radians;
-        items[index].anchor_x = 0.5f;
-        items[index].anchor_y = 0.5f;
-        items[index].layer = 0;
-        items[index].visible = true;
-        items[index].visual_source_handle = game->balls[ball_index].visual_source_handle;
-        items[index].material_handle = game->balls[ball_index].material_handle;
-        items[index].shader_handle = game->shared_ball_shader_handle;
-        items[index].user_data = NULL;
-    }
-}
+        item = &items[visible_count];
+        item->x = game_lerp(transform->previous_x, transform->x, render_alpha);
+        item->y = game_lerp(transform->previous_y, transform->y, render_alpha);
+        item->angle_radians = game_lerp_angle(
+            transform->previous_angle_radians,
+            transform->angle_radians,
+            render_alpha
+        );
+        item->anchor_x = 0.5f;
+        item->anchor_y = 0.5f;
+        item->layer = 0;
+        item->visible = true;
+        item->visual_source_handle = ball->visual_source_handle;
+        item->material_handle = ball->material_handle;
+        item->shader_handle = game->shared_ball_shader_handle;
+        item->user_data = NULL;
 
-static void game_fill_debug_entities(
-    GameState *game,
-    const uint32_t* indices,
-    size_t index_count,
-    DebugEntityView *entities,
-    size_t entity_capacity
-) {
-    size_t index;
+        if (collect_debug) {
+            b2Vec2 velocity = { 0 };
 
-    if (game == NULL || indices == NULL || entities == NULL) {
-        return;
-    }
-
-    if (index_count > entity_capacity) {
-        index_count = entity_capacity;
-    }
-
-    for (index = 0U; index < index_count; ++index) {
-        uint32_t ball_index = indices[index];
-        TransformComponent* transform = game_get_transform(game->balls[ball_index].entity);
-        RigidBodyComponent* rigid_body = game_get_rigid_body(game->balls[ball_index].entity);
-        ColliderComponent* collider = game_get_collider(game->balls[ball_index].entity);
-        b2Vec2 velocity = {0};
-
-        if (transform == NULL || rigid_body == NULL || collider == NULL || !rigid_body->has_body) {
-            memset(&entities[index], 0, sizeof(entities[index]));
-            continue;
+            memset(&entities[visible_count], 0, sizeof(entities[visible_count]));
+            if (ball->rigid_body != NULL && ball->collider != NULL && ball->rigid_body->has_body) {
+                velocity = b2Body_GetLinearVelocity(ball->rigid_body->body_id);
+                entities[visible_count].id = (uint64_t)(index + 1U);
+                entities[visible_count].position.x = item->x;
+                entities[visible_count].position.y = item->y;
+                entities[visible_count].velocity.x = velocity.x;
+                entities[visible_count].velocity.y = velocity.y;
+                entities[visible_count].angle_radians = item->angle_radians;
+                entities[visible_count].extent_x = ball->collider->shape == COLLIDER_SHAPE_CIRCLE ? ball->collider->radius : ball->collider->width * 0.5f;
+                entities[visible_count].extent_y = ball->collider->shape == COLLIDER_SHAPE_CIRCLE ? ball->collider->radius : ball->collider->height * 0.5f;
+                entities[visible_count].radius = ball->collider->radius;
+                entities[visible_count].is_circle = ball->collider->shape == COLLIDER_SHAPE_CIRCLE;
+                entities[visible_count].is_selected = index == game->selected_ball_index;
+                entities[visible_count].is_sleeping = !b2Body_IsAwake(ball->rigid_body->body_id);
+                entities[visible_count].is_moving = fabsf(velocity.x) + fabsf(velocity.y) > 0.05f;
+            }
         }
 
-        velocity = b2Body_GetLinearVelocity(rigid_body->body_id);
-        entities[index].id = (uint64_t)(ball_index + 1U);
-        entities[index].position.x = transform->x;
-        entities[index].position.y = transform->y;
-        entities[index].velocity.x = velocity.x;
-        entities[index].velocity.y = velocity.y;
-        entities[index].angle_radians = transform->angle_radians;
-        entities[index].extent_x = collider->shape == COLLIDER_SHAPE_CIRCLE ? collider->radius : collider->width * 0.5f;
-        entities[index].extent_y = collider->shape == COLLIDER_SHAPE_CIRCLE ? collider->radius : collider->height * 0.5f;
-        entities[index].radius = collider->radius;
-        entities[index].is_circle = collider->shape == COLLIDER_SHAPE_CIRCLE;
-        entities[index].is_selected = ball_index == game->selected_ball_index;
-        entities[index].is_sleeping = b2Body_IsAwake(rigid_body->body_id) ? false : true;
-        entities[index].is_moving = fabsf(velocity.x) + fabsf(velocity.y) > 0.05f;
+        visible_count += 1U;
     }
-}
 
-static void game_fill_single_debug_entity(
-    GameState* game,
-    size_t ball_index,
-    DebugEntityView* entity
-) {
-    uint32_t id = (uint32_t)ball_index;
-    game_fill_debug_entities(game, &id, 1U, entity, 1U);
+    return visible_count;
 }
 
 static size_t game_pick_ball(
@@ -533,8 +556,8 @@ static void game_update_drag(
 
     if (game->drag_active && game->dragged_ball_index != INVALID_INDEX) {
             Entity* entity = game->balls[game->dragged_ball_index].entity;
-            RigidBodyComponent* rigid_body = game_get_rigid_body(entity);
-            TransformComponent* transform = game_get_transform(entity);
+            RigidBodyComponent* rigid_body = game->balls[game->dragged_ball_index].rigid_body;
+            TransformComponent* transform = game->balls[game->dragged_ball_index].transform;
             if (EngineInput_is_mouse_down(input, 1U)) {
                 float dt = dt_seconds > 0.0001 ? (float)dt_seconds : (1.0f / 240.0f);
                 game->drag_release_velocity.x = (mouse_world.x - game->drag_last_world.x) / dt;
@@ -658,23 +681,6 @@ int JimokomiGame_Run(void) {
     }
     game.renderer.camera.x = game.scene->view.x;
     game.renderer.camera.y = game.scene->view.y;
-    (void)game_queue_required_ball_prebakes(
-        &game.renderer,
-        game.shared_ball_shader_handle,
-        game.ball_source_handles,
-        SOURCE_VARIANT_COUNT,
-        game.ball_material_handles[0]
-    );
-    if (!game_drain_required_prebakes(&game)) {
-        renderer_dispose(&game.renderer);
-        Scene_Destroy(game.scene);
-        task_system_dispose(&game.task_system);
-        Engine_dispose(&game.engine);
-        raylib_backend_dispose(&game.backend);
-        free(items);
-        free(debug_entities);
-        return 1;
-    }
     game.last_tick_ms = raylib_backend_now_ms();
 
     while (!raylib_backend_should_close(&game.backend)) {
@@ -689,13 +695,10 @@ int JimokomiGame_Run(void) {
         double physics_ms;
         uint64_t now_ms;
         double dt_seconds;
+        float render_alpha;
+        float physics_fixed_dt = 1.0f / 60.0f;
 
         raylib_backend_pump_events(&game.backend);
-        if (resource_manager_get_pending_bake_count(&game.renderer.resource_manager) > 0U) {
-            if (!game_drain_required_prebakes(&game)) {
-                break;
-            }
-        }
         now_ms = raylib_backend_now_ms();
         dt_seconds = (double)(now_ms - game.last_tick_ms) / 1000.0;
         if (dt_seconds < 0.0) {
@@ -722,6 +725,15 @@ int JimokomiGame_Run(void) {
         physics_substeps = game_step_world(&game, dt_seconds, &game.engine.input);
         EngineProfiler_end_scope(&game.engine.profiler, "game.physics");
         physics_ms = game_now_ms() - physics_started_ms;
+        Scene_UpdatePerformanceBudget(game.scene, (float)physics_ms);
+        if (game.scene != NULL && game.scene->physics_world != NULL) {
+            PhysicsWorldSnapshot physics_snapshot;
+            PhysicsWorld_GetSnapshot(game.scene->physics_world, &physics_snapshot);
+            if (physics_snapshot.physics_fixed_dt > 0.0f) {
+                physics_fixed_dt = physics_snapshot.physics_fixed_dt;
+            }
+        }
+        render_alpha = (float)clamp_f((float)(game.accumulator_seconds / physics_fixed_dt), 0.0f, 1.0f);
 
         EngineProfiler_begin_scope(&game.engine.profiler, "game.debug_input");
         debug_overlay_handle_input(
@@ -741,38 +753,26 @@ int JimokomiGame_Run(void) {
         );
         EngineProfiler_end_scope(&game.engine.profiler, "game.drag");
 
-        player_transform = game_get_transform(game.balls[PLAYER_INDEX].entity);
-        player_body = game_get_rigid_body(game.balls[PLAYER_INDEX].entity);
-        game.renderer.camera.x = game.scene->view.x;
-        game.renderer.camera.y = game.scene->view.y;
+        player_transform = game.balls[PLAYER_INDEX].transform;
+        player_body = game.balls[PLAYER_INDEX].rigid_body;
+        game.renderer.camera.x = game_lerp(game.scene->view.previous_x, game.scene->view.x, render_alpha);
+        game.renderer.camera.y = game_lerp(game.scene->view.previous_y, game.scene->view.y, render_alpha);
         game.renderer.camera.view_width = game.scene->view.view_width;
         game.renderer.camera.view_height = game.scene->view.view_height;
 
-        visible_count = 0U;
-        for (size_t i = 0U; i < BALL_COUNT; ++i) {
-            TransformComponent* transform = game_get_transform(game.balls[i].entity);
-            if (transform == NULL) {
-                continue;
-            }
-            if (transform->x + game.balls[i].radius < game.renderer.camera.x ||
-                transform->y + game.balls[i].radius < game.renderer.camera.y ||
-                transform->x - game.balls[i].radius > game.renderer.camera.x + game.renderer.camera.view_width ||
-                transform->y - game.balls[i].radius > game.renderer.camera.y + game.renderer.camera.view_height) {
-                continue;
-            }
-            game.visible_indices[visible_count++] = (uint32_t)i;
-        }
-
         EngineProfiler_begin_scope(&game.engine.profiler, "game.renderables");
-        game_fill_renderables(&game, game.visible_indices, visible_count, items);
+        visible_count = game_collect_visible_frame_data(&game, items, debug_entities, BALL_COUNT, render_alpha);
         EngineProfiler_end_scope(&game.engine.profiler, "game.renderables");
-
-        EngineProfiler_begin_scope(&game.engine.profiler, "game.debug_entities");
-        game_fill_debug_entities(&game, game.visible_indices, visible_count, debug_entities, BALL_COUNT);
-        EngineProfiler_end_scope(&game.engine.profiler, "game.debug_entities");
 
         EngineProfiler_set_metadata_number(&game.engine.profiler, "ball_count", (double)BALL_COUNT);
         EngineProfiler_set_metadata_number(&game.engine.profiler, "physics_workers", (double)task_system_get_worker_count(&game.task_system));
+        if (game.scene != NULL && game.scene->physics_world != NULL) {
+            PhysicsWorldSnapshot physics_snapshot;
+            PhysicsWorld_GetSnapshot(game.scene->physics_world, &physics_snapshot);
+            EngineProfiler_set_metadata_number(&game.engine.profiler, "physics_hz", physics_snapshot.physics_hz);
+            EngineProfiler_set_metadata_number(&game.engine.profiler, "physics_step_substeps", (double)physics_snapshot.physics_step_substeps);
+            EngineProfiler_set_metadata_number(&game.engine.profiler, "physics_tuner_level", (double)physics_snapshot.tuner_level_index);
+        }
         EngineProfiler_set_metadata_number(&game.engine.profiler, "visible_candidates", (double)visible_count);
         EngineProfiler_set_metadata_number(&game.engine.profiler, "physics_substeps", (double)physics_substeps);
         EngineProfiler_set_metadata_number(&game.engine.profiler, "physics_ms", physics_ms);
@@ -800,8 +800,9 @@ int JimokomiGame_Run(void) {
         debug_snapshot.draw_ms = (float)game.engine.stats.last_draw_ms;
         debug_snapshot.physics_ms = (float)physics_ms;
         if (game.selected_ball_index != INVALID_INDEX) {
-            game_fill_single_debug_entity(&game, game.selected_ball_index, &selected_entity_view);
-            selected_entity = &selected_entity_view;
+            selected_entity = game_fill_single_debug_entity(&game, game.selected_ball_index, &selected_entity_view, render_alpha)
+                ? &selected_entity_view
+                : NULL;
         } else {
             selected_entity = NULL;
         }
@@ -815,9 +816,10 @@ int JimokomiGame_Run(void) {
         debug_overlay_draw_world(
             &game.renderer.debug_overlay,
             &game.backend.render_backend,
+            frame.now_ms,
             &game.renderer.camera,
-            debug_entities,
-            visible_count,
+            game.renderer.debug_overlay.enabled && game.renderer.debug_overlay.draw_world_gizmos ? debug_entities : NULL,
+            game.renderer.debug_overlay.enabled && game.renderer.debug_overlay.draw_world_gizmos ? visible_count : 0U,
             NULL,
             0U
         );
@@ -861,10 +863,13 @@ int JimokomiGame_Run(void) {
         EngineProfiler_set_metadata_number(&game.engine.profiler, "renderer_visible_items", (double)game.renderer.last_visible_item_count);
         EngineProfiler_set_metadata_number(&game.engine.profiler, "renderer_overlay_draws", (double)game.renderer.last_overlay_draw_count);
         EngineProfiler_set_metadata_number(&game.engine.profiler, "renderer_procedural_items", (double)game.renderer.last_procedural_item_count);
+        EngineProfiler_set_metadata_number(&game.engine.profiler, "renderer_instanced_batches", (double)game.renderer.last_instanced_batch_count);
+        EngineProfiler_set_metadata_number(&game.engine.profiler, "renderer_instanced_draws", (double)game.renderer.last_instanced_draw_count);
         EngineProfiler_set_metadata_number(&game.engine.profiler, "renderer_sort_ms", game.renderer.last_sort_ms);
         EngineProfiler_set_metadata_number(&game.engine.profiler, "renderer_visibility_ms", game.renderer.last_visibility_ms);
         EngineProfiler_set_metadata_number(&game.engine.profiler, "renderer_body_ms", game.renderer.last_body_draw_ms);
         EngineProfiler_set_metadata_number(&game.engine.profiler, "renderer_overlay_ms", game.renderer.last_overlay_draw_ms);
+        EngineProfiler_set_metadata_number(&game.engine.profiler, "renderer_instance_ms", game.renderer.last_instance_draw_ms);
         EngineProfiler_set_metadata_number(&game.engine.profiler, "debug_visible_entities", (double)game.renderer.debug_overlay.last_visible_entity_count);
         EngineProfiler_set_metadata_number(&game.engine.profiler, "debug_active_collisions", (double)game.renderer.debug_overlay.last_active_collision_count);
         EngineProfiler_set_metadata_bool(&game.engine.profiler, "debug_enabled", game.renderer.debug_overlay.enabled);
