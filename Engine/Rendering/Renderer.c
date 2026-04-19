@@ -411,6 +411,24 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
     if (frame->draw_sprites) {
         double started_ms;
         draw_items = frame->items;
+        if (frame->backdrop_draw != NULL) {
+            Target target;
+            target_init(&target, backend, -renderer->camera.x, -renderer->camera.y);
+            frame->backdrop_draw(&target, &renderer->camera, frame->backdrop_user_data);
+        }
+        if (draw_items != NULL && frame->item_count == 1U) {
+            started_ms = renderer_now_ms();
+            if (renderer_is_item_visible(renderer, &draw_items[0])) {
+                renderer->last_visible_item_count = 1U;
+                renderer->last_visibility_ms = renderer_now_ms() - started_ms;
+                renderer_draw_sprite_body(renderer, backend, &draw_items[0], frame->now_ms);
+                renderer->last_sprite_draw_count = 1U;
+            } else {
+                renderer->last_visibility_ms = renderer_now_ms() - started_ms;
+            }
+            resource_manager_process_pending_bakes(&renderer->resource_manager);
+            goto draw_debug;
+        }
         if (frame->items != NULL && frame->item_count > 0U) {
             for (index = 1U; index < frame->item_count; ++index) {
                 if (frame->items[index - 1U].layer != frame->items[index].layer) {
@@ -425,11 +443,6 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
             qsort(renderer->scratch_items, frame->item_count, sizeof(*renderer->scratch_items), renderer_compare_item_layer);
             renderer->last_sort_ms = renderer_now_ms() - started_ms;
             draw_items = renderer->scratch_items;
-        }
-        if (frame->backdrop_draw != NULL) {
-            Target target;
-            target_init(&target, backend, -renderer->camera.x, -renderer->camera.y);
-            frame->backdrop_draw(&target, &renderer->camera, frame->backdrop_user_data);
         }
         if (draw_items != NULL) {
             RendererSurfaceBatch batch = { 0 };
@@ -468,6 +481,7 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
         resource_manager_process_pending_bakes(&renderer->resource_manager);
     }
 
+draw_debug:
     if (frame->draw_debug) {
         debug_overlay_draw_world(
             &renderer->debug_overlay,

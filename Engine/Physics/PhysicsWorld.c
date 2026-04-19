@@ -555,11 +555,7 @@ void PhysicsWorld_UpdateAdaptiveBudget(PhysicsWorld* world, float frame_ms)
         world->tuner_under_budget_frames = 0u;
         if (world->current_level_index + 1u < world->adaptive_level_count)
         {
-            size_t emergency_index = world->current_level_index + 2u;
-            if (emergency_index >= world->adaptive_level_count)
-            {
-                emergency_index = world->adaptive_level_count - 1u;
-            }
+            size_t emergency_index = world->adaptive_level_count - 1u;
             PhysicsWorld_ApplyAdaptiveLevel(world, emergency_index, "emergency");
         }
         return;

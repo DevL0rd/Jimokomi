@@ -29,50 +29,6 @@ static Rect debug_title_rect(const DebugPanelState *panel) {
     return rect;
 }
 
-static void debug_draw_bar(
-    Target *target,
-    float x,
-    float y,
-    float width,
-    float height,
-    float value,
-    float max_value,
-    Color32 fill_color
-) {
-    float ratio = max_value > 0.0f ? clamp_f(value / max_value, 0.0f, 1.0f) : 0.0f;
-    target_rect_filled(target, (Rect){ x, y, width, height }, (Color32){ 0x182230U });
-    target_rect_filled(target, (Rect){ x + 1.0f, y + 1.0f, (width - 2.0f) * ratio, height - 2.0f }, fill_color);
-    target_rect(target, (Rect){ x, y, width, height }, (Color32){ 0x5fd0ffU });
-}
-
-static void debug_draw_history(
-    Target *target,
-    const double *values,
-    size_t count,
-    float max_value,
-    float x,
-    float y,
-    float width,
-    float height,
-    Color32 line_color
-) {
-    size_t index;
-    if (values == NULL || count < 2U || max_value <= 0.0f) {
-        return;
-    }
-
-    target_rect_filled(target, (Rect){ x, y, width, height }, (Color32){ 0x101722U });
-    target_rect(target, (Rect){ x, y, width, height }, (Color32){ 0x31445dU });
-
-    for (index = 1U; index < count; ++index) {
-        float x0 = x + ((float)(index - 1U) / (float)(count - 1U)) * (width - 2.0f) + 1.0f;
-        float x1 = x + ((float)index / (float)(count - 1U)) * (width - 2.0f) + 1.0f;
-        float y0 = y + height - 2.0f - ((float)clamp_f((float)values[index - 1U], 0.0f, max_value) / max_value) * (height - 3.0f);
-        float y1 = y + height - 2.0f - ((float)clamp_f((float)values[index], 0.0f, max_value) / max_value) * (height - 3.0f);
-        target_line(target, x0, y0, x1, y1, line_color);
-    }
-}
-
 static void debug_draw_panel_frame(
     Target *target,
     const DebugPanelState *panel,
@@ -100,7 +56,7 @@ static void debug_overlay_ensure_layout(
 
     if (!overlay->layout_initialized) {
         overlay->dashboard_panel.width = 320.0f;
-        overlay->dashboard_panel.height = 198.0f;
+        overlay->dashboard_panel.height = 132.0f;
         overlay->dashboard_panel.x = (float)viewport_width - overlay->dashboard_panel.width - 12.0f;
         overlay->dashboard_panel.y = 12.0f;
 
@@ -453,29 +409,20 @@ void debug_overlay_draw_ui(
 
     snprintf(text, sizeof(text), "FPS %.1f", snapshot->fps);
     target_text(&target, left, top, text, (Color32){ 0xeaf7ffU });
-    debug_draw_bar(&target, left + 92.0f, top - 1.0f, 208.0f, 12.0f, snapshot->fps, 60.0f, (Color32){ 0x49ffaeU });
 
-    top += 22.0f;
+    top += 18.0f;
     snprintf(text, sizeof(text), "Upd %.2fms", snapshot->update_ms);
     target_text(&target, left, top, text, (Color32){ 0xeaf7ffU });
-    debug_draw_bar(&target, left + 92.0f, top - 1.0f, 208.0f, 12.0f, snapshot->update_ms, 16.67f, (Color32){ 0x7ee0ffU });
 
-    top += 22.0f;
+    top += 18.0f;
     snprintf(text, sizeof(text), "Drw %.2fms", snapshot->draw_ms);
     target_text(&target, left, top, text, (Color32){ 0xeaf7ffU });
-    debug_draw_bar(&target, left + 92.0f, top - 1.0f, 208.0f, 12.0f, snapshot->draw_ms, 16.67f, (Color32){ 0xf28482U });
 
-    top += 22.0f;
+    top += 18.0f;
     snprintf(text, sizeof(text), "Frm %.2fms", (float)stats->last_frame_ms);
     target_text(&target, left, top, text, (Color32){ 0xeaf7ffU });
-    debug_draw_bar(&target, left + 92.0f, top - 1.0f, 208.0f, 12.0f, (float)stats->last_frame_ms, 16.67f, (Color32){ 0xffd166U });
 
-    top += 24.0f;
-    target_text(&target, left, top, "History", (Color32){ 0xeaf7ffU });
-    top += 14.0f;
-    debug_draw_history(&target, stats->frame_history_ms, stats->history_count, 50.0f, left, top, 290.0f, 40.0f, (Color32){ 0xffd166U });
-
-    top += 50.0f;
+    top += 18.0f;
     snprintf(text, sizeof(text), "Phy %.2fms", snapshot->physics_ms);
     target_text(&target, left, top, text, (Color32){ 0xb6c6d9U });
     target_text(&target, left, top + 16.0f, "F1 toggle  Tab cycle  Click inspect", (Color32){ 0x7fa2bfU });

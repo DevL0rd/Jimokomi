@@ -21,7 +21,7 @@
 #include <string.h>
 #include <time.h>
 
-#define BALL_COUNT 10000
+#define BALL_COUNT 8000
 #define SOURCE_VARIANT_COUNT 8
 #define INVALID_INDEX ((size_t)-1)
 #define PLAYER_INDEX 0U
@@ -32,6 +32,7 @@
 #define PLAYER_MOVE_SMOOTHING 0.085f
 #define PLAYER_JUMP_IMPULSE 585.0f
 #define WORLD_WALL_THICKNESS 32.0f
+#define SPAWN_FILL_DURATION_SECONDS 60.0
 
 typedef struct Ball {
     Entity* entity;
@@ -62,6 +63,9 @@ typedef struct GameState {
     ResourceHandle shared_ball_shader_handle;
     ResourceHandle ball_source_handles[SOURCE_VARIANT_COUNT];
     ResourceHandle ball_material_handles[BALL_COUNT];
+    size_t active_ball_count;
+    size_t spawn_cursor;
+    double spawn_elapsed_seconds;
 } GameState;
 
 static float game_lerp(float a, float b, float alpha) {
@@ -79,6 +83,128 @@ static float game_lerp_angle(float a, float b, float alpha) {
 }
 
 static bool game_player_is_grounded(const GameState* game);
+
+static void game_ball_spawn_position(size_t index, float* out_x, float* out_y) {
+    const float ball_diameter = 14.0f;
+    const float margin_x = 40.0f;
+    const float margin_y = 40.0f;
+    const float usable_width = WORLD_WIDTH - margin_x * 2.0f;
+    const float usable_height = WORLD_HEIGHT - margin_y * 2.0f;
+    const size_t columns = (size_t)(usable_width / ball_diameter);
+    const size_t rows = (BALL_COUNT + columns - 1U) / columns;
+    const float spacing_x = columns > 1U ? usable_width / (float)(columns - 1U) : 0.0f;
+    const float spacing_y = rows > 1U ? usable_height / (float)(rows - 1U) : 0.0f;
+    const float row = (float)(index / columns);
+    const float column = (float)(index % columns);
+
+    if (out_x != NULL) {
+        *out_x = margin_x + column * spacing_x;
+    }
+    if (out_y != NULL) {
+        *out_y = margin_y + row * spacing_y;
+    }
+}
+
+static bool game_spawn_ball(GameState* game, size_t index) {
+    Entity* entity;
+    TransformComponent* transform;
+    RigidBodyComponent* rigid_body;
+    ColliderComponent* collider;
+    CameraTargetComponent* camera_target = NULL;
+    float x = 0.0f;
+    float y = 0.0f;
+
+    if (game == NULL || game->scene == NULL || index >= BALL_COUNT || game->balls[index].entity != NULL) {
+        return false;
+    }
+
+    game_ball_spawn_position(index, &x, &y);
+    entity = Entity_Create(0U);
+    transform = TransformComponent_Create(x, y, 0.0f);
+    rigid_body = RigidBodyComponent_Create();
+    collider = ColliderComponent_Create();
+    if (index == PLAYER_INDEX) {
+        camera_target = CameraTargetComponent_Create();
+    }
+    if (entity == NULL || transform == NULL || rigid_body == NULL || collider == NULL || (index == PLAYER_INDEX && camera_target == NULL)) {
+        if (entity != NULL) {
+            Entity_Destroy(entity);
+        } else {
+            TransformComponent_Destroy(transform);
+            RigidBodyComponent_Destroy(rigid_body);
+            ColliderComponent_Destroy(collider);
+            CameraTargetComponent_Destroy(camera_target);
+        }
+        return false;
+    }
+
+    game->balls[index].radius = 7.0f;
+    game->balls[index].entity = entity;
+    game->balls[index].transform = transform;
+    game->balls[index].rigid_body = rigid_body;
+    game->balls[index].collider = collider;
+
+    rigid_body->body_type = RIGID_BODY_DYNAMIC;
+    rigid_body->initial_velocity_x = ((index % 2U) == 0U) ? 4.0f : -4.0f;
+    rigid_body->initial_velocity_y = ((index % 3U) == 0U) ? -2.0f : 2.0f;
+    rigid_body->initial_angular_velocity = 0.45f + (float)index * 0.08f;
+    rigid_body->density = 1.0f;
+    rigid_body->friction = index == PLAYER_INDEX ? 0.45f : 0.18f;
+    rigid_body->restitution = index == PLAYER_INDEX ? 0.25f : 0.88f;
+    collider->shape = COLLIDER_SHAPE_CIRCLE;
+    collider->radius = game->balls[index].radius;
+
+    Entity_AddComponent(entity, &transform->base);
+    Entity_AddComponent(entity, &rigid_body->base);
+    Entity_AddComponent(entity, &collider->base);
+    if (camera_target != NULL) {
+        camera_target->follow = true;
+        camera_target->smoothing = 0.18f;
+        camera_target->lead_y = -24.0f;
+        Entity_AddComponent(entity, &camera_target->base);
+    }
+    if (!Scene_AddEntity(game->scene, entity)) {
+        Entity_Destroy(entity);
+        game->balls[index].entity = NULL;
+        game->balls[index].transform = NULL;
+        game->balls[index].rigid_body = NULL;
+        game->balls[index].collider = NULL;
+        return false;
+    }
+
+    game->active_ball_count += 1U;
+    return true;
+}
+
+static void game_update_spawn_curve(GameState* game, double dt_seconds) {
+    double progress;
+    size_t target_active_count;
+
+    if (game == NULL || game->spawn_cursor >= BALL_COUNT) {
+        return;
+    }
+
+    game->spawn_elapsed_seconds += dt_seconds;
+    progress = game->spawn_elapsed_seconds / SPAWN_FILL_DURATION_SECONDS;
+    if (progress < 0.0) {
+        progress = 0.0;
+    } else if (progress > 1.0) {
+        progress = 1.0;
+    }
+
+    target_active_count = (size_t)((double)BALL_COUNT * progress);
+    if (target_active_count < 1U) {
+        target_active_count = 1U;
+    }
+
+    while (game->active_ball_count < target_active_count && game->spawn_cursor < BALL_COUNT) {
+        if (game_spawn_ball(game, game->spawn_cursor)) {
+            game->spawn_cursor += 1U;
+        } else {
+            break;
+        }
+    }
+}
 
 static size_t game_find_ball_index(const GameState* game, const Entity* entity) {
     size_t index;
@@ -189,17 +315,7 @@ static void game_scene_input(Scene* scene, const SceneInputState* input_state, f
 
 static void game_init_world(GameState *game) {
     PhysicsWorldConfig physics_config = {0};
-    static const float adaptive_levels[] = { 60.0f, 45.0f, 30.0f, 20.0f, 15.0f, 10.0f };
-    size_t index;
-    const float ball_diameter = 14.0f;
-    const float margin_x = 40.0f;
-    const float margin_y = 40.0f;
-    const float usable_width = WORLD_WIDTH - margin_x * 2.0f;
-    const float usable_height = WORLD_HEIGHT - margin_y * 2.0f;
-    const size_t columns = (size_t)(usable_width / ball_diameter);
-    const size_t rows = (BALL_COUNT + columns - 1U) / columns;
-    const float spacing_x = columns > 1U ? usable_width / (float)(columns - 1U) : 0.0f;
-    const float spacing_y = rows > 1U ? usable_height / (float)(rows - 1U) : 0.0f;
+    static const float adaptive_levels[] = { 60.0f, 45.0f, 30.0f, 20.0f, 15.0f, 10.0f, 8.0f };
 
     physics_config.gravity_y = 38.0f;
     physics_config.target_hz = 60.0f;
@@ -207,7 +323,7 @@ static void game_init_world(GameState *game) {
     physics_config.adaptive_levels = adaptive_levels;
     physics_config.adaptive_level_count = sizeof(adaptive_levels) / sizeof(adaptive_levels[0]);
     physics_config.downshift_frame_ms = 12.0f;
-    physics_config.upshift_frame_ms = 7.5f;
+    physics_config.upshift_frame_ms = 6.0f;
     physics_config.tuner_hold_frames = 8U;
     physics_config.max_substeps = 4U;
     physics_config.step_substep_count = 4U;
@@ -257,70 +373,8 @@ static void game_init_world(GameState *game) {
         WORLD_WALL_THICKNESS * 0.5f,
         WORLD_HEIGHT * 0.5f
     );
-
-    for (index = 0; index < (sizeof(game->balls) / sizeof(game->balls[0])); ++index) {
-        Entity* entity = Entity_Create(0U);
-        TransformComponent* transform;
-        RigidBodyComponent* rigid_body;
-        ColliderComponent* collider;
-        CameraTargetComponent* camera_target = NULL;
-        float row = (float)(index / columns);
-        float column = (float)(index % columns);
-        float x = margin_x + column * spacing_x;
-        float y = margin_y + row * spacing_y;
-
-        transform = TransformComponent_Create(x, y, 0.0f);
-        rigid_body = RigidBodyComponent_Create();
-        collider = ColliderComponent_Create();
-        if (index == PLAYER_INDEX) {
-            camera_target = CameraTargetComponent_Create();
-        }
-        if (entity == NULL || transform == NULL || rigid_body == NULL || collider == NULL || (index == PLAYER_INDEX && camera_target == NULL)) {
-            if (entity != NULL) {
-                Entity_Destroy(entity);
-            } else {
-                TransformComponent_Destroy(transform);
-                RigidBodyComponent_Destroy(rigid_body);
-                ColliderComponent_Destroy(collider);
-                CameraTargetComponent_Destroy(camera_target);
-            }
-            continue;
-        }
-
-        game->balls[index].radius = 7.0f;
-        game->balls[index].entity = entity;
-        game->balls[index].transform = transform;
-        game->balls[index].rigid_body = rigid_body;
-        game->balls[index].collider = collider;
-
-        rigid_body->body_type = RIGID_BODY_DYNAMIC;
-        rigid_body->initial_velocity_x = ((index % 2U) == 0U) ? 4.0f : -4.0f;
-        rigid_body->initial_velocity_y = ((index % 3U) == 0U) ? -2.0f : 2.0f;
-        rigid_body->initial_angular_velocity = 0.45f + (float)index * 0.08f;
-        rigid_body->density = 1.0f;
-        rigid_body->friction = index == PLAYER_INDEX ? 0.45f : 0.18f;
-        rigid_body->restitution = index == PLAYER_INDEX ? 0.25f : 0.88f;
-        collider->shape = COLLIDER_SHAPE_CIRCLE;
-        collider->radius = game->balls[index].radius;
-
-        Entity_AddComponent(entity, &transform->base);
-        Entity_AddComponent(entity, &rigid_body->base);
-        Entity_AddComponent(entity, &collider->base);
-        if (camera_target != NULL) {
-            camera_target->follow = true;
-            camera_target->smoothing = 0.18f;
-            camera_target->lead_y = -24.0f;
-            Entity_AddComponent(entity, &camera_target->base);
-        }
-        if (!Scene_AddEntity(game->scene, entity)) {
-            Entity_Destroy(entity);
-            game->balls[index].entity = NULL;
-            game->balls[index].transform = NULL;
-            game->balls[index].rigid_body = NULL;
-            game->balls[index].collider = NULL;
-        }
-    }
-
+    game_spawn_ball(game, PLAYER_INDEX);
+    game->spawn_cursor = 1U;
 }
 
 static bool game_player_is_grounded(const GameState *game) {
@@ -600,9 +654,12 @@ int JimokomiGame_Run(void) {
 
     memset(&game, 0, sizeof(game));
     runtime_config_init_defaults(&runtime_config);
-        game.tracked_ball_index = PLAYER_INDEX;
+    game.tracked_ball_index = PLAYER_INDEX;
     game.selected_ball_index = INVALID_INDEX;
     game.dragged_ball_index = INVALID_INDEX;
+    game.active_ball_count = 0U;
+    game.spawn_cursor = 0U;
+    game.spawn_elapsed_seconds = 0.0;
     items = (SpriteRenderable*)calloc(BALL_COUNT, sizeof(*items));
     debug_entities = (DebugEntityView*)calloc(BALL_COUNT, sizeof(*debug_entities));
     if (items == NULL || debug_entities == NULL) {
@@ -696,7 +753,6 @@ int JimokomiGame_Run(void) {
         uint64_t now_ms;
         double dt_seconds;
         float render_alpha;
-        float physics_fixed_dt = 1.0f / 60.0f;
 
         raylib_backend_pump_events(&game.backend);
         now_ms = raylib_backend_now_ms();
@@ -707,6 +763,7 @@ int JimokomiGame_Run(void) {
             dt_seconds = 0.1;
         }
         game.last_tick_ms = now_ms;
+        game_update_spawn_curve(&game, dt_seconds);
 
         input_snapshot = raylib_backend_snapshot_input(&game.backend);
         Engine_update(&game.engine, dt_seconds, &input_snapshot);
@@ -726,14 +783,7 @@ int JimokomiGame_Run(void) {
         EngineProfiler_end_scope(&game.engine.profiler, "game.physics");
         physics_ms = game_now_ms() - physics_started_ms;
         Scene_UpdatePerformanceBudget(game.scene, (float)physics_ms);
-        if (game.scene != NULL && game.scene->physics_world != NULL) {
-            PhysicsWorldSnapshot physics_snapshot;
-            PhysicsWorld_GetSnapshot(game.scene->physics_world, &physics_snapshot);
-            if (physics_snapshot.physics_fixed_dt > 0.0f) {
-                physics_fixed_dt = physics_snapshot.physics_fixed_dt;
-            }
-        }
-        render_alpha = (float)clamp_f((float)(game.accumulator_seconds / physics_fixed_dt), 0.0f, 1.0f);
+        render_alpha = 1.0f;
 
         EngineProfiler_begin_scope(&game.engine.profiler, "game.debug_input");
         debug_overlay_handle_input(

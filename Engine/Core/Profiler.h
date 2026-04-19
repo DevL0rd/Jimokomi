@@ -11,6 +11,7 @@
 #define ENGINE_PROFILER_VALUE_CAPACITY 128
 
 typedef struct EngineProfilerConfig {
+    bool enabled;
     const char* path;
     const char* text_path;
     size_t max_frames;
@@ -47,6 +48,7 @@ typedef struct EngineProfilerSnapshot {
 } EngineProfilerSnapshot;
 
 typedef struct EngineProfiler {
+    bool enabled;
     char* path;
     char* text_path;
     size_t max_frames;

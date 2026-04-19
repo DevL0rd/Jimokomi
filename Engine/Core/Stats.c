@@ -9,30 +9,13 @@ static double engine_stats_now_ms(void) {
     return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
 }
 
-static void engine_stats_push_history(double* values, size_t* count, size_t capacity, double value) {
-    if (values == 0 || count == 0 || capacity == 0) {
-        return;
-    }
-
-    if (*count < capacity) {
-        values[*count] = value;
-        *count += 1;
-        return;
-    }
-
-    memmove(values, values + 1, sizeof(double) * (capacity - 1));
-    values[capacity - 1] = value;
-}
-
 void EngineStats_init(EngineStats* stats) {
     if (stats == 0) {
         return;
     }
 
     memset(stats, 0, sizeof(*stats));
-    stats->history_capacity = ENGINE_STATS_HISTORY_CAPACITY;
-    stats->fps_window_started_ms = engine_stats_now_ms();
-    stats->last_frame_ended_ms = stats->fps_window_started_ms;
+    stats->last_frame_ended_ms = engine_stats_now_ms();
 }
 
 void EngineStats_begin_update(EngineStats* stats) {
@@ -52,7 +35,6 @@ void EngineStats_end_update(EngineStats* stats) {
     if (stats->last_update_ms < 0.0) {
         stats->last_update_ms = 0.0;
     }
-    engine_stats_push_history(stats->update_history_ms, &stats->history_count, stats->history_capacity, stats->last_update_ms);
 }
 
 void EngineStats_begin_draw(EngineStats* stats) {
@@ -65,8 +47,6 @@ void EngineStats_begin_draw(EngineStats* stats) {
 
 void EngineStats_end_draw(EngineStats* stats) {
     double ended_ms = 0.0;
-    double elapsed_window = 0.0;
-    size_t frame_history_count = 0;
 
     if (stats == 0) {
         return;
@@ -79,7 +59,6 @@ void EngineStats_end_draw(EngineStats* stats) {
     }
 
     stats->frame_count += 1;
-    stats->fps_window_frames += 1;
     stats->last_frame_ms = ended_ms - stats->last_frame_ended_ms;
     if (stats->last_frame_ms < 0.0) {
         stats->last_frame_ms = 0.0;
@@ -87,17 +66,11 @@ void EngineStats_end_draw(EngineStats* stats) {
     stats->last_frame_ended_ms = ended_ms;
     if (stats->last_frame_ms > 0.0) {
         stats->instant_fps = 1000.0 / stats->last_frame_ms;
-    }
-
-    frame_history_count = stats->history_count;
-    engine_stats_push_history(stats->draw_history_ms, &frame_history_count, stats->history_capacity, stats->last_draw_ms);
-    engine_stats_push_history(stats->frame_history_ms, &frame_history_count, stats->history_capacity, stats->last_frame_ms);
-
-    elapsed_window = ended_ms - stats->fps_window_started_ms;
-    if (elapsed_window >= 1000.0) {
-        stats->fps = (double)stats->fps_window_frames * 1000.0 / elapsed_window;
-        stats->fps_window_started_ms = ended_ms;
-        stats->fps_window_frames = 0;
+        if (stats->fps <= 0.0) {
+            stats->fps = stats->instant_fps;
+        } else {
+            stats->fps = stats->fps * 0.9 + stats->instant_fps * 0.1;
+        }
     }
 }
 

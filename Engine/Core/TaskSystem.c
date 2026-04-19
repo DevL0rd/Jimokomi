@@ -56,7 +56,7 @@ static int task_system_default_worker_count(int online_cores) {
         online_cores = 1;
     }
 
-    workers = online_cores / 2;
+    workers = online_cores - 1;
     if (workers < 1) {
         workers = 1;
     }

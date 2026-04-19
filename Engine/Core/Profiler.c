@@ -158,6 +158,10 @@ bool EngineProfiler_init(EngineProfiler* profiler, const EngineProfilerConfig* c
     }
 
     memset(profiler, 0, sizeof(*profiler));
+    profiler->enabled = config != 0 ? config->enabled : false;
+    if (!profiler->enabled) {
+        return true;
+    }
     frame_capacity = (config != 0 && config->max_frames > 0) ? config->max_frames : 180;
     profiler->path = engine_profiler_strdup((config != 0 && config->path != 0) ? config->path : "logs/performance_profile.bin");
     profiler->text_path = engine_profiler_strdup((config != 0 && config->text_path != 0) ? config->text_path : "logs/performance_profile.txt");
@@ -176,7 +180,13 @@ void EngineProfiler_dispose(EngineProfiler* profiler) {
         return;
     }
 
+    if (!profiler->enabled) {
+        memset(profiler, 0, sizeof(*profiler));
+        return;
+    }
+
     EngineProfiler_flush(profiler);
+    engine_profiler_write_text_report(profiler);
     free(profiler->path);
     free(profiler->text_path);
     free(profiler->frame_history);
@@ -189,7 +199,7 @@ void EngineProfiler_dispose(EngineProfiler* profiler) {
 }
 
 void EngineProfiler_begin_frame(EngineProfiler* profiler, const char* frame_name) {
-    if (profiler == 0) {
+    if (profiler == 0 || !profiler->enabled) {
         return;
     }
 
@@ -206,7 +216,7 @@ void EngineProfiler_begin_frame_with_metadata(EngineProfiler* profiler, const ch
 }
 
 void EngineProfiler_begin_scope(EngineProfiler* profiler, const char* name) {
-    if (profiler == 0 || !profiler->has_current_frame || name == 0 || profiler->scope_stack_count >= ENGINE_PROFILER_MAX_SCOPE_DEPTH) {
+    if (profiler == 0 || !profiler->enabled || !profiler->has_current_frame || name == 0 || profiler->scope_stack_count >= ENGINE_PROFILER_MAX_SCOPE_DEPTH) {
         return;
     }
 
@@ -220,7 +230,7 @@ void EngineProfiler_end_scope(EngineProfiler* profiler, const char* name) {
     const char* scope_name = 0;
     EngineProfilerScopeSample* scope = 0;
 
-    if (profiler == 0 || !profiler->has_current_frame || profiler->scope_stack_count == 0) {
+    if (profiler == 0 || !profiler->enabled || !profiler->has_current_frame || profiler->scope_stack_count == 0) {
         return;
     }
 
@@ -243,7 +253,7 @@ void EngineProfiler_end_scope(EngineProfiler* profiler, const char* name) {
 void EngineProfiler_set_metadata_string(EngineProfiler* profiler, const char* key, const char* value) {
     EngineProfilerMetadataItem* item = 0;
 
-    if (profiler == 0 || !profiler->has_current_frame) {
+    if (profiler == 0 || !profiler->enabled || !profiler->has_current_frame) {
         return;
     }
 
@@ -267,7 +277,7 @@ void EngineProfiler_set_metadata_bool(EngineProfiler* profiler, const char* key,
 }
 
 void EngineProfiler_end_frame(EngineProfiler* profiler) {
-    if (profiler == 0 || !profiler->has_current_frame) {
+    if (profiler == 0 || !profiler->enabled || !profiler->has_current_frame) {
         return;
     }
 
@@ -299,7 +309,7 @@ void EngineProfiler_end_frame(EngineProfiler* profiler) {
 void EngineProfiler_flush(EngineProfiler* profiler) {
     FILE* file = 0;
 
-    if (profiler == 0 || profiler->path == 0) {
+    if (profiler == 0 || !profiler->enabled || profiler->path == 0) {
         return;
     }
 
@@ -310,22 +320,20 @@ void EngineProfiler_flush(EngineProfiler* profiler) {
         fwrite(profiler->frame_history, sizeof(EngineProfilerFrame), profiler->frame_count, file);
         fclose(file);
     }
-
-    engine_profiler_write_text_report(profiler);
 }
 
 EngineProfilerSnapshot EngineProfiler_get_snapshot(EngineProfiler* profiler) {
     EngineProfilerSnapshot snapshot;
 
-    snapshot.frame_count = profiler != 0 ? profiler->frame_count : 0;
-    snapshot.last_frame = (profiler != 0 && profiler->frame_count > 0) ? &profiler->frame_history[profiler->frame_count - 1] : 0;
+    snapshot.frame_count = (profiler != 0 && profiler->enabled) ? profiler->frame_count : 0;
+    snapshot.last_frame = (profiler != 0 && profiler->enabled && profiler->frame_count > 0) ? &profiler->frame_history[profiler->frame_count - 1] : 0;
     return snapshot;
 }
 
 const EngineProfilerFrame* EngineProfiler_get_last_frame_by_name(const EngineProfiler* profiler, const char* frame_name) {
     size_t index = 0;
 
-    if (profiler == 0 || frame_name == 0) {
+    if (profiler == 0 || !profiler->enabled || frame_name == 0) {
         return 0;
     }
 
@@ -344,7 +352,7 @@ double EngineProfiler_get_average_scope_for_frame(const EngineProfiler* profiler
     double total = 0.0;
     size_t count = 0;
 
-    if (profiler == 0 || frame_name == 0 || scope_name == 0) {
+    if (profiler == 0 || !profiler->enabled || frame_name == 0 || scope_name == 0) {
         return 0.0;
     }
 

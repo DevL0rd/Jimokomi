@@ -4,6 +4,76 @@
 #include <stdio.h>
 #include <string.h>
 
+static uint32_t game_color_from_hsv(float hue, float saturation, float value) {
+    float r;
+    float g;
+    float b;
+    float scaled_hue;
+    float sector_fraction;
+    float p;
+    float q;
+    float t;
+    int sector;
+    uint32_t red;
+    uint32_t green;
+    uint32_t blue;
+
+    while (hue < 0.0f) {
+        hue += 360.0f;
+    }
+    while (hue >= 360.0f) {
+        hue -= 360.0f;
+    }
+
+    if (saturation <= 0.0f) {
+        r = value;
+        g = value;
+        b = value;
+    } else {
+        scaled_hue = hue / 60.0f;
+        sector = (int)scaled_hue;
+        sector_fraction = scaled_hue - (float)sector;
+        p = value * (1.0f - saturation);
+        q = value * (1.0f - saturation * sector_fraction);
+        t = value * (1.0f - saturation * (1.0f - sector_fraction));
+
+        switch (sector) {
+            case 0: r = value; g = t; b = p; break;
+            case 1: r = q; g = value; b = p; break;
+            case 2: r = p; g = value; b = t; break;
+            case 3: r = p; g = q; b = value; break;
+            case 4: r = t; g = p; b = value; break;
+            default: r = value; g = p; b = q; break;
+        }
+    }
+
+    red = (uint32_t)(clamp_f(r, 0.0f, 1.0f) * 255.0f);
+    green = (uint32_t)(clamp_f(g, 0.0f, 1.0f) * 255.0f);
+    blue = (uint32_t)(clamp_f(b, 0.0f, 1.0f) * 255.0f);
+    return (red << 16) | (green << 8) | blue;
+}
+
+static void game_fill_ball_material(Material* material, size_t index) {
+    float hue = fmodf((float)index * 37.0f, 360.0f);
+    float accent_hue = fmodf(hue + 34.0f + (float)(index % 5U) * 7.0f, 360.0f);
+    float glow_hue = fmodf(hue + 110.0f + (float)(index % 3U) * 11.0f, 360.0f);
+
+    if (material == NULL) {
+        return;
+    }
+
+    memset(material, 0, sizeof(*material));
+    material->base_color = game_color_from_hsv(hue, 0.68f, 0.14f + (float)(index % 5U) * 0.03f);
+    material->accent_color = game_color_from_hsv(accent_hue, 0.62f, 0.75f + (float)(index % 4U) * 0.05f);
+    material->glow_color = game_color_from_hsv(glow_hue, 0.35f, 0.92f);
+    material->glare_color = game_color_from_hsv(glow_hue, 0.08f, 0.98f);
+    material->emissive = 0.85f + (float)(index % 7U) * 0.08f;
+    material->distortion = 0.18f + (float)(index % 9U) * 0.03f;
+    material->glare_strength = 0.40f + (float)(index % 6U) * 0.06f;
+    material->pulse_rate = 0.75f + (float)(index % 11U) * 0.09f;
+    material->shader_style = SHADER_STYLE_SPACE;
+}
+
 static void game_draw_ball_body(
     Target *target,
     const ProceduralTextureContext *context,
@@ -127,16 +197,7 @@ bool game_register_ball_visuals(
         return false;
     }
 
-    memset(&material, 0, sizeof(material));
-    material.base_color = 0x08101aU;
-    material.accent_color = 0x60a5faU;
-    material.glow_color = 0xe879f9U;
-    material.glare_color = 0xf8fafcU;
-    material.emissive = 1.25f;
-    material.distortion = 0.36f;
-    material.glare_strength = 0.78f;
-    material.pulse_rate = 1.15f;
-    material.shader_style = SHADER_STYLE_SPACE;
+    game_fill_ball_material(&material, 0U);
     shared_material_handle = resource_manager_register_material(
         &renderer->resource_manager,
         "material.space_ball.shared",

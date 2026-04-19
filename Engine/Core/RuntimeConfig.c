@@ -17,6 +17,7 @@ void runtime_config_init_defaults(RuntimeConfig* config) {
     config->engine.logger.flush_every = 1;
     config->engine.logger.echo_to_console = true;
     config->engine.logger.minimum_level = ENGINE_LOG_LEVEL_TRACE;
+    config->engine.profiler.enabled = false;
     config->engine.profiler.path = "logs/performance_profile.bin";
     config->engine.profiler.text_path = "logs/performance_profile.txt";
     config->engine.profiler.max_frames = 180;
