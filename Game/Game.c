@@ -21,7 +21,7 @@
 #include <string.h>
 #include <time.h>
 
-#define BALL_COUNT 8000
+#define BALL_COUNT 20000
 #define SOURCE_VARIANT_COUNT 8
 #define INVALID_INDEX ((size_t)-1)
 #define PLAYER_INDEX 0U
@@ -33,6 +33,8 @@
 #define PLAYER_JUMP_IMPULSE 585.0f
 #define WORLD_WALL_THICKNESS 32.0f
 #define SPAWN_FILL_DURATION_SECONDS 60.0
+#define BALL_DIAMETER 7.0f
+#define BALL_RADIUS 3.5f
 
 typedef struct Ball {
     Entity* entity;
@@ -85,12 +87,11 @@ static float game_lerp_angle(float a, float b, float alpha) {
 static bool game_player_is_grounded(const GameState* game);
 
 static void game_ball_spawn_position(size_t index, float* out_x, float* out_y) {
-    const float ball_diameter = 14.0f;
     const float margin_x = 40.0f;
     const float margin_y = 40.0f;
     const float usable_width = WORLD_WIDTH - margin_x * 2.0f;
     const float usable_height = WORLD_HEIGHT - margin_y * 2.0f;
-    const size_t columns = (size_t)(usable_width / ball_diameter);
+    const size_t columns = (size_t)(usable_width / BALL_DIAMETER);
     const size_t rows = (BALL_COUNT + columns - 1U) / columns;
     const float spacing_x = columns > 1U ? usable_width / (float)(columns - 1U) : 0.0f;
     const float spacing_y = rows > 1U ? usable_height / (float)(rows - 1U) : 0.0f;
@@ -138,7 +139,7 @@ static bool game_spawn_ball(GameState* game, size_t index) {
         return false;
     }
 
-    game->balls[index].radius = 7.0f;
+        game->balls[index].radius = BALL_RADIUS;
     game->balls[index].entity = entity;
     game->balls[index].transform = transform;
     game->balls[index].rigid_body = rigid_body;
@@ -147,7 +148,7 @@ static bool game_spawn_ball(GameState* game, size_t index) {
     rigid_body->body_type = RIGID_BODY_DYNAMIC;
     rigid_body->initial_velocity_x = ((index % 2U) == 0U) ? 4.0f : -4.0f;
     rigid_body->initial_velocity_y = ((index % 3U) == 0U) ? -2.0f : 2.0f;
-    rigid_body->initial_angular_velocity = 0.45f + (float)index * 0.08f;
+        rigid_body->initial_angular_velocity = 0.45f + (float)index * 0.04f;
     rigid_body->density = 1.0f;
     rigid_body->friction = index == PLAYER_INDEX ? 0.45f : 0.18f;
     rigid_body->restitution = index == PLAYER_INDEX ? 0.25f : 0.88f;

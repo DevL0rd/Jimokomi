@@ -4,6 +4,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#define BALL_RENDER_SIZE 7.0f
+#define BALL_RENDER_CENTER 3.5f
+#define BALL_RENDER_SCALE 0.5f
+
 static uint32_t game_color_from_hsv(float hue, float saturation, float value) {
     float r;
     float g;
@@ -94,17 +98,17 @@ static void game_draw_ball_body(
 
     (void)user_data;
 
-    target_circle_filled(target, (Vec2){ 7.0f, 7.0f }, 7.0f, outer_color);
-    target_circle_filled(target, (Vec2){ 7.0f, 7.0f }, 5.7f, inner_color);
-    target_circle_filled(target, (Vec2){ 7.0f, 7.0f }, 4.3f, core_color);
-    target_circle(target, (Vec2){ 7.0f, 7.0f }, 7.0f, (Color32){ 0xe9f5ffU });
+    target_circle_filled(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, 7.0f * BALL_RENDER_SCALE, outer_color);
+    target_circle_filled(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, 5.7f * BALL_RENDER_SCALE, inner_color);
+    target_circle_filled(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, 4.3f * BALL_RENDER_SCALE, core_color);
+    target_circle(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, 7.0f * BALL_RENDER_SCALE, (Color32){ 0xe9f5ffU });
 
     for (index = 0; index < ring_count; ++index) {
         float ring_phase = swirl_phase * (0.8f + (float)index * 0.15f) + (float)index * 1.7f;
-        float ring_radius = 1.5f + (float)index * 1.05f + sinf(ring_phase) * 0.3f;
+        float ring_radius = (1.5f + (float)index * 1.05f + sinf(ring_phase) * 0.3f) * BALL_RENDER_SCALE;
         Vec2 ring_center = {
-            14.0f + cosf(ring_phase * 0.25f) * (0.8f + (float)index * 0.35f),
-            14.0f + sinf(ring_phase * 0.22f) * (0.8f + (float)index * 0.35f)
+            BALL_RENDER_CENTER + cosf(ring_phase * 0.25f) * ((0.8f + (float)index * 0.35f) * BALL_RENDER_SCALE),
+            BALL_RENDER_CENTER + sinf(ring_phase * 0.22f) * ((0.8f + (float)index * 0.35f) * BALL_RENDER_SCALE)
         };
         target_circle(target, ring_center, ring_radius, index % 2 == 0 ? glow_color : inner_color);
     }
@@ -112,31 +116,41 @@ static void game_draw_ball_body(
     for (index = 0; index < 5; ++index) {
         float orbit_angle = swirl_phase * 0.45f + ((float)index * 1.25663706144f);
         Vec2 center = {
-            7.0f + cosf(orbit_angle) * orbit_radius,
-            7.0f + sinf(orbit_angle) * orbit_radius
+            BALL_RENDER_CENTER + cosf(orbit_angle) * (orbit_radius * BALL_RENDER_SCALE),
+            BALL_RENDER_CENTER + sinf(orbit_angle) * (orbit_radius * BALL_RENDER_SCALE)
         };
-        float star_radius = 0.65f + 0.45f * (0.5f + 0.5f * sinf(swirl_phase * 2.3f + (float)index));
+        float star_radius = (0.65f + 0.45f * (0.5f + 0.5f * sinf(swirl_phase * 2.3f + (float)index))) * BALL_RENDER_SCALE;
         target_circle_filled(target, center, star_radius, glow_color);
     }
 
     for (index = 0; index < 3; ++index) {
         float nebula_angle = swirl_phase + (float)index * 2.09439510239f;
         Rect nebula = {
-            6.0f + cosf(nebula_angle) * 3.5f,
-            7.0f + sinf(nebula_angle * 1.3f) * 2.5f,
-            10.0f + pulse * 1.5f,
-            4.0f + pulse
+            3.0f + cosf(nebula_angle) * (3.5f * BALL_RENDER_SCALE),
+            3.5f + sinf(nebula_angle * 1.3f) * (2.5f * BALL_RENDER_SCALE),
+            (10.0f + pulse * 1.5f) * BALL_RENDER_SCALE,
+            (4.0f + pulse) * BALL_RENDER_SCALE
         };
         target_oval_filled(target, nebula, index == 1 ? glow_color : inner_color);
     }
 
     {
         float glare_pulse = 0.5f + 0.5f * sinf(time_seconds * 2.0f);
-        Rect glare_fill_rect = { 5.0f, 3.0f, 10.0f + glare_pulse, 5.0f + glare_pulse * 0.8f };
-        Rect glare_outline_rect = { 4.0f, 2.0f, 12.0f + glare_pulse, 7.0f + glare_pulse * 0.8f };
+        Rect glare_fill_rect = {
+            2.5f,
+            1.5f,
+            (10.0f + glare_pulse) * BALL_RENDER_SCALE,
+            (5.0f + glare_pulse * 0.8f) * BALL_RENDER_SCALE
+        };
+        Rect glare_outline_rect = {
+            2.0f,
+            1.0f,
+            (12.0f + glare_pulse) * BALL_RENDER_SCALE,
+            (7.0f + glare_pulse * 0.8f) * BALL_RENDER_SCALE
+        };
         target_oval_filled(target, glare_fill_rect, glow_color);
         target_oval(target, glare_outline_rect, outer_color);
-        target_oval_filled(target, (Rect){ 16.0f, 17.0f, 4.0f, 2.0f }, glow_color);
+        target_oval_filled(target, (Rect){ 8.0f, 8.5f, 2.0f, 1.0f }, glow_color);
     }
 }
 
@@ -160,8 +174,8 @@ bool game_register_ball_visuals(
     }
 
     memset(&source_desc, 0, sizeof(source_desc));
-    source_desc.width = 14;
-    source_desc.height = 14;
+    source_desc.width = (int)BALL_RENDER_SIZE;
+    source_desc.height = (int)BALL_RENDER_SIZE;
     source_desc.animation_fps = 60.0f;
     source_desc.bake_animation_fps = 60.0f;
     source_desc.loop = true;

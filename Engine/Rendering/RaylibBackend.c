@@ -796,7 +796,7 @@ bool raylib_backend_init(
     }
 
     memset(backend, 0, sizeof(*backend));
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
     InitWindow(width, height, title != NULL ? title : "Jimokomi Native Experiment");
     if (!IsWindowReady()) {
         return false;
