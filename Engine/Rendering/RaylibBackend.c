@@ -169,6 +169,11 @@ static void raylib_backend_draw_rect_filled(void *userdata, Rect rect, Color32 c
     DrawRectangleRec((Rectangle){ rect.x, rect.y, rect.w, rect.h }, raylib_unpack_color(color));
 }
 
+static void raylib_backend_draw_triangle_filled(void *userdata, Vec2 a, Vec2 b, Vec2 c, Color32 color) {
+    (void)userdata;
+    DrawTriangle((Vector2){ a.x, a.y }, (Vector2){ b.x, b.y }, (Vector2){ c.x, c.y }, raylib_unpack_color(color));
+}
+
 static void raylib_backend_draw_circle(void *userdata, Vec2 center, float radius, Color32 color, bool filled) {
     (void)userdata;
     if (filled) {
@@ -215,6 +220,27 @@ static void raylib_backend_draw_surface(void *userdata, const Surface *surface, 
     dest.width = (float)raylib_surface->base.width;
     dest.height = (float)raylib_surface->base.height;
     DrawTexturePro(raylib_surface->target.texture, source, dest, (Vector2){ 0.0f, 0.0f }, 0.0f, WHITE);
+}
+
+static void raylib_backend_draw_surface_tinted(void *userdata, const Surface *surface, float x, float y, Color32 tint) {
+    const RaylibSurface *raylib_surface = raylib_surface_from_const_base(surface);
+    Rectangle source;
+    Rectangle dest;
+    (void)userdata;
+
+    if (raylib_surface == NULL) {
+        return;
+    }
+
+    source.x = 0.0f;
+    source.y = 0.0f;
+    source.width = (float)raylib_surface->base.width;
+    source.height = (float)-raylib_surface->base.height;
+    dest.x = x;
+    dest.y = y;
+    dest.width = (float)raylib_surface->base.width;
+    dest.height = (float)raylib_surface->base.height;
+    DrawTexturePro(raylib_surface->target.texture, source, dest, (Vector2){ 0.0f, 0.0f }, 0.0f, raylib_unpack_color(tint));
 }
 
 static void raylib_backend_draw_surface_ex(
@@ -298,6 +324,27 @@ static void raylib_backend_pop_clip(void *userdata) {
     }
 }
 
+static void raylib_backend_set_blend_mode(void *userdata, RenderBlendMode mode) {
+    (void)userdata;
+    switch (mode) {
+        case RENDER_BLEND_ADDITIVE:
+            BeginBlendMode(BLEND_ADDITIVE);
+            break;
+        case RENDER_BLEND_MULTIPLY:
+            BeginBlendMode(BLEND_MULTIPLIED);
+            break;
+        case RENDER_BLEND_ALPHA:
+        default:
+            BeginBlendMode(BLEND_ALPHA);
+            break;
+    }
+}
+
+static void raylib_backend_reset_blend_mode(void *userdata) {
+    (void)userdata;
+    EndBlendMode();
+}
+
 bool raylib_backend_init(
     RaylibBackend *backend,
     int width,
@@ -329,14 +376,18 @@ bool raylib_backend_init(
     backend->render_backend.draw_line = raylib_backend_draw_line;
     backend->render_backend.draw_rect = raylib_backend_draw_rect;
     backend->render_backend.draw_rect_filled = raylib_backend_draw_rect_filled;
+    backend->render_backend.draw_triangle_filled = raylib_backend_draw_triangle_filled;
     backend->render_backend.draw_circle = raylib_backend_draw_circle;
     backend->render_backend.draw_oval = raylib_backend_draw_oval;
     backend->render_backend.draw_text = raylib_backend_draw_text;
     backend->render_backend.draw_surface = raylib_backend_draw_surface;
+    backend->render_backend.draw_surface_tinted = raylib_backend_draw_surface_tinted;
     backend->render_backend.draw_surface_ex = raylib_backend_draw_surface_ex;
     backend->render_backend.draw_tilemap = raylib_backend_draw_tilemap;
     backend->render_backend.push_clip = raylib_backend_push_clip;
     backend->render_backend.pop_clip = raylib_backend_pop_clip;
+    backend->render_backend.set_blend_mode = raylib_backend_set_blend_mode;
+    backend->render_backend.reset_blend_mode = raylib_backend_reset_blend_mode;
     return true;
 }
 

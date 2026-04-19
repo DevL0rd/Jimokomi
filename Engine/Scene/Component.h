@@ -15,7 +15,8 @@ typedef enum ComponentType
     COMPONENT_TRANSFORM,
     COMPONENT_RIGID_BODY,
     COMPONENT_COLLIDER,
-    COMPONENT_CAMERA_TARGET
+    COMPONENT_CAMERA_TARGET,
+    COMPONENT_LIGHT
 } ComponentType;
 
 typedef struct Component

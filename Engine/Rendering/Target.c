@@ -49,6 +49,19 @@ void target_rect_filled(Target *target, Rect rect, Color32 color) {
     target->backend->draw_rect_filled(target->backend->userdata, target_offset_rect(target, rect), color);
 }
 
+void target_triangle_filled(Target *target, Vec2 a, Vec2 b, Vec2 c, Color32 color) {
+    if (target == NULL || target->backend == NULL || target->backend->draw_triangle_filled == NULL) {
+        return;
+    }
+    target->backend->draw_triangle_filled(
+        target->backend->userdata,
+        target_offset_vec2(target, a),
+        target_offset_vec2(target, b),
+        target_offset_vec2(target, c),
+        color
+    );
+}
+
 void target_circle(Target *target, Vec2 center, float radius, Color32 color) {
     if (target == NULL || target->backend == NULL || target->backend->draw_circle == NULL) {
         return;
@@ -89,6 +102,19 @@ void target_surface(Target *target, const Surface *surface, float x, float y) {
         return;
     }
     target->backend->draw_surface(target->backend->userdata, surface, x + target->origin.x, y + target->origin.y);
+}
+
+void target_surface_tinted(Target *target, const Surface *surface, float x, float y, Color32 tint) {
+    if (target == NULL || target->backend == NULL || target->backend->draw_surface_tinted == NULL) {
+        return;
+    }
+    target->backend->draw_surface_tinted(
+        target->backend->userdata,
+        surface,
+        x + target->origin.x,
+        y + target->origin.y,
+        tint
+    );
 }
 
 void target_surface_ex(Target *target, const Surface *surface, Rect dest, Vec2 origin, float rotation_degrees) {

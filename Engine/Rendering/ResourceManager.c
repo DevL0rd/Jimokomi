@@ -1,5 +1,6 @@
 #include "ResourceManager.h"
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -98,6 +99,35 @@ static bool resource_manager_reserve_pending_bakes(
     return true;
 }
 
+static bool resource_manager_reserve_bake_interest_entries(
+    ResourceManager* manager,
+    size_t required
+) {
+    BakeInterestEntry* next_values;
+    size_t next_capacity;
+
+    if (manager->bake_interest_capacity >= required) {
+        return true;
+    }
+
+    next_capacity = manager->bake_interest_capacity > 0U ? manager->bake_interest_capacity : 32U;
+    while (next_capacity < required) {
+        next_capacity *= 2U;
+    }
+
+    next_values = (BakeInterestEntry*)realloc(
+        manager->bake_interest_entries,
+        next_capacity * sizeof(*next_values)
+    );
+    if (next_values == NULL) {
+        return false;
+    }
+
+    manager->bake_interest_entries = next_values;
+    manager->bake_interest_capacity = next_capacity;
+    return true;
+}
+
 static ResourceHandle resource_handle(uint32_t id) {
     ResourceHandle handle;
     handle.id = id;
@@ -138,6 +168,8 @@ bool resource_manager_init(ResourceManager* manager, RenderBackend* backend) {
     memset(manager, 0, sizeof(*manager));
     manager->backend = backend;
     manager->bake_budget_per_frame = 500U;
+    manager->bake_admission_total_hits = 1U;
+    manager->bake_admission_frame_hits = 1U;
     return true;
 }
 
@@ -168,6 +200,7 @@ void resource_manager_dispose(ResourceManager* manager) {
     free(manager->visual_source_values);
     free(manager->baked_surfaces);
     free(manager->pending_bake_requests);
+    free(manager->bake_interest_entries);
     memset(manager, 0, sizeof(*manager));
 }
 
@@ -175,6 +208,7 @@ void resource_manager_begin_frame(ResourceManager* manager) {
     if (manager == NULL) {
         return;
     }
+    manager->frame_serial += 1U;
     manager->bake_requests_this_frame = 0U;
     if (manager->pending_bake_request_head > 0U &&
         manager->pending_bake_request_head == manager->pending_bake_request_count) {
@@ -319,9 +353,13 @@ ResourceHandle resource_manager_register_procedural_source(
     manager->visual_source_values[index].width = desc->width;
     manager->visual_source_values[index].height = desc->height;
     manager->visual_source_values[index].animation_fps = desc->animation_fps;
+    manager->visual_source_values[index].bake_animation_fps = desc->bake_animation_fps;
     manager->visual_source_values[index].loop = desc->loop;
     manager->visual_source_values[index].bake_policy = desc->bake_policy;
+    manager->visual_source_values[index].prebake_required =
+        desc->bake_policy != BAKE_POLICY_DISABLED ? true : desc->prebake_required;
     manager->visual_source_values[index].bake_instance_invariant = desc->bake_instance_invariant;
+    manager->visual_source_values[index].bake_ignores_material = desc->bake_ignores_material;
     manager->visual_source_values[index].bake_frame_count = desc->bake_frame_count;
     manager->visual_source_values[index].draw_body = desc->draw_body;
     manager->visual_source_values[index].draw_overlay = desc->draw_overlay;
@@ -381,13 +419,32 @@ static uint32_t resource_manager_normalize_frame_index(
     const VisualSourceResource* source,
     uint32_t frame_index
 ) {
+    uint32_t baked_frame_index = frame_index;
+    uint32_t baked_frame_count;
+
     if (source == NULL) {
         return frame_index;
     }
-    if (source->loop && source->bake_frame_count > 0U) {
-        return frame_index % source->bake_frame_count;
+
+    if (source->animation_fps > 0.0f && source->bake_animation_fps > 0.0f) {
+        float time_seconds = (float)frame_index / source->animation_fps;
+        baked_frame_index = (uint32_t)floorf(time_seconds * source->bake_animation_fps);
     }
-    return frame_index;
+
+    baked_frame_count = 0U;
+    if (source->bake_frame_count > 0U) {
+        if (source->animation_fps > 0.0f && source->bake_animation_fps > 0.0f) {
+            float loop_duration_seconds = (float)source->bake_frame_count / source->animation_fps;
+            baked_frame_count = (uint32_t)ceilf(loop_duration_seconds * source->bake_animation_fps);
+        } else {
+            baked_frame_count = source->bake_frame_count;
+        }
+    }
+
+    if (source->loop && baked_frame_count > 0U) {
+        return baked_frame_index % baked_frame_count;
+    }
+    return baked_frame_index;
 }
 
 static bool resource_manager_is_bake_eligible(
@@ -447,6 +504,67 @@ static bool resource_manager_has_pending_bake(
     return false;
 }
 
+static bool resource_manager_should_admit_bake(
+    ResourceManager* manager,
+    BakedSurfaceKey key
+) {
+    size_t index;
+    BakeInterestEntry* entry;
+
+    if (manager == NULL) {
+        return false;
+    }
+
+    for (index = 0U; index < manager->bake_interest_count; ++index) {
+        if (resource_manager_baked_key_equals(manager->bake_interest_entries[index].key, key)) {
+            entry = &manager->bake_interest_entries[index];
+            if (entry->last_seen_frame != manager->frame_serial) {
+                entry->frame_hits = 0U;
+                entry->last_seen_frame = manager->frame_serial;
+            }
+            entry->frame_hits += 1U;
+            entry->total_hits += 1U;
+            return entry->frame_hits >= manager->bake_admission_frame_hits ||
+                   entry->total_hits >= manager->bake_admission_total_hits;
+        }
+    }
+
+    if (!resource_manager_reserve_bake_interest_entries(manager, manager->bake_interest_count + 1U)) {
+        return false;
+    }
+
+    entry = &manager->bake_interest_entries[manager->bake_interest_count++];
+    memset(entry, 0, sizeof(*entry));
+    entry->key = key;
+    entry->total_hits = 1U;
+    entry->frame_hits = 1U;
+    entry->last_seen_frame = manager->frame_serial;
+    return entry->frame_hits >= manager->bake_admission_frame_hits ||
+           entry->total_hits >= manager->bake_admission_total_hits;
+}
+
+static bool resource_manager_enqueue_baked_request(
+    ResourceManager* manager,
+    BakedSurfaceKey key,
+    bool bypass_admission
+) {
+    if (manager == NULL) {
+        return false;
+    }
+    if (resource_manager_find_baked_surface(manager, key) != NULL ||
+        resource_manager_has_pending_bake(manager, key)) {
+        return false;
+    }
+    if (!bypass_admission && !resource_manager_should_admit_bake(manager, key)) {
+        return false;
+    }
+    if (!resource_manager_reserve_pending_bakes(manager, manager->pending_bake_request_count + 1U)) {
+        return false;
+    }
+    manager->pending_bake_requests[manager->pending_bake_request_count++].key = key;
+    return true;
+}
+
 static const Surface* resource_manager_build_baked_surface(
     ResourceManager* manager,
     const VisualSourceResource* source,
@@ -459,8 +577,10 @@ static const Surface* resource_manager_build_baked_surface(
     Surface* surface;
     Target target;
     ProceduralTextureContext context;
+    Material neutral_material;
+    const Material* context_material;
 
-    if (manager == NULL || source == NULL || material == NULL || manager->backend == NULL) {
+    if (manager == NULL || source == NULL || manager->backend == NULL) {
         return NULL;
     }
 
@@ -484,13 +604,34 @@ static const Surface* resource_manager_build_baked_surface(
     target_init(&target, manager->backend, 0.0f, 0.0f);
 
     memset(&context, 0, sizeof(context));
-    context.now_ms = (uint64_t)((source->animation_fps > 0.0f) ? ((double)key.frame_index / source->animation_fps) * 1000.0 : 0.0);
-    context.time_seconds = source->animation_fps > 0.0f ? (float)key.frame_index / source->animation_fps : 0.0f;
-    context.animation_fps = source->animation_fps;
+    context.now_ms = (uint64_t)(((source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps) > 0.0f)
+        ? ((double)key.frame_index / (source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps)) * 1000.0
+        : 0.0);
+    context.time_seconds = (source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps) > 0.0f
+        ? (float)key.frame_index / (source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps)
+        : 0.0f;
+    context.animation_fps = source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps;
     context.frame_index = key.frame_index;
     context.angle_radians = 0.0f;
-    context.material = &material->value;
-    context.shader_style = shader != NULL ? shader->style : material->value.shader_style;
+    memset(&neutral_material, 0, sizeof(neutral_material));
+    neutral_material.base_color = 0xffffffU;
+    neutral_material.accent_color = 0xd0d8e8U;
+    neutral_material.glow_color = 0xffffffU;
+    neutral_material.glare_color = 0xffffffU;
+    neutral_material.emissive = 1.0f;
+    neutral_material.distortion = 0.0f;
+    neutral_material.glare_strength = 1.0f;
+    neutral_material.pulse_rate = 1.0f;
+    neutral_material.shader_style = shader != NULL
+        ? shader->style
+        : (material != NULL ? material->value.shader_style : SHADER_STYLE_NONE);
+    context_material = source->bake_ignores_material
+        ? NULL
+        : (material != NULL ? &material->value : &neutral_material);
+    context.material = context_material;
+    context.shader_style = shader != NULL
+        ? shader->style
+        : (material != NULL ? material->value.shader_style : neutral_material.shader_style);
 
     if (key.pass == BAKED_SURFACE_PASS_BODY) {
         source->draw_body(&target, &context, user_data);
@@ -535,7 +676,7 @@ const Surface* resource_manager_get_baked_surface(
     }
 
     key.visual_source_id = visual_source_handle.id;
-    key.material_id = material_handle.id;
+    key.material_id = source->bake_ignores_material ? 0U : material_handle.id;
     key.shader_id = shader_handle.id;
     key.frame_index = resource_manager_normalize_frame_index(source, frame_index);
     key.pass = (uint8_t)pass;
@@ -572,21 +713,12 @@ void resource_manager_request_baked_surface(
     }
 
     key.visual_source_id = visual_source_handle.id;
-    key.material_id = material_handle.id;
+    key.material_id = source->bake_ignores_material ? 0U : material_handle.id;
     key.shader_id = shader_handle.id;
     key.frame_index = resource_manager_normalize_frame_index(source, frame_index);
     key.pass = (uint8_t)pass;
 
-    if (resource_manager_find_baked_surface(manager, key) != NULL ||
-        resource_manager_has_pending_bake(manager, key)) {
-        return;
-    }
-
-    if (!resource_manager_reserve_pending_bakes(manager, manager->pending_bake_request_count + 1U)) {
-        return;
-    }
-
-    manager->pending_bake_requests[manager->pending_bake_request_count++].key = key;
+    (void)resource_manager_enqueue_baked_request(manager, key, source->prebake_required);
 }
 
 void resource_manager_process_pending_bakes(ResourceManager* manager) {
@@ -600,7 +732,10 @@ void resource_manager_process_pending_bakes(ResourceManager* manager) {
 
         manager->pending_bake_request_head += 1U;
 
-        if (source == NULL || material == NULL || !resource_manager_is_bake_eligible(source, (BakedSurfacePass)key.pass)) {
+        if (source == NULL || !resource_manager_is_bake_eligible(source, (BakedSurfacePass)key.pass)) {
+            continue;
+        }
+        if (!source->bake_ignores_material && material == NULL) {
             continue;
         }
         if (resource_manager_find_baked_surface(manager, key) != NULL) {
@@ -626,18 +761,101 @@ bool resource_manager_prewarm_procedural_source(
     void* user_data
 ) {
     const VisualSourceResource* source;
+    const MaterialResource* material;
+    const ShaderResource* shader;
     uint32_t frame_count;
     uint32_t frame_index;
+    size_t previous_bake_budget;
+    BakedSurfaceKey key;
 
     source = resource_manager_get_visual_source(manager, visual_source_handle);
+    material = resource_manager_get_material(manager, material_handle);
+    shader = resource_manager_get_shader(manager, shader_handle);
+    if (manager == NULL || source == NULL) {
+        return false;
+    }
+    if (!source->bake_ignores_material && material == NULL) {
+        return false;
+    }
     if (!resource_manager_is_bake_eligible(source, BAKED_SURFACE_PASS_BODY) &&
         !resource_manager_is_bake_eligible(source, BAKED_SURFACE_PASS_OVERLAY)) {
         return false;
     }
 
     frame_count = source->bake_frame_count;
+    if (frame_count > 0U && source->animation_fps > 0.0f && source->bake_animation_fps > 0.0f) {
+        float loop_duration_seconds = (float)frame_count / source->animation_fps;
+        frame_count = (uint32_t)ceilf(loop_duration_seconds * source->bake_animation_fps);
+    }
     if (frame_count == 0U) {
-        frame_count = source->animation_fps > 0.0f ? (uint32_t)source->animation_fps : 1U;
+        frame_count = source->bake_animation_fps > 0.0f
+            ? (uint32_t)ceilf(source->bake_animation_fps)
+            : (source->animation_fps > 0.0f ? (uint32_t)ceilf(source->animation_fps) : 1U);
+    }
+    if (frame_count == 0U) {
+        frame_count = 1U;
+    }
+
+    previous_bake_budget = manager->bake_budget_per_frame;
+    manager->bake_budget_per_frame = 0U;
+
+    for (frame_index = 0U; frame_index < frame_count; ++frame_index) {
+        if (source->draw_body != NULL) {
+            key.visual_source_id = visual_source_handle.id;
+            key.material_id = source->bake_ignores_material ? 0U : material_handle.id;
+            key.shader_id = shader_handle.id;
+            key.frame_index = frame_index;
+            key.pass = (uint8_t)BAKED_SURFACE_PASS_BODY;
+            if (resource_manager_find_baked_surface(manager, key) == NULL &&
+                resource_manager_build_baked_surface(manager, source, material, shader, key, user_data) == NULL) {
+                manager->bake_budget_per_frame = previous_bake_budget;
+                return false;
+            }
+        }
+        if (source->draw_overlay != NULL) {
+            key.visual_source_id = visual_source_handle.id;
+            key.material_id = source->bake_ignores_material ? 0U : material_handle.id;
+            key.shader_id = shader_handle.id;
+            key.frame_index = frame_index;
+            key.pass = (uint8_t)BAKED_SURFACE_PASS_OVERLAY;
+            if (resource_manager_find_baked_surface(manager, key) == NULL &&
+                resource_manager_build_baked_surface(manager, source, material, shader, key, user_data) == NULL) {
+                manager->bake_budget_per_frame = previous_bake_budget;
+                return false;
+            }
+        }
+    }
+
+    manager->bake_budget_per_frame = previous_bake_budget;
+    return true;
+}
+
+size_t resource_manager_queue_required_prebake(
+    ResourceManager* manager,
+    ResourceHandle visual_source_handle,
+    ResourceHandle material_handle,
+    ResourceHandle shader_handle
+) {
+    const VisualSourceResource* source;
+    uint32_t frame_count;
+    uint32_t frame_index;
+    size_t enqueued_count = 0U;
+    BakedSurfaceKey key;
+
+    source = resource_manager_get_visual_source(manager, visual_source_handle);
+    if (manager == NULL || source == NULL || source->bake_policy == BAKE_POLICY_DISABLED || !source->prebake_required) {
+        return 0U;
+    }
+
+    frame_count = source->bake_frame_count;
+    if (frame_count > 0U && source->animation_fps > 0.0f && source->bake_animation_fps > 0.0f) {
+        float loop_duration_seconds = (float)frame_count / source->animation_fps;
+        frame_count = (uint32_t)ceilf(loop_duration_seconds * source->bake_animation_fps);
+    }
+    if (frame_count == 0U) {
+        frame_count = source->bake_animation_fps > 0.0f
+            ? (uint32_t)ceilf(source->bake_animation_fps)
+            : (source->animation_fps > 0.0f ? (uint32_t)ceilf(source->animation_fps) : 1U);
     }
     if (frame_count == 0U) {
         frame_count = 1U;
@@ -645,34 +863,35 @@ bool resource_manager_prewarm_procedural_source(
 
     for (frame_index = 0U; frame_index < frame_count; ++frame_index) {
         if (source->draw_body != NULL) {
-            if (resource_manager_get_baked_surface(
-                manager,
-                visual_source_handle,
-                material_handle,
-                shader_handle,
-                frame_index,
-                BAKED_SURFACE_PASS_BODY,
-                user_data
-            ) == NULL) {
-                return false;
+            key.visual_source_id = visual_source_handle.id;
+            key.material_id = source->bake_ignores_material ? 0U : material_handle.id;
+            key.shader_id = shader_handle.id;
+            key.frame_index = frame_index;
+            key.pass = (uint8_t)BAKED_SURFACE_PASS_BODY;
+            if (resource_manager_enqueue_baked_request(manager, key, true)) {
+                enqueued_count += 1U;
             }
         }
         if (source->draw_overlay != NULL) {
-            if (resource_manager_get_baked_surface(
-                manager,
-                visual_source_handle,
-                material_handle,
-                shader_handle,
-                frame_index,
-                BAKED_SURFACE_PASS_OVERLAY,
-                user_data
-            ) == NULL) {
-                return false;
+            key.visual_source_id = visual_source_handle.id;
+            key.material_id = source->bake_ignores_material ? 0U : material_handle.id;
+            key.shader_id = shader_handle.id;
+            key.frame_index = frame_index;
+            key.pass = (uint8_t)BAKED_SURFACE_PASS_OVERLAY;
+            if (resource_manager_enqueue_baked_request(manager, key, true)) {
+                enqueued_count += 1U;
             }
         }
     }
 
-    return true;
+    return enqueued_count;
+}
+
+size_t resource_manager_get_pending_bake_count(const ResourceManager* manager) {
+    if (manager == NULL || manager->pending_bake_request_count < manager->pending_bake_request_head) {
+        return 0U;
+    }
+    return manager->pending_bake_request_count - manager->pending_bake_request_head;
 }
 
 size_t resource_manager_get_texture_count(const ResourceManager* manager) {

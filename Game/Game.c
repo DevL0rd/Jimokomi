@@ -21,12 +21,13 @@
 #include <string.h>
 #include <time.h>
 
-#define BALL_COUNT 1000
+#define BALL_COUNT 100
 #define SOURCE_VARIANT_COUNT 8
 #define INVALID_INDEX ((size_t)-1)
 #define PLAYER_INDEX 0U
 #define WORLD_WIDTH 1920.0f
 #define WORLD_HEIGHT 1080.0f
+#define GRID_CELL_SIZE 96.0f
 #define PLAYER_MOVE_SPEED 160.0f
 #define PLAYER_MOVE_SMOOTHING 0.085f
 #define PLAYER_JUMP_IMPULSE 585.0f
@@ -55,6 +56,7 @@ typedef struct GameState {
     bool drag_active;
     double accumulator_seconds;
     uint64_t last_tick_ms;
+    WorldBackdropConfig backdrop;
     ResourceHandle shared_ball_shader_handle;
     ResourceHandle ball_source_handles[SOURCE_VARIANT_COUNT];
     ResourceHandle ball_material_handles[BALL_COUNT];
@@ -94,6 +96,52 @@ static double game_now_ms(void) {
     struct timespec ts;
     timespec_get(&ts, TIME_UTC);
     return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
+}
+
+static bool game_drain_required_prebakes(GameState* game) {
+    size_t total_required;
+    size_t previous_budget;
+
+    if (game == NULL) {
+        return false;
+    }
+
+    total_required = resource_manager_get_pending_bake_count(&game->renderer.resource_manager);
+    if (total_required == 0U) {
+        return true;
+    }
+    previous_budget = game->renderer.resource_manager.bake_budget_per_frame;
+    game->renderer.resource_manager.bake_budget_per_frame = 32U;
+
+    while (resource_manager_get_pending_bake_count(&game->renderer.resource_manager) > 0U) {
+        size_t pending_count = resource_manager_get_pending_bake_count(&game->renderer.resource_manager);
+        size_t completed_count = total_required > pending_count ? total_required - pending_count : 0U;
+        float progress = total_required > 0U ? (float)completed_count / (float)total_required : 1.0f;
+        Target target;
+        char label[96];
+
+        raylib_backend_pump_events(&game->backend);
+        if (raylib_backend_should_close(&game->backend)) {
+            game->renderer.resource_manager.bake_budget_per_frame = previous_budget;
+            return false;
+        }
+
+        raylib_backend_begin_frame(&game->backend, (Color32){ 0x0b1020U });
+        target_init(&target, &game->backend.render_backend, 0.0f, 0.0f);
+        target_rect_filled(&target, (Rect){ 180.0f, 230.0f, 600.0f, 84.0f }, (Color32){ 0x101828U });
+        target_rect_filled(&target, (Rect){ 196.0f, 276.0f, 568.0f * progress, 16.0f }, (Color32){ 0x60a5faU });
+        target_rect(&target, (Rect){ 196.0f, 276.0f, 568.0f, 16.0f }, (Color32){ 0xdbeafeU });
+        target_text(&target, 212.0f, 246.0f, "Preparing required baked resources...", (Color32){ 0xf8fafcU });
+        snprintf(label, sizeof(label), "%zu / %zu", completed_count, total_required);
+        target_text(&target, 212.0f, 298.0f, label, (Color32){ 0x93c5fdU });
+        raylib_backend_end_frame(&game->backend);
+
+        resource_manager_begin_frame(&game->renderer.resource_manager);
+        resource_manager_process_pending_bakes(&game->renderer.resource_manager);
+    }
+
+    game->renderer.resource_manager.bake_budget_per_frame = previous_budget;
+    return true;
 }
 
 static bool game_add_static_box(
@@ -141,7 +189,6 @@ static bool game_add_static_box(
 
     return true;
 }
-
 
 static void game_scene_input(Scene* scene, const SceneInputState* input_state, float dt_seconds, void* user_data) {
     GameState* game = (GameState*)user_data;
@@ -201,6 +248,9 @@ static void game_init_world(GameState *game) {
     game->scene->view.view_width = (float)game->renderer.view_width;
     game->scene->view.view_height = (float)game->renderer.view_height;
     game->scene->view.smoothing = 0.18f;
+    game->backdrop.world_width = WORLD_WIDTH;
+    game->backdrop.world_height = WORLD_HEIGHT;
+    game->backdrop.cell_size = GRID_CELL_SIZE;
     Scene_SetWorldBounds(game->scene, 0.0f, 0.0f, WORLD_WIDTH, WORLD_HEIGHT);
     Scene_SetKillBounds(game->scene, 0.0f, 0.0f, WORLD_WIDTH, WORLD_HEIGHT);
 
@@ -292,6 +342,7 @@ static void game_init_world(GameState *game) {
             game->balls[index].entity = NULL;
         }
     }
+
 }
 
 static bool game_player_is_grounded(const GameState *game) {
@@ -607,7 +658,14 @@ int JimokomiGame_Run(void) {
     }
     game.renderer.camera.x = game.scene->view.x;
     game.renderer.camera.y = game.scene->view.y;
-    if (!game_prewarm_ball_visuals(&game.renderer)) {
+    (void)game_queue_required_ball_prebakes(
+        &game.renderer,
+        game.shared_ball_shader_handle,
+        game.ball_source_handles,
+        SOURCE_VARIANT_COUNT,
+        game.ball_material_handles[0]
+    );
+    if (!game_drain_required_prebakes(&game)) {
         renderer_dispose(&game.renderer);
         Scene_Destroy(game.scene);
         task_system_dispose(&game.task_system);
@@ -624,7 +682,6 @@ int JimokomiGame_Run(void) {
         DebugOverlaySnapshot debug_snapshot;
         RendererFrame frame;
         const DebugEntityView *selected_entity;
-        Target world_target;
         TransformComponent* player_transform;
         RigidBodyComponent* player_body;
         uint32_t physics_substeps;
@@ -634,6 +691,11 @@ int JimokomiGame_Run(void) {
         double dt_seconds;
 
         raylib_backend_pump_events(&game.backend);
+        if (resource_manager_get_pending_bake_count(&game.renderer.resource_manager) > 0U) {
+            if (!game_drain_required_prebakes(&game)) {
+                break;
+            }
+        }
         now_ms = raylib_backend_now_ms();
         dt_seconds = (double)(now_ms - game.last_tick_ms) / 1000.0;
         if (dt_seconds < 0.0) {
@@ -728,6 +790,8 @@ int JimokomiGame_Run(void) {
         memset(&frame, 0, sizeof(frame));
         frame.items = items;
         frame.item_count = visible_count;
+        frame.backdrop_draw = game_draw_world_backdrop;
+        frame.backdrop_user_data = &game.backdrop;
         frame.draw_sprites = true;
         frame.now_ms = now_ms;
 
@@ -744,10 +808,6 @@ int JimokomiGame_Run(void) {
 
         Engine_draw_begin(&game.engine);
         raylib_backend_begin_frame(&game.backend, (Color32){ 0x0b1020U });
-        target_init(&world_target, &game.backend.render_backend, -game.renderer.camera.x, -game.renderer.camera.y);
-        EngineProfiler_begin_scope(&game.engine.profiler, "draw.backdrop");
-        game_draw_world_backdrop(&world_target, &game.renderer.camera, WORLD_WIDTH, WORLD_HEIGHT);
-        EngineProfiler_end_scope(&game.engine.profiler, "draw.backdrop");
         EngineProfiler_begin_scope(&game.engine.profiler, "draw.renderer");
         renderer_draw(&game.renderer, &game.backend.render_backend, &frame);
         EngineProfiler_end_scope(&game.engine.profiler, "draw.renderer");
@@ -781,6 +841,21 @@ int JimokomiGame_Run(void) {
         EngineProfiler_set_metadata_number(&game.engine.profiler, "resource_shaders", (double)resource_manager_get_shader_count(&game.renderer.resource_manager));
         EngineProfiler_set_metadata_number(&game.engine.profiler, "resource_baked_surfaces", (double)resource_manager_get_baked_surface_count(&game.renderer.resource_manager));
         EngineProfiler_set_metadata_number(&game.engine.profiler, "resource_prebake_budget", (double)game.renderer.resource_manager.bake_budget_per_frame);
+        EngineProfiler_set_metadata_number(
+            &game.engine.profiler,
+            "resource_pending_bakes",
+            (double)(game.renderer.resource_manager.pending_bake_request_count - game.renderer.resource_manager.pending_bake_request_head)
+        );
+        EngineProfiler_set_metadata_number(
+            &game.engine.profiler,
+            "resource_bake_interest_entries",
+            (double)game.renderer.resource_manager.bake_interest_count
+        );
+        EngineProfiler_set_metadata_number(
+            &game.engine.profiler,
+            "resource_bake_requests_this_frame",
+            (double)game.renderer.resource_manager.bake_requests_this_frame
+        );
         EngineProfiler_set_metadata_number(&game.engine.profiler, "renderer_last_items", (double)game.renderer.last_render_item_count);
         EngineProfiler_set_metadata_number(&game.engine.profiler, "renderer_last_sprites", (double)game.renderer.last_sprite_draw_count);
         EngineProfiler_set_metadata_number(&game.engine.profiler, "renderer_visible_items", (double)game.renderer.last_visible_item_count);

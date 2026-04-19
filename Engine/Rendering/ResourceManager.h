@@ -57,9 +57,12 @@ typedef struct ProceduralSourceDesc {
     int width;
     int height;
     float animation_fps;
+    float bake_animation_fps;
     bool loop;
     BakePolicy bake_policy;
+    bool prebake_required;
     bool bake_instance_invariant;
+    bool bake_ignores_material;
     uint32_t bake_frame_count;
     SpriteBuilder draw_body;
     SpriteBuilder draw_overlay;
@@ -82,9 +85,12 @@ typedef struct VisualSourceResource {
     int width;
     int height;
     float animation_fps;
+    float bake_animation_fps;
     bool loop;
     BakePolicy bake_policy;
+    bool prebake_required;
     bool bake_instance_invariant;
+    bool bake_ignores_material;
     uint32_t bake_frame_count;
     SpriteBuilder draw_body;
     SpriteBuilder draw_overlay;
@@ -112,6 +118,13 @@ typedef struct BakedSurfaceResource {
 typedef struct PendingBakeRequest {
     BakedSurfaceKey key;
 } PendingBakeRequest;
+
+typedef struct BakeInterestEntry {
+    BakedSurfaceKey key;
+    uint32_t total_hits;
+    uint32_t frame_hits;
+    uint64_t last_seen_frame;
+} BakeInterestEntry;
 
 typedef struct ResourceEntry {
     char* key;
@@ -146,8 +159,14 @@ typedef struct ResourceManager {
     size_t pending_bake_request_count;
     size_t pending_bake_request_capacity;
     size_t pending_bake_request_head;
+    BakeInterestEntry* bake_interest_entries;
+    size_t bake_interest_count;
+    size_t bake_interest_capacity;
     size_t bake_budget_per_frame;
     size_t bake_requests_this_frame;
+    size_t bake_admission_total_hits;
+    size_t bake_admission_frame_hits;
+    uint64_t frame_serial;
 
     RenderBackend* backend;
 } ResourceManager;
@@ -218,6 +237,13 @@ bool resource_manager_prewarm_procedural_source(
     ResourceHandle shader_handle,
     void* user_data
 );
+size_t resource_manager_queue_required_prebake(
+    ResourceManager* manager,
+    ResourceHandle visual_source_handle,
+    ResourceHandle material_handle,
+    ResourceHandle shader_handle
+);
+size_t resource_manager_get_pending_bake_count(const ResourceManager* manager);
 
 size_t resource_manager_get_texture_count(const ResourceManager* manager);
 size_t resource_manager_get_material_count(const ResourceManager* manager);

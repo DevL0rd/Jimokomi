@@ -25,6 +25,8 @@ void runtime_config_init_defaults(RuntimeConfig* config) {
     config->renderer.view_width = 960;
     config->renderer.view_height = 540;
     config->renderer.prebake_budget_per_frame = 20U;
+    config->renderer.prebake_admission_total_hits = 1U;
+    config->renderer.prebake_admission_frame_hits = 1U;
 
     config->default_procedural_bake_policy = BAKE_POLICY_SHARED_FRAME;
     config->default_bake_instance_invariant = true;

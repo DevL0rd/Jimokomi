@@ -9,6 +9,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+typedef struct WorldBackdropConfig {
+    float world_width;
+    float world_height;
+    float cell_size;
+} WorldBackdropConfig;
+
 bool game_register_ball_visuals(
     Renderer* renderer,
     const RuntimeConfig* runtime_config,
@@ -18,8 +24,13 @@ bool game_register_ball_visuals(
     ResourceHandle* material_handles,
     size_t material_count
 );
-
-bool game_prewarm_ball_visuals(Renderer* renderer);
-void game_draw_world_backdrop(Target* target, const Camera* camera, float world_width, float world_height);
+size_t game_queue_required_ball_prebakes(
+    Renderer* renderer,
+    ResourceHandle shader_handle,
+    const ResourceHandle* source_handles,
+    size_t source_count,
+    ResourceHandle representative_material_handle
+);
+void game_draw_world_backdrop(Target* target, const Camera* camera, void* user_data);
 
 #endif

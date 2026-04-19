@@ -6,6 +6,8 @@
 #include "ResourceManager.h"
 #include "Target.h"
 
+struct Scene;
+
 typedef struct SpriteRenderable {
     float x;
     float y;
@@ -24,11 +26,17 @@ typedef struct RendererConfig {
     int view_width;
     int view_height;
     size_t prebake_budget_per_frame;
+    size_t prebake_admission_total_hits;
+    size_t prebake_admission_frame_hits;
 } RendererConfig;
+
+typedef void (*RendererBackdropDrawFn)(Target* target, const Camera* camera, void* user_data);
 
 typedef struct RendererFrame {
     const SpriteRenderable *items;
     size_t item_count;
+    RendererBackdropDrawFn backdrop_draw;
+    void* backdrop_user_data;
     DebugEntityView *debug_entities;
     size_t debug_entity_count;
     DebugCollisionView *debug_collisions;

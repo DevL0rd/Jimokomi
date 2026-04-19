@@ -9,16 +9,16 @@ static void game_draw_ball_body(
     const ProceduralTextureContext *context,
     void *user_data
 ) {
-    const float angle = context != NULL ? context->angle_radians : 0.0f;
     float time_seconds = context != NULL ? context->time_seconds : 0.0f;
     const Material* material = context != NULL ? context->material : NULL;
-    float swirl_phase = time_seconds * (material != NULL ? material->pulse_rate : 1.0f);
+    float pulse_rate = material != NULL ? material->pulse_rate : 1.0f;
+    float swirl_phase = time_seconds * pulse_rate;
     float pulse = 0.5f + 0.5f * sinf(swirl_phase * 1.7f);
     float orbit_radius = 4.5f + pulse * 2.5f;
-    Color32 outer_color = (Color32){ material != NULL ? material->base_color : 0x1d3557U };
-    Color32 inner_color = (Color32){ material != NULL ? material->accent_color : 0x2a9d8fU };
-    Color32 glow_color = (Color32){ material != NULL ? material->glow_color : 0xa8dadcU };
-    Color32 core_color = (Color32){ 0x08101aU };
+    Color32 outer_color = (Color32){ material != NULL ? material->base_color : 0xf2f6ffU };
+    Color32 inner_color = (Color32){ material != NULL ? material->accent_color : 0xcfd8ebU };
+    Color32 glow_color = (Color32){ material != NULL ? material->glow_color : 0xffffffU };
+    Color32 core_color = (Color32){ material != NULL ? 0x08101aU : 0x445066U };
     int ring_count = 4;
     int index;
 
@@ -33,14 +33,14 @@ static void game_draw_ball_body(
         float ring_phase = swirl_phase * (0.8f + (float)index * 0.15f) + (float)index * 1.7f;
         float ring_radius = 3.0f + (float)index * 2.1f + sinf(ring_phase) * 0.6f;
         Vec2 ring_center = {
-            14.0f + cosf(angle * 0.4f + ring_phase * 0.25f) * (0.8f + (float)index * 0.35f),
-            14.0f + sinf(angle * 0.35f + ring_phase * 0.22f) * (0.8f + (float)index * 0.35f)
+            14.0f + cosf(ring_phase * 0.25f) * (0.8f + (float)index * 0.35f),
+            14.0f + sinf(ring_phase * 0.22f) * (0.8f + (float)index * 0.35f)
         };
         target_circle(target, ring_center, ring_radius, index % 2 == 0 ? glow_color : inner_color);
     }
 
     for (index = 0; index < 5; ++index) {
-        float orbit_angle = angle + swirl_phase * 0.45f + ((float)index * 1.25663706144f);
+        float orbit_angle = swirl_phase * 0.45f + ((float)index * 1.25663706144f);
         Vec2 center = {
             14.0f + cosf(orbit_angle) * orbit_radius,
             14.0f + sinf(orbit_angle) * orbit_radius
@@ -70,8 +70,8 @@ static void game_draw_ball_overlay(
     const Material* material = context != NULL ? context->material : NULL;
     float time_seconds = context != NULL ? context->time_seconds : 0.0f;
     float pulse = 0.5f + 0.5f * sinf(time_seconds * 2.0f);
-    Color32 glare_fill = (Color32){ material != NULL ? material->glare_color : 0xf1faeeU };
-    Color32 glare_outline = (Color32){ material != NULL ? material->glow_color : 0x457b9dU };
+    Color32 glare_fill = (Color32){ material != NULL ? material->glare_color : 0xffffffU };
+    Color32 glare_outline = (Color32){ material != NULL ? material->glow_color : 0xdbeafeU };
     target_oval_filled(target, (Rect){ 5.0f, 3.0f, 10.0f + pulse, 5.0f + pulse * 0.8f }, glare_fill);
     target_oval(target, (Rect){ 4.0f, 2.0f, 12.0f + pulse, 7.0f + pulse * 0.8f }, glare_outline);
     target_oval_filled(target, (Rect){ 16.0f, 17.0f, 4.0f, 2.0f }, glare_fill);
@@ -101,13 +101,16 @@ bool game_register_ball_visuals(
         source_desc.width = 28;
         source_desc.height = 28;
         source_desc.animation_fps = 60.0f;
+        source_desc.bake_animation_fps = 15.0f;
         source_desc.loop = true;
         source_desc.bake_policy = runtime_config != NULL
             ? runtime_config->default_procedural_bake_policy
             : BAKE_POLICY_SHARED_FRAME;
+        source_desc.prebake_required = false;
         source_desc.bake_instance_invariant = runtime_config != NULL
             ? runtime_config->default_bake_instance_invariant
             : true;
+        source_desc.bake_ignores_material = true;
         source_desc.bake_frame_count = frame_options[index % (sizeof(frame_options) / sizeof(frame_options[0]))];
         source_desc.draw_body = game_draw_ball_body;
         source_desc.draw_overlay = game_draw_ball_overlay;
@@ -133,6 +136,7 @@ bool game_register_ball_visuals(
 
     for (index = 0U; index < material_count; ++index) {
         uint32_t hue_step = (uint32_t)((index * 37U) & 0xffU);
+        bool is_glow_variant = index != 0U && ((index % 12U) == 0U || (index % 17U) == 0U);
 
         memset(&material, 0, sizeof(material));
         if (index == 0U) {
@@ -153,6 +157,17 @@ bool game_register_ball_visuals(
             material.distortion = 0.18f + (float)(index % 9U) * 0.05f;
             material.glare_strength = 0.25f + (float)(index % 5U) * 0.04f;
             material.pulse_rate = 0.45f + (float)(index % 11U) * 0.11f;
+
+            if (is_glow_variant) {
+                material.base_color = 0x09111dU;
+                material.accent_color = (index % 24U) == 0U ? 0x38bdf8U : 0x22c55eU;
+                material.glow_color = (index % 24U) == 0U ? 0xe0f2feU : 0xdcfce7U;
+                material.glare_color = 0xffffffU;
+                material.emissive = 1.35f + (float)(index % 3U) * 0.2f;
+                material.distortion = 0.14f;
+                material.glare_strength = 0.72f + (float)(index % 2U) * 0.14f;
+                material.pulse_rate = 1.35f + (float)(index % 5U) * 0.08f;
+            }
         }
 
         material.shader_style = SHADER_STYLE_SPACE;
@@ -170,12 +185,40 @@ bool game_register_ball_visuals(
     return true;
 }
 
-bool game_prewarm_ball_visuals(Renderer* renderer) {
-    return renderer != NULL;
+size_t game_queue_required_ball_prebakes(
+    Renderer* renderer,
+    ResourceHandle shader_handle,
+    const ResourceHandle* source_handles,
+    size_t source_count,
+    ResourceHandle representative_material_handle
+) {
+    size_t index;
+    size_t queued = 0U;
+
+    if (renderer == NULL || source_handles == NULL || representative_material_handle.id == 0U) {
+        return 0U;
+    }
+
+    for (index = 0U; index < source_count; ++index) {
+        if (source_handles[index].id == 0U) {
+            continue;
+        }
+        queued += resource_manager_queue_required_prebake(
+            &renderer->resource_manager,
+            source_handles[index],
+            representative_material_handle,
+            shader_handle
+        );
+    }
+
+    return queued;
 }
 
-void game_draw_world_backdrop(Target* target, const Camera* camera, float world_width, float world_height) {
-    const float tile_size = 64.0f;
+void game_draw_world_backdrop(Target* target, const Camera* camera, void* user_data) {
+    const WorldBackdropConfig* config = (const WorldBackdropConfig*)user_data;
+    const float tile_size = config != NULL && config->cell_size > 0.0f ? config->cell_size : 64.0f;
+    const float world_width = config != NULL ? config->world_width : 1920.0f;
+    const float world_height = config != NULL ? config->world_height : 1080.0f;
     int start_x;
     int end_x;
     int start_y;
