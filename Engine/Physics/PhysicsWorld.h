@@ -55,6 +55,12 @@ typedef struct PhysicsWorldSnapshot
     uint32_t body_create_count;
     uint32_t body_remove_count;
     uint32_t shape_change_count;
+    uint32_t task_worker_count;
+    uint32_t task_background_thread_count;
+    uint32_t box2d_enqueued_task_count;
+    uint32_t box2d_inline_task_count;
+    uint32_t box2d_main_chunk_count;
+    uint32_t box2d_worker_chunk_count;
 } PhysicsWorldSnapshot;
 
 typedef struct PhysicsContactHit

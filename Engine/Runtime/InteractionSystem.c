@@ -68,8 +68,8 @@ void InteractionSystem_UpdateRender(
     float viewport_height = 1.0f;
     float pan_scale_x = 1.0f;
     float pan_scale_y = 1.0f;
-    float pan_dx = 0.0f;
-    float pan_dy = 0.0f;
+    float key_pan_dx = 0.0f;
+    float key_pan_dy = 0.0f;
     float zoom_steps = 0.0f;
     float dt;
     bool camera_rect_dirty;
@@ -192,11 +192,12 @@ void InteractionSystem_UpdateRender(
     {
         if (EngineInput_is_mouse_down(input, 1U))
         {
-            pan_dx = (float)(input->mouse_x - state->camera_pan_start_mouse_x) * pan_scale_x;
-            pan_dy = (float)(input->mouse_y - state->camera_pan_start_mouse_y) * pan_scale_y;
-            camera->x = state->camera_pan_start_x - pan_dx;
-            camera->y = state->camera_pan_start_y - pan_dy;
+            float mouse_pan_dx = (float)(input->mouse_x - state->camera_pan_start_mouse_x) * pan_scale_x;
+            float mouse_pan_dy = (float)(input->mouse_y - state->camera_pan_start_mouse_y) * pan_scale_y;
+            camera->x = state->camera_pan_start_x - mouse_pan_dx;
+            camera->y = state->camera_pan_start_y - mouse_pan_dy;
             camera_clamp_to_bounds(camera, resolved_config->camera_min_view_width, resolved_config->camera_min_view_height);
+            state->hover_cache_valid = false;
         }
         else
         {
@@ -212,14 +213,14 @@ void InteractionSystem_UpdateRender(
         }
     }
 
-    if (EngineInput_is_down(input, ENGINE_INPUT_ACTION_PAN_LEFT)) pan_dx -= resolved_config->camera_pan_key_speed * (float)dt_seconds;
-    if (EngineInput_is_down(input, ENGINE_INPUT_ACTION_PAN_RIGHT)) pan_dx += resolved_config->camera_pan_key_speed * (float)dt_seconds;
-    if (EngineInput_is_down(input, ENGINE_INPUT_ACTION_PAN_UP)) pan_dy -= resolved_config->camera_pan_key_speed * (float)dt_seconds;
-    if (EngineInput_is_down(input, ENGINE_INPUT_ACTION_PAN_DOWN)) pan_dy += resolved_config->camera_pan_key_speed * (float)dt_seconds;
-    if (pan_dx != 0.0f || pan_dy != 0.0f)
+    if (EngineInput_is_down(input, ENGINE_INPUT_ACTION_PAN_LEFT)) key_pan_dx -= resolved_config->camera_pan_key_speed * (float)dt_seconds;
+    if (EngineInput_is_down(input, ENGINE_INPUT_ACTION_PAN_RIGHT)) key_pan_dx += resolved_config->camera_pan_key_speed * (float)dt_seconds;
+    if (EngineInput_is_down(input, ENGINE_INPUT_ACTION_PAN_UP)) key_pan_dy -= resolved_config->camera_pan_key_speed * (float)dt_seconds;
+    if (EngineInput_is_down(input, ENGINE_INPUT_ACTION_PAN_DOWN)) key_pan_dy += resolved_config->camera_pan_key_speed * (float)dt_seconds;
+    if (key_pan_dx != 0.0f || key_pan_dy != 0.0f)
     {
-        camera->x += pan_dx;
-        camera->y += pan_dy;
+        camera->x += key_pan_dx;
+        camera->y += key_pan_dy;
         camera_clamp_to_bounds(camera, resolved_config->camera_min_view_width, resolved_config->camera_min_view_height);
         state->hover_cache_valid = false;
     }

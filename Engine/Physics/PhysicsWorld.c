@@ -43,6 +43,12 @@ static float PhysicsWorld_ClampHz(float value, float min_hz, float max_hz)
     return clamp_f(value, min_hz, max_hz);
 }
 
+static uint32_t PhysicsWorld_ClampTaskDelta(uint64_t after, uint64_t before)
+{
+    uint64_t delta = after >= before ? after - before : 0U;
+    return delta > UINT32_MAX ? UINT32_MAX : (uint32_t)delta;
+}
+
 static void PhysicsWorld_SetTargetHz(PhysicsWorld* world, float target_hz)
 {
     if (world == NULL || world->lifecycle == NULL)
@@ -354,6 +360,7 @@ void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
     world->lifecycle->step_substep_count = world->lifecycle->base_step_substep_count;
     world_def.gravity = (b2Vec2){world->lifecycle->gravity_x, world->lifecycle->gravity_y};
     world_def.enableSleep = true;
+    world->lifecycle->task_system = config != NULL ? config->task_system : NULL;
     if (config != NULL && config->task_system != NULL)
     {
         task_system_configure_box2d_world_def(config->task_system, &world_def);
@@ -439,6 +446,9 @@ void PhysicsWorld_GetStepConfig(const PhysicsWorld* world, float* out_fixed_dt, 
 void PhysicsWorld_Update(PhysicsWorld* world, struct Scene* scene, float dt_seconds)
 {
     double step_started_ms = 0.0;
+    TaskSystemStatsSnapshot task_stats_before;
+    TaskSystemStatsSnapshot task_stats_after;
+    bool has_task_stats = false;
 
     if (world == NULL || scene == NULL || !world->lifecycle->has_world)
     {
@@ -448,9 +458,31 @@ void PhysicsWorld_Update(PhysicsWorld* world, struct Scene* scene, float dt_seco
     PhysicsWorld_SyncEntities(world, scene);
     if (dt_seconds > 0.0f)
     {
+        if (world->lifecycle->task_system != NULL)
+        {
+            task_system_get_stats_snapshot(world->lifecycle->task_system, &task_stats_before);
+            has_task_stats = true;
+        }
+
         step_started_ms = PhysicsWorld_NowMs();
         b2World_Step(world->lifecycle->world_id, (float)dt_seconds, (int)world->lifecycle->step_substep_count);
         world->stats->last_box2d_step_wall_ms = PhysicsWorld_NowMs() - step_started_ms;
+
+        if (has_task_stats)
+        {
+            task_system_get_stats_snapshot(world->lifecycle->task_system, &task_stats_after);
+            world->stats->task_worker_count = task_stats_after.worker_count > 0 ? (uint32_t)task_stats_after.worker_count : 0U;
+            world->stats->task_background_thread_count =
+                task_stats_after.background_thread_count > 0 ? (uint32_t)task_stats_after.background_thread_count : 0U;
+            world->stats->box2d_enqueued_task_count =
+                PhysicsWorld_ClampTaskDelta(task_stats_after.enqueued_task_count, task_stats_before.enqueued_task_count);
+            world->stats->box2d_inline_task_count =
+                PhysicsWorld_ClampTaskDelta(task_stats_after.inline_task_count, task_stats_before.inline_task_count);
+            world->stats->box2d_main_chunk_count =
+                PhysicsWorld_ClampTaskDelta(task_stats_after.main_chunk_count, task_stats_before.main_chunk_count);
+            world->stats->box2d_worker_chunk_count =
+                PhysicsWorld_ClampTaskDelta(task_stats_after.worker_chunk_count, task_stats_before.worker_chunk_count);
+        }
     }
     scene->stats->last_physics_substeps = dt_seconds > 0.0f ? 1u : 0u;
     PhysicsWorld_SyncBodiesToTransforms(world, scene);

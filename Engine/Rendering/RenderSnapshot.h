@@ -33,6 +33,12 @@ typedef struct RenderSnapshotPhysicsStats {
     uint32_t physics_body_create_queue;
     uint32_t physics_body_remove_queue;
     uint32_t physics_shape_change_queue;
+    uint32_t physics_task_worker_count;
+    uint32_t physics_task_background_thread_count;
+    uint32_t physics_task_enqueued_count;
+    uint32_t physics_task_inline_count;
+    uint32_t physics_task_main_chunk_count;
+    uint32_t physics_task_worker_chunk_count;
 } RenderSnapshotPhysicsStats;
 
 typedef struct RenderSnapshotResourceStats {

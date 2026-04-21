@@ -5,6 +5,7 @@
 
 struct PhysicsWorldLifecycleState {
     b2WorldId world_id;
+    const struct TaskSystem* task_system;
     bool has_world;
     float gravity_x;
     float gravity_y;

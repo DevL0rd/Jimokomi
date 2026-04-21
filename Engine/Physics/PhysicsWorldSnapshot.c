@@ -35,4 +35,10 @@ void PhysicsWorld_GetSnapshot(const PhysicsWorld* world, PhysicsWorldSnapshot* s
     snapshot->body_create_count = (uint32_t)world->stats->body_create_count;
     snapshot->body_remove_count = (uint32_t)world->stats->body_remove_count;
     snapshot->shape_change_count = (uint32_t)world->stats->shape_change_count;
+    snapshot->task_worker_count = world->stats->task_worker_count;
+    snapshot->task_background_thread_count = world->stats->task_background_thread_count;
+    snapshot->box2d_enqueued_task_count = world->stats->box2d_enqueued_task_count;
+    snapshot->box2d_inline_task_count = world->stats->box2d_inline_task_count;
+    snapshot->box2d_main_chunk_count = world->stats->box2d_main_chunk_count;
+    snapshot->box2d_worker_chunk_count = world->stats->box2d_worker_chunk_count;
 }

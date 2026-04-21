@@ -38,6 +38,10 @@ struct TaskSystemImpl {
     EnginePlatformMutex mutex;
     EnginePlatformConditionVariable work_available_cond;
     TaskSystemTask* tasks_head;
+    atomic_uint_fast64_t enqueued_task_count;
+    atomic_uint_fast64_t inline_task_count;
+    atomic_uint_fast64_t main_chunk_count;
+    atomic_uint_fast64_t worker_chunk_count;
 };
 
 static int task_system_detect_online_cores(void) {
@@ -101,6 +105,19 @@ static TaskSystemTask* task_system_pick_task_locked(TaskSystemImpl* system) {
     return NULL;
 }
 
+static void task_system_run_inline(
+    TaskSystemImpl* system,
+    b2TaskCallback* task,
+    int item_count,
+    void* task_context
+) {
+    if (system != NULL) {
+        atomic_fetch_add(&system->inline_task_count, 1U);
+        atomic_fetch_add(&system->main_chunk_count, 1U);
+    }
+    task(0, item_count, 0U, task_context);
+}
+
 static void* task_system_worker_main(void* user_data) {
     TaskSystemWorkerContext* worker = (TaskSystemWorkerContext*)user_data;
     TaskSystemImpl* system = worker != NULL ? worker->system : NULL;
@@ -141,6 +158,7 @@ static void* task_system_worker_main(void* user_data) {
             end_index = task->item_count;
         }
 
+        atomic_fetch_add(&system->worker_chunk_count, 1U);
         task->callback(start_index, end_index, worker->worker_index, task->task_context);
 
         if (atomic_fetch_sub(&task->remaining_chunks, 1) == 1) {
@@ -154,12 +172,13 @@ static void* task_system_worker_main(void* user_data) {
     return NULL;
 }
 
-static void* task_system_enqueue_task(
+static void* task_system_enqueue_task_internal(
     b2TaskCallback* task,
     int item_count,
     int min_range,
     void* task_context,
-    void* user_context
+    void* user_context,
+    bool enqueue_single_chunk
 ) {
     TaskSystemImpl* system = (TaskSystemImpl*)user_context;
     TaskSystemTask* user_task;
@@ -175,14 +194,14 @@ static void* task_system_enqueue_task(
     chunk_size = task_system_compute_chunk_size(item_count, min_range, system->worker_count);
     chunk_count = (item_count + chunk_size - 1) / chunk_size;
 
-    if (chunk_count <= 1 || system->worker_count <= 1) {
-        task(0, item_count, 0U, task_context);
+    if (system->worker_count <= 1 || (!enqueue_single_chunk && chunk_count <= 1)) {
+        task_system_run_inline(system, task, item_count, task_context);
         return NULL;
     }
 
     user_task = (TaskSystemTask*)calloc(1, sizeof(*user_task));
     if (user_task == NULL) {
-        task(0, item_count, 0U, task_context);
+        task_system_run_inline(system, task, item_count, task_context);
         return NULL;
     }
 
@@ -203,10 +222,11 @@ static void* task_system_enqueue_task(
             engine_platform_mutex_dispose(&user_task->mutex);
         }
         free(user_task);
-        task(0, item_count, 0U, task_context);
+        task_system_run_inline(system, task, item_count, task_context);
         return NULL;
     }
 
+    atomic_fetch_add(&system->enqueued_task_count, 1U);
     engine_platform_mutex_lock(&system->mutex);
     user_task->next = system->tasks_head;
     system->tasks_head = user_task;
@@ -214,6 +234,16 @@ static void* task_system_enqueue_task(
     engine_platform_mutex_unlock(&system->mutex);
 
     return user_task;
+}
+
+static void* task_system_enqueue_box2d_task(
+    b2TaskCallback* task,
+    int item_count,
+    int min_range,
+    void* task_context,
+    void* user_context
+) {
+    return task_system_enqueue_task_internal(task, item_count, min_range, task_context, user_context, true);
 }
 
 static void task_system_finish_task(void* user_task, void* user_context) {
@@ -238,6 +268,7 @@ static void task_system_finish_task(void* user_task, void* user_context) {
             end_index = task->item_count;
         }
 
+        atomic_fetch_add(&system->main_chunk_count, 1U);
         task->callback(start_index, end_index, 0U, task->task_context);
 
         if (atomic_fetch_sub(&task->remaining_chunks, 1) == 1) {
@@ -428,6 +459,28 @@ int task_system_get_worker_count(const TaskSystem* system) {
     return system != NULL ? system->worker_count : 0;
 }
 
+void task_system_get_stats_snapshot(const TaskSystem* system, TaskSystemStatsSnapshot* out_snapshot) {
+    TaskSystemImpl* implementation;
+
+    if (out_snapshot == NULL) {
+        return;
+    }
+
+    memset(out_snapshot, 0, sizeof(*out_snapshot));
+    if (system == NULL || system->implementation == NULL) {
+        return;
+    }
+
+    implementation = (TaskSystemImpl*)system->implementation;
+    out_snapshot->online_core_count = system->online_core_count;
+    out_snapshot->worker_count = system->worker_count;
+    out_snapshot->background_thread_count = implementation->background_thread_count;
+    out_snapshot->enqueued_task_count = atomic_load(&implementation->enqueued_task_count);
+    out_snapshot->inline_task_count = atomic_load(&implementation->inline_task_count);
+    out_snapshot->main_chunk_count = atomic_load(&implementation->main_chunk_count);
+    out_snapshot->worker_chunk_count = atomic_load(&implementation->worker_chunk_count);
+}
+
 bool task_system_parallel_for(
     const TaskSystem* system,
     int item_count,
@@ -443,12 +496,13 @@ bool task_system_parallel_for(
     }
 
     implementation = (TaskSystemImpl*)system->implementation;
-    task = (TaskSystemTask*)task_system_enqueue_task(
+    task = (TaskSystemTask*)task_system_enqueue_task_internal(
         (b2TaskCallback*)callback,
         item_count,
         min_range,
         user_context,
-        implementation
+        implementation,
+        false
     );
     if (task != NULL) {
         task_system_finish_task(task, implementation);
@@ -463,7 +517,7 @@ void task_system_configure_box2d_world_def(const TaskSystem* system, b2WorldDef*
     }
 
     world_def->workerCount = system->worker_count;
-    world_def->enqueueTask = task_system_enqueue_task;
+    world_def->enqueueTask = task_system_enqueue_box2d_task;
     world_def->finishTask = task_system_finish_task;
     world_def->userTaskContext = system->implementation;
 }

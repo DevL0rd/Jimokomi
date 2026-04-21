@@ -58,6 +58,12 @@ typedef struct DebugOverlaySnapshot {
     uint32_t total_body_count;
     uint32_t sleeping_body_count;
     uint32_t moved_body_count;
+    uint32_t physics_task_worker_count;
+    uint32_t physics_task_background_thread_count;
+    uint32_t physics_task_enqueued_count;
+    uint32_t physics_task_inline_count;
+    uint32_t physics_task_main_chunk_count;
+    uint32_t physics_task_worker_chunk_count;
 } DebugOverlaySnapshot;
 
 typedef struct DebugOverlay DebugOverlay;
