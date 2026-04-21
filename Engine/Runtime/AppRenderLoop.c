@@ -1,7 +1,6 @@
 #include "AppRenderLoop.h"
 
 #include "InteractionSystem.h"
-#include "AppProfiler.h"
 #include "../Rendering/DebugOverlay.h"
 #include "../Rendering/RaylibBackend.h"
 #include "../Rendering/Renderer.h"
@@ -73,7 +72,6 @@ void engine_app_run_render_loop(
         EngineRuntimeInputPacket* next_input_packet;
         DebugOverlaySnapshot debug_overlay_snapshot;
         EngineStatsSnapshot engine_stats_snapshot;
-        size_t drained_resource_commands;
         EngineInputSnapshot input_snapshot;
         RendererFrame frame;
         const DebugEntityView* selected_entity;
@@ -151,7 +149,7 @@ void engine_app_run_render_loop(
         }
         InteractionSystem_ClearReleasedDrag(&app->interaction_state, &app->engine.input);
 
-        drained_resource_commands = renderer_drain_resource_commands(app->renderer, app->resource_command_queue);
+        renderer_drain_resource_commands(app->renderer, app->resource_command_queue);
         render_world_snapshot_build_frame(&render_snapshot->world, &frame);
         selected_entity = render_snapshot->world.has_selected_entity ? &render_snapshot->world.selected_entity : NULL;
         debug_overlay_snapshot = render_snapshot->stats.overlay;
@@ -166,10 +164,7 @@ void engine_app_run_render_loop(
         raylib_backend_begin_frame(&app->backend, settings->app_clear_color);
         frame.selected_debug_entity_id = selected_entity != NULL ? selected_entity->id : app->interaction_state.selected_entity_id;
         frame.hovered_debug_entity_id = app->interaction_state.hovered_entity_id;
-        EngineProfiler_begin_scope(&app->engine.profiler, "draw.renderer");
         renderer_draw(app->renderer, &app->backend.render_backend, &frame);
-        EngineProfiler_end_scope(&app->engine.profiler, "draw.renderer");
-        EngineProfiler_begin_scope(&app->engine.profiler, "draw.debug_ui");
         debug_overlay_draw_ui(
             renderer_get_debug_overlay(app->renderer),
             &app->backend.render_backend,
@@ -179,8 +174,6 @@ void engine_app_run_render_loop(
             app->backend.window_width,
             app->backend.window_height
         );
-        EngineProfiler_end_scope(&app->engine.profiler, "draw.debug_ui");
-        engine_app_emit_profiler_metadata(app, render_snapshot, &frame, drained_resource_commands);
         raylib_backend_end_frame(&app->backend);
         Engine_draw_end(&app->engine);
     }

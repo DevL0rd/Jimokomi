@@ -116,7 +116,6 @@ Right fix:
 
 - Split storage/rebuild, dirty tracking, and query implementations if the grid
   keeps growing.
-- Preserve profiling counters during any split.
 
 ### `Engine/Runtime/InteractionSystem.c`
 
@@ -131,18 +130,6 @@ Right fix:
 
 - Split render update, input packet serialization, and sim application into
   focused runtime modules.
-
-### `Engine/AppProfiler.c`
-
-Problem:
-
-- Good extraction from `App.c`, but it lives at `Engine/AppProfiler.*` while the
-  cleanup plan describes runtime-owned app internals.
-
-Right fix:
-
-- Move to `Engine/Runtime/AppProfiler.*` if we want all app runtime internals
-  grouped consistently.
 
 ## Public Header Concerns
 

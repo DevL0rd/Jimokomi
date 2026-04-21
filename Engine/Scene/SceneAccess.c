@@ -87,12 +87,9 @@ void Scene_GetStatsSnapshot(const Scene* scene, SceneStatsSnapshot* out_snapshot
     }
 
     out_snapshot->entity_count = scene->entity_count;
-    out_snapshot->spatial_dirty_cell_count = scene->last_spatial_grid_dirty_cell_count;
-    out_snapshot->spatial_dirty_entity_count = scene->last_spatial_grid_dirty_entity_count;
     out_snapshot->input_route_ms = scene->last_input_route_ms;
     out_snapshot->random_force_ms = scene->last_random_force_ms;
     out_snapshot->physics_sync_ms = scene->last_physics_sync_ms;
-    out_snapshot->spatial_grid_ms = scene->last_spatial_grid_ms;
     out_snapshot->camera_follow_ms = scene->last_camera_follow_ms;
     out_snapshot->physics_substeps = scene->last_physics_substeps;
 }

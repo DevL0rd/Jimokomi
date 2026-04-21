@@ -52,17 +52,12 @@ typedef struct DebugOverlaySnapshot {
     float snapshot_age_ms;
     float physics_hz;
     float render_alpha;
-    float physics_pairs_ms;
-    float physics_collide_ms;
-    float physics_solve_ms;
     uint32_t physics_substeps;
     uint32_t visible_count;
     uint32_t awake_body_count;
     uint32_t total_body_count;
     uint32_t sleeping_body_count;
     uint32_t moved_body_count;
-    uint32_t spatial_dirty_cells;
-    uint32_t spatial_dirty_entities;
 } DebugOverlaySnapshot;
 
 typedef struct DebugOverlay DebugOverlay;

@@ -47,12 +47,9 @@ typedef struct Scene
     size_t tile_rule_count;
     SceneView view;
     SpatialGrid spatial_grid;
-    uint32_t last_spatial_grid_dirty_cell_count;
-    uint32_t last_spatial_grid_dirty_entity_count;
     double last_input_route_ms;
     double last_random_force_ms;
     double last_physics_sync_ms;
-    double last_spatial_grid_ms;
     double last_camera_follow_ms;
     uint32_t last_physics_substeps;
     struct Entity* last_camera_follow_entity;

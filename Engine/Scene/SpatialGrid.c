@@ -7,14 +7,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-
-static double spatial_grid_now_ms(void)
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
-}
 
 static bool spatial_grid_reserve_entries(SpatialGrid* grid, size_t required_capacity)
 {
@@ -316,7 +308,6 @@ static void spatial_grid_mark_dirty_cell(SpatialGrid* grid, uint32_t cell_index)
 
     grid->dirty_cell_flags[cell_index] = 1U;
     grid->dirty_cell_indices[grid->dirty_cell_count++] = cell_index;
-    grid->last_dirty_cell_count = (uint32_t)grid->dirty_cell_count;
 }
 
 static void spatial_grid_mark_dirty_span(SpatialGrid* grid, SpatialGridCellSpan span)
@@ -591,17 +582,6 @@ void SpatialGrid_ClearBounds(SpatialGrid* grid)
     grid->cell_count = 0U;
     grid->entry_count = 0U;
     grid->node_count = 0U;
-    grid->last_query_cells = 0U;
-    grid->last_query_hits = 0U;
-    grid->last_rebuild_non_empty_cells = 0U;
-    grid->last_rebuild_max_cell_entries = 0U;
-    grid->last_rebuild_hottest_cell_ms = 0.0;
-    grid->last_query_max_cell_visits = 0U;
-    grid->last_query_hottest_cell_ms = 0.0;
-    grid->last_query_false_positives = 0U;
-    grid->last_incremental_update_ms = 0.0;
-    grid->last_dirty_cell_count = 0U;
-    grid->last_incremental_dirty_entity_count = 0U;
     grid->dirty_cell_count = 0U;
 }
 
@@ -636,16 +616,12 @@ void SpatialGrid_Rebuild(SpatialGrid* grid, Entity* const* entities, size_t enti
 {
     size_t index = 0U;
     size_t cell_count = 0U;
-    size_t non_empty_cells = 0U;
-    size_t hottest_cell_index = 0U;
-    double started_ms = 0.0;
 
     if (grid == NULL || !grid->enabled || entities == NULL)
     {
         return;
     }
 
-    started_ms = spatial_grid_now_ms();
     SpatialGrid_ClearDirtyCells(grid);
     cell_count = grid->columns * grid->rows;
     if (grid->cell_heads != NULL && cell_count > 0U)
@@ -695,33 +671,6 @@ void SpatialGrid_Rebuild(SpatialGrid* grid, Entity* const* entities, size_t enti
         }
 
         grid->entry_count += 1U;
-    }
-
-    grid->last_rebuild_ms = spatial_grid_now_ms() - started_ms;
-    grid->last_incremental_update_ms = 0.0;
-    grid->last_incremental_dirty_entity_count = 0U;
-    grid->full_rebuild_count += 1U;
-    grid->last_rebuild_non_empty_cells = 0U;
-    grid->last_rebuild_max_cell_entries = 0U;
-    grid->last_rebuild_hottest_cell_ms = 0.0;
-    for (index = 0U; index < cell_count; ++index)
-    {
-        if (grid->cell_entry_counts[index] == 0U)
-        {
-            continue;
-        }
-        non_empty_cells += 1U;
-        if (grid->cell_entry_counts[index] > grid->last_rebuild_max_cell_entries)
-        {
-            grid->last_rebuild_max_cell_entries = grid->cell_entry_counts[index];
-            hottest_cell_index = index;
-        }
-    }
-    grid->last_rebuild_non_empty_cells = (uint32_t)non_empty_cells;
-    if (grid->node_count > 0U && grid->last_rebuild_max_cell_entries > 0U)
-    {
-        grid->last_rebuild_hottest_cell_ms =
-            grid->last_rebuild_ms * ((double)grid->cell_entry_counts[hottest_cell_index] / (double)grid->node_count);
     }
 }
 
@@ -848,7 +797,6 @@ void SpatialGrid_ClearDirtyCells(SpatialGrid* grid)
         }
     }
     grid->dirty_cell_count = 0U;
-    grid->last_dirty_cell_count = 0U;
 }
 
 size_t SpatialGrid_QueryAabb(SpatialGrid* grid, Aabb bounds, Entity** results, size_t capacity)
@@ -859,17 +807,12 @@ size_t SpatialGrid_QueryAabb(SpatialGrid* grid, Aabb bounds, Entity** results, s
     int min_cell_y = 0;
     int max_cell_y = 0;
     int cell_y = 0;
-    uint32_t queried_cells = 0U;
-    uint32_t false_positives = 0U;
-    double started_ms = 0.0;
 
     if (grid == NULL || !grid->enabled || results == NULL || capacity == 0U || !spatial_grid_bounds_overlap(bounds, grid->bounds))
     {
         return 0U;
     }
 
-    started_ms = spatial_grid_now_ms();
-    grid->last_query_max_cell_visits = 0U;
     grid->query_stamp += 1U;
     if (grid->query_stamp == 0U)
     {
@@ -893,12 +836,6 @@ size_t SpatialGrid_QueryAabb(SpatialGrid* grid, Aabb bounds, Entity** results, s
         {
             size_t cell_index = (size_t)cell_y * grid->columns + (size_t)cell_x;
             int node_index = grid->cell_heads[cell_index];
-            uint32_t visits = grid->cell_entry_counts != NULL ? grid->cell_entry_counts[cell_index] : 0U;
-            queried_cells += 1U;
-            if (visits > grid->last_query_max_cell_visits)
-            {
-                grid->last_query_max_cell_visits = visits;
-            }
             while (node_index >= 0 && result_count < capacity)
             {
                 SpatialGridNode* node = &grid->nodes[node_index];
@@ -915,25 +852,11 @@ size_t SpatialGrid_QueryAabb(SpatialGrid* grid, Aabb bounds, Entity** results, s
                     entry->last_query_stamp = grid->query_stamp;
                     results[result_count++] = entry->entity;
                 }
-                else
-                {
-                    false_positives += 1U;
-                }
                 node_index = node->next_index;
             }
         }
     }
 
-    grid->last_query_ms = spatial_grid_now_ms() - started_ms;
-    grid->last_query_cells = queried_cells;
-    grid->last_query_hits = (uint32_t)result_count;
-    grid->last_query_false_positives = false_positives;
-    grid->last_query_hottest_cell_ms = 0.0;
-    if (grid->last_query_hits > 0U && grid->last_query_max_cell_visits > 0U)
-    {
-        grid->last_query_hottest_cell_ms =
-            grid->last_query_ms * ((double)grid->last_query_max_cell_visits / (double)grid->last_query_hits);
-    }
     return result_count;
 }
 
@@ -945,9 +868,6 @@ size_t SpatialGrid_QueryCircle(SpatialGrid* grid, Vec2 center, float radius, Ent
     int min_cell_y = 0;
     int max_cell_y = 0;
     int cell_y = 0;
-    uint32_t queried_cells = 0U;
-    uint32_t false_positives = 0U;
-    double started_ms = 0.0;
     Aabb query_bounds;
 
     if (grid == NULL || !grid->enabled || results == NULL || capacity == 0U || radius < 0.0f)
@@ -964,8 +884,6 @@ size_t SpatialGrid_QueryCircle(SpatialGrid* grid, Vec2 center, float radius, Ent
         return 0U;
     }
 
-    started_ms = spatial_grid_now_ms();
-    grid->last_query_max_cell_visits = 0U;
     grid->query_stamp += 1U;
     if (grid->query_stamp == 0U)
     {
@@ -989,12 +907,6 @@ size_t SpatialGrid_QueryCircle(SpatialGrid* grid, Vec2 center, float radius, Ent
         {
             size_t cell_index = (size_t)cell_y * grid->columns + (size_t)cell_x;
             int node_index = grid->cell_heads[cell_index];
-            uint32_t visits = grid->cell_entry_counts != NULL ? grid->cell_entry_counts[cell_index] : 0U;
-            queried_cells += 1U;
-            if (visits > grid->last_query_max_cell_visits)
-            {
-                grid->last_query_max_cell_visits = visits;
-            }
             while (node_index >= 0 && result_count < capacity)
             {
                 SpatialGridNode* node = &grid->nodes[node_index];
@@ -1011,25 +923,11 @@ size_t SpatialGrid_QueryCircle(SpatialGrid* grid, Vec2 center, float radius, Ent
                     entry->last_query_stamp = grid->query_stamp;
                     results[result_count++] = entry->entity;
                 }
-                else
-                {
-                    false_positives += 1U;
-                }
                 node_index = node->next_index;
             }
         }
     }
 
-    grid->last_query_ms = spatial_grid_now_ms() - started_ms;
-    grid->last_query_cells = queried_cells;
-    grid->last_query_hits = (uint32_t)result_count;
-    grid->last_query_false_positives = false_positives;
-    grid->last_query_hottest_cell_ms = 0.0;
-    if (grid->last_query_hits > 0U && grid->last_query_max_cell_visits > 0U)
-    {
-        grid->last_query_hottest_cell_ms =
-            grid->last_query_ms * ((double)grid->last_query_max_cell_visits / (double)grid->last_query_hits);
-    }
     return result_count;
 }
 
@@ -1041,9 +939,6 @@ size_t SpatialGrid_QuerySegment(SpatialGrid* grid, Vec2 start, Vec2 end, Entity*
     int min_cell_y = 0;
     int max_cell_y = 0;
     int cell_y = 0;
-    uint32_t queried_cells = 0U;
-    uint32_t false_positives = 0U;
-    double started_ms = 0.0;
     Aabb query_bounds;
 
     if (grid == NULL || !grid->enabled || results == NULL || capacity == 0U)
@@ -1060,8 +955,6 @@ size_t SpatialGrid_QuerySegment(SpatialGrid* grid, Vec2 start, Vec2 end, Entity*
         return 0U;
     }
 
-    started_ms = spatial_grid_now_ms();
-    grid->last_query_max_cell_visits = 0U;
     grid->query_stamp += 1U;
     if (grid->query_stamp == 0U)
     {
@@ -1085,12 +978,6 @@ size_t SpatialGrid_QuerySegment(SpatialGrid* grid, Vec2 start, Vec2 end, Entity*
         {
             size_t cell_index = (size_t)cell_y * grid->columns + (size_t)cell_x;
             int node_index = grid->cell_heads[cell_index];
-            uint32_t visits = grid->cell_entry_counts != NULL ? grid->cell_entry_counts[cell_index] : 0U;
-            queried_cells += 1U;
-            if (visits > grid->last_query_max_cell_visits)
-            {
-                grid->last_query_max_cell_visits = visits;
-            }
             while (node_index >= 0 && result_count < capacity)
             {
                 SpatialGridNode* node = &grid->nodes[node_index];
@@ -1107,24 +994,10 @@ size_t SpatialGrid_QuerySegment(SpatialGrid* grid, Vec2 start, Vec2 end, Entity*
                     entry->last_query_stamp = grid->query_stamp;
                     results[result_count++] = entry->entity;
                 }
-                else
-                {
-                    false_positives += 1U;
-                }
                 node_index = node->next_index;
             }
         }
     }
 
-    grid->last_query_ms = spatial_grid_now_ms() - started_ms;
-    grid->last_query_cells = queried_cells;
-    grid->last_query_hits = (uint32_t)result_count;
-    grid->last_query_false_positives = false_positives;
-    grid->last_query_hottest_cell_ms = 0.0;
-    if (grid->last_query_hits > 0U && grid->last_query_max_cell_visits > 0U)
-    {
-        grid->last_query_hottest_cell_ms =
-            grid->last_query_ms * ((double)grid->last_query_max_cell_visits / (double)grid->last_query_hits);
-    }
     return result_count;
 }

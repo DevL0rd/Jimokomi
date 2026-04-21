@@ -16,7 +16,6 @@
 
 #include <pthread.h>
 #include <stdatomic.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -62,7 +61,6 @@ int EngineApp_Run(const EngineAppDesc* desc)
     TaskSystemConfig task_system_config;
     pthread_t sim_thread;
     bool sim_thread_started = false;
-    char log_message[128];
     int exit_code = 1;
 
     if (desc == NULL || desc->create_scene == NULL)
@@ -104,15 +102,6 @@ int EngineApp_Run(const EngineAppDesc* desc)
     {
         goto cleanup;
     }
-    snprintf(
-        log_message,
-        sizeof(log_message),
-        "runtime initialized cores=%d physics=%d prebake_target_fps=%.1f",
-        task_system_get_online_core_count(&app.task_system),
-        task_system_get_worker_count(&app.task_system),
-        runtime_config.renderer.prebake_target_fps
-    );
-    EngineLogger_info(&app.engine.logger, log_message, "runtime");
 
     renderer_config = runtime_config.renderer;
     app.renderer = renderer_create(&app.backend.render_backend, &renderer_config);

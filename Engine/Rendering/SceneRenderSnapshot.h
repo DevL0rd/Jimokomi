@@ -7,12 +7,6 @@
 struct Entity;
 struct Scene;
 
-typedef struct SceneRenderSnapshotProfile
-{
-    double cull_grid_ms;
-    uint32_t cull_grid_candidates;
-} SceneRenderSnapshotProfile;
-
 typedef struct SceneRenderSnapshotDesc
 {
     struct Scene* scene;
@@ -31,7 +25,6 @@ typedef struct SceneRenderSnapshotDesc
     void* backdrop_user_data;
     uint64_t backdrop_signature;
     const PhysicsWorldSnapshot* physics_snapshot;
-    bool profile_culling;
 } SceneRenderSnapshotDesc;
 
 Aabb scene_render_snapshot_compute_view_bounds(
@@ -41,8 +34,7 @@ Aabb scene_render_snapshot_compute_view_bounds(
 );
 void scene_render_snapshot_build(
     const SceneRenderSnapshotDesc* desc,
-    RenderSnapshotBuffer* buffer,
-    SceneRenderSnapshotProfile* out_profile
+    RenderSnapshotBuffer* buffer
 );
 
 #endif

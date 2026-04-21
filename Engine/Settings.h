@@ -13,17 +13,6 @@ typedef struct EngineSettings
     int window_height;
     const char* window_title;
 
-    const char* logger_path;
-    size_t logger_max_lines;
-    size_t logger_flush_every;
-    bool logger_echo_to_console;
-
-    bool profiler_enabled;
-    const char* profiler_path;
-    const char* profiler_text_path;
-    size_t profiler_max_frames;
-    size_t profiler_flush_every;
-
     int renderer_view_width;
     int renderer_view_height;
     float renderer_prebake_target_fps;

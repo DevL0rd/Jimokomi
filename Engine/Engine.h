@@ -8,8 +8,6 @@
 typedef struct Engine {
     EngineConfig config;
     EngineInput input;
-    EngineLogger logger;
-    EngineProfiler profiler;
     EngineStats stats;
     bool initialized;
 } Engine;

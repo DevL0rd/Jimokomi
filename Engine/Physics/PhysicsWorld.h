@@ -45,10 +45,6 @@ typedef struct PhysicsWorldSnapshot
     float physics_accumulator;
     uint32_t physics_max_substeps;
     uint32_t physics_step_substeps;
-    float profile_step_ms;
-    float profile_pairs_ms;
-    float profile_collide_ms;
-    float profile_solve_ms;
     float box2d_step_wall_ms;
     uint32_t active_entity_count;
     uint32_t dirty_entity_count;

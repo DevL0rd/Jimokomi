@@ -1,24 +1,12 @@
 #include "Engine.h"
-#include "Settings.h"
 
 #include <string.h>
 
 static EngineConfig Engine_default_config(void) {
     EngineConfig config;
-    const EngineSettings* settings = EngineSettings_GetDefaults();
 
     memset(&config, 0, sizeof(config));
     config.debug_stats = false;
-    config.logger.path = settings->logger_path;
-    config.logger.max_lines = settings->logger_max_lines;
-    config.logger.flush_every = settings->logger_flush_every;
-    config.logger.echo_to_console = settings->logger_echo_to_console;
-    config.logger.minimum_level = ENGINE_LOG_LEVEL_TRACE;
-    config.profiler.enabled = settings->profiler_enabled;
-    config.profiler.path = settings->profiler_path;
-    config.profiler.text_path = settings->profiler_text_path;
-    config.profiler.max_frames = settings->profiler_max_frames;
-    config.profiler.flush_every = settings->profiler_flush_every;
     return config;
 }
 
@@ -33,36 +21,16 @@ bool Engine_init(Engine* engine, const EngineConfig* config) {
     resolved = Engine_default_config();
     if (config != 0) {
         resolved.debug_stats = config->debug_stats;
-        if (config->logger.path != 0) resolved.logger.path = config->logger.path;
-        if (config->logger.max_lines > 0) resolved.logger.max_lines = config->logger.max_lines;
-        if (config->logger.flush_every > 0) resolved.logger.flush_every = config->logger.flush_every;
-        resolved.logger.echo_to_console = config->logger.echo_to_console;
-        if (config->logger.minimum_level > 0) resolved.logger.minimum_level = config->logger.minimum_level;
-        if (config->profiler.path != 0) resolved.profiler.path = config->profiler.path;
-        if (config->profiler.text_path != 0) resolved.profiler.text_path = config->profiler.text_path;
-        if (config->profiler.max_frames > 0) resolved.profiler.max_frames = config->profiler.max_frames;
-        if (config->profiler.flush_every > 0) resolved.profiler.flush_every = config->profiler.flush_every;
     }
 
     memset(engine, 0, sizeof(*engine));
     engine->config = resolved;
-
-    if (!EngineLogger_init(&engine->logger, &resolved.logger)) {
-        Engine_dispose(engine);
-        return false;
-    }
-
-    if (!EngineProfiler_init(&engine->profiler, &resolved.profiler)) {
-        Engine_dispose(engine);
-        return false;
-    }
 
     EngineInputBindings_set_defaults(&bindings);
     EngineInput_init(&engine->input, &bindings);
     EngineStats_init(&engine->stats);
 
     engine->initialized = true;
-    EngineLogger_info(&engine->logger, "engine initialized", 0);
     return true;
 }
 
@@ -73,21 +41,12 @@ void Engine_update(Engine* engine, double dt, const EngineInputSnapshot* input_s
         return;
     }
 
-    EngineProfiler_begin_frame(&engine->profiler, "update_callback");
-
-    EngineProfiler_begin_scope(&engine->profiler, "engine.input");
     if (input_snapshot != 0) {
         EngineInput_capture(&engine->input, input_snapshot);
     }
-    EngineProfiler_end_scope(&engine->profiler, "engine.input");
 
     EngineStats_begin_update(&engine->stats);
-    EngineProfiler_begin_scope(&engine->profiler, "engine.frame");
     EngineStats_end_update(&engine->stats);
-    EngineProfiler_end_scope(&engine->profiler, "engine.frame");
-
-    EngineProfiler_set_metadata_number(&engine->profiler, "stats_update_ms", engine->stats.last_update_ms);
-    EngineProfiler_end_frame(&engine->profiler);
 }
 
 void Engine_draw_begin(Engine* engine) {
@@ -95,7 +54,6 @@ void Engine_draw_begin(Engine* engine) {
         return;
     }
 
-    EngineProfiler_begin_frame(&engine->profiler, "draw_callback");
     EngineStats_begin_draw(&engine->stats);
 }
 
@@ -105,9 +63,6 @@ void Engine_draw_end(Engine* engine) {
     }
 
     EngineStats_end_draw(&engine->stats);
-    EngineProfiler_set_metadata_number(&engine->profiler, "stats_draw_ms", engine->stats.last_draw_ms);
-    EngineProfiler_set_metadata_number(&engine->profiler, "stats_frame_ms", engine->stats.last_frame_ms);
-    EngineProfiler_end_frame(&engine->profiler);
 }
 
 EngineStatsSnapshot Engine_get_stats_snapshot(const Engine* engine) {
@@ -124,7 +79,5 @@ void Engine_dispose(Engine* engine) {
         return;
     }
 
-    EngineProfiler_dispose(&engine->profiler);
-    EngineLogger_dispose(&engine->logger);
     memset(engine, 0, sizeof(*engine));
 }

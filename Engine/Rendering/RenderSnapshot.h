@@ -22,16 +22,6 @@ typedef struct RenderSnapshotSimStats {
     float snapshot_build_ms;
 } RenderSnapshotSimStats;
 
-typedef struct RenderSnapshotCullingStats {
-    float cull_grid_ms;
-    uint32_t cull_grid_candidates;
-    int32_t cull_grid_span_min_x;
-    int32_t cull_grid_span_max_x;
-    int32_t cull_grid_span_min_y;
-    int32_t cull_grid_span_max_y;
-    uint32_t cull_grid_span_cells;
-} RenderSnapshotCullingStats;
-
 typedef struct RenderSnapshotPhysicsStats {
     uint32_t physics_substeps;
     float physics_hz;
@@ -60,7 +50,6 @@ typedef struct RenderStatsSnapshot {
     EngineStatsSnapshot engine_stats;
     RenderSnapshotRenderStats render;
     RenderSnapshotSimStats sim;
-    RenderSnapshotCullingStats culling;
     RenderSnapshotPhysicsStats physics;
     RenderSnapshotResourceStats resources;
     RenderSnapshotCameraStats camera;

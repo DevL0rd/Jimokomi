@@ -124,17 +124,12 @@ static uint64_t debug_overlay_compute_dashboard_signature(
     hash = debug_hash_i32(hash, debug_round_quarters(overlay->display_sim_ms));
     hash = debug_hash_i32(hash, debug_round_quarters(overlay->display_update_ms));
     hash = debug_hash_i32(hash, debug_round_quarters(overlay->display_physics_ms));
-    hash = debug_hash_i32(hash, debug_round_quarters(overlay->display_pairs_ms));
-    hash = debug_hash_i32(hash, debug_round_quarters(overlay->display_collide_ms));
-    hash = debug_hash_i32(hash, debug_round_quarters(overlay->display_solve_ms));
     hash = debug_hash_i32(hash, debug_round_whole(overlay->display_physics_hz));
     hash = debug_hash_u64(hash, (uint64_t)(overlay->display_visible_count / 16.0f));
     hash = debug_hash_u64(hash, (uint64_t)(overlay->display_awake_body_count / 16.0f));
     hash = debug_hash_u64(hash, (uint64_t)(overlay->display_total_body_count / 16.0f));
     hash = debug_hash_u64(hash, (uint64_t)(overlay->display_sleeping_body_count / 16.0f));
     hash = debug_hash_u64(hash, (uint64_t)(overlay->display_moved_body_count / 16.0f));
-    hash = debug_hash_u64(hash, (uint64_t)overlay->display_spatial_dirty_cells);
-    hash = debug_hash_u64(hash, (uint64_t)(overlay->display_spatial_dirty_entities / 16.0f));
     hash = debug_hash_u64(hash, overlay->history_serial);
     hash = debug_hash_i32(hash, debug_round_tenths(overlay->dashboard_panel.x));
     hash = debug_hash_i32(hash, debug_round_tenths(overlay->dashboard_panel.y));

@@ -81,16 +81,11 @@ typedef struct DebugOverlay {
     float display_sim_ms;
     float display_physics_ms;
     float display_visible_count;
-    float display_pairs_ms;
-    float display_collide_ms;
-    float display_solve_ms;
     float display_physics_hz;
     float display_awake_body_count;
     float display_total_body_count;
     float display_sleeping_body_count;
     float display_moved_body_count;
-    float display_spatial_dirty_cells;
-    float display_spatial_dirty_entities;
     float display_snapshot_age_ms;
     size_t history_count;
     size_t history_cursor;

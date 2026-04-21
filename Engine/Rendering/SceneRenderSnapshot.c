@@ -13,14 +13,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-
-static double scene_render_snapshot_now_ms(void)
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
-}
 
 static float scene_render_snapshot_lerp(float a, float b, float alpha)
 {
@@ -102,8 +94,7 @@ static size_t scene_render_snapshot_collect_frame_data(
     bool* out_has_hovered_entity,
     PickTargetView* pick_targets,
     size_t pick_target_capacity,
-    size_t* out_pick_target_count,
-    SceneRenderSnapshotProfile* out_profile
+    size_t* out_pick_target_count
 )
 {
     size_t index;
@@ -127,39 +118,13 @@ static size_t scene_render_snapshot_collect_frame_data(
     if (out_has_selected_entity != NULL) *out_has_selected_entity = false;
     if (out_has_hovered_entity != NULL) *out_has_hovered_entity = false;
     if (out_pick_target_count != NULL) *out_pick_target_count = 0U;
-    if (out_profile != NULL)
-    {
-        memset(out_profile, 0, sizeof(*out_profile));
-    }
 
-    if (desc->profile_culling)
-    {
-        double started_ms = scene_render_snapshot_now_ms();
-        candidate_count = Scene_QueryEntitiesInAabb(
-            desc->scene,
-            desc->view_bounds,
-            desc->scratch_entities,
-            desc->scratch_entity_capacity
-        );
-        if (out_profile != NULL)
-        {
-            out_profile->cull_grid_ms = scene_render_snapshot_now_ms() - started_ms;
-            out_profile->cull_grid_candidates = (uint32_t)candidate_count;
-        }
-    }
-    else
-    {
-        candidate_count = Scene_QueryEntitiesInAabb(
-            desc->scene,
-            desc->view_bounds,
-            desc->scratch_entities,
-            desc->scratch_entity_capacity
-        );
-        if (out_profile != NULL)
-        {
-            out_profile->cull_grid_candidates = (uint32_t)candidate_count;
-        }
-    }
+    candidate_count = Scene_QueryEntitiesInAabb(
+        desc->scene,
+        desc->view_bounds,
+        desc->scratch_entities,
+        desc->scratch_entity_capacity
+    );
 
     collect_debug = entities != NULL && desc->debug_overlay_enabled && desc->draw_debug_world;
     for (index = 0U; index < candidate_count && visible_count < item_capacity; ++index)
@@ -291,8 +256,7 @@ static size_t scene_render_snapshot_collect_frame_data(
 
 void scene_render_snapshot_build(
     const SceneRenderSnapshotDesc* desc,
-    RenderSnapshotBuffer* buffer,
-    SceneRenderSnapshotProfile* out_profile
+    RenderSnapshotBuffer* buffer
 )
 {
     PhysicsWorldSnapshot empty_physics_snapshot;
@@ -348,8 +312,7 @@ void scene_render_snapshot_build(
         &buffer->world.has_hovered_entity,
         buffer->world.pick_targets,
         buffer->world.pick_target_capacity,
-        &buffer->world.pick_target_count,
-        out_profile
+        &buffer->world.pick_target_count
     );
     buffer->world.item_signatures_valid = true;
     buffer->world.debug_entity_count = buffer->world.draw_debug_world ? buffer->world.item_count : 0U;
@@ -383,35 +346,23 @@ void scene_render_snapshot_build(
     buffer->stats.overlay.sim_ms = (float)desc->update_ms;
     buffer->stats.overlay.physics_substeps = desc->physics_substeps;
     buffer->stats.overlay.visible_count = (uint32_t)Scene_GetEntityCount(desc->scene);
-    buffer->stats.overlay.spatial_dirty_cells = scene_stats.spatial_dirty_cell_count;
-    buffer->stats.overlay.spatial_dirty_entities = scene_stats.spatial_dirty_entity_count;
     buffer->stats.overlay.physics_hz = physics_snapshot->physics_hz;
     buffer->stats.overlay.physics_ms = physics_snapshot->box2d_step_wall_ms;
-    buffer->stats.overlay.physics_pairs_ms = physics_snapshot->profile_pairs_ms;
-    buffer->stats.overlay.physics_collide_ms = physics_snapshot->profile_collide_ms;
-    buffer->stats.overlay.physics_solve_ms = physics_snapshot->profile_solve_ms;
     buffer->stats.overlay.awake_body_count = physics_snapshot->body_count;
     buffer->stats.overlay.total_body_count = physics_snapshot->total_body_count;
     buffer->stats.overlay.sleeping_body_count = physics_snapshot->sleeping_body_count;
     buffer->stats.overlay.moved_body_count = physics_snapshot->moved_body_count;
     buffer->stats.overlay.render_alpha = desc->render_alpha;
     buffer->stats.render.render_alpha = desc->render_alpha;
-    buffer->stats.culling.cull_grid_ms = out_profile != NULL ? (float)out_profile->cull_grid_ms : 0.0f;
-    buffer->stats.culling.cull_grid_candidates = out_profile != NULL ? out_profile->cull_grid_candidates : 0U;
 
     memset(&query_span, 0, sizeof(query_span));
-    if ((desc->profile_culling || buffer->world.draw_debug_world) &&
+    if (buffer->world.draw_debug_world &&
         Scene_GetSpatialGridCellSpanForAabb(desc->scene, desc->view_bounds, &query_span))
     {
         buffer->world.debug_grid.span_min_x = query_span.min_cell_x;
         buffer->world.debug_grid.span_max_x = query_span.max_cell_x;
         buffer->world.debug_grid.span_min_y = query_span.min_cell_y;
         buffer->world.debug_grid.span_max_y = query_span.max_cell_y;
-        buffer->stats.culling.cull_grid_span_min_x = query_span.min_cell_x;
-        buffer->stats.culling.cull_grid_span_max_x = query_span.max_cell_x;
-        buffer->stats.culling.cull_grid_span_min_y = query_span.min_cell_y;
-        buffer->stats.culling.cull_grid_span_max_y = query_span.max_cell_y;
-        buffer->stats.culling.cull_grid_span_cells = query_span.cell_count;
     }
 
     buffer->stats.physics.physics_substeps = desc->physics_substeps;

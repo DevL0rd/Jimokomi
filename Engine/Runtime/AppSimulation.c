@@ -172,7 +172,6 @@ void* engine_app_simulation_thread_main(void* user_data)
         RenderSnapshotBuffer* next_render_snapshot;
         PhysicsWorldSnapshot physics_snapshot;
         SceneRenderSnapshotDesc snapshot_desc;
-        SceneRenderSnapshotProfile cull_profile;
         uint64_t now_ms;
         double dt_seconds;
         double update_started_ms;
@@ -267,13 +266,6 @@ void* engine_app_simulation_thread_main(void* user_data)
         if (app->scene != NULL && Scene_GetPhysicsWorld(app->scene) != NULL)
         {
             PhysicsWorld_GetSnapshot(Scene_GetPhysicsWorld(app->scene), &physics_snapshot);
-            if (physics_substeps == 0U)
-            {
-                physics_snapshot.profile_step_ms = 0.0f;
-                physics_snapshot.profile_pairs_ms = 0.0f;
-                physics_snapshot.profile_collide_ms = 0.0f;
-                physics_snapshot.profile_solve_ms = 0.0f;
-            }
         }
         snapshot_view_bounds = scene_render_snapshot_compute_view_bounds(
             app->scene,
@@ -312,10 +304,9 @@ void* engine_app_simulation_thread_main(void* user_data)
             ? context->desc->backdrop_signature(context->desc->backdrop_user_data)
             : 0U;
         snapshot_desc.physics_snapshot = &physics_snapshot;
-        snapshot_desc.profile_culling = app->engine.profiler.enabled;
 
         snapshot_build_started_ms = engine_app_sim_now_ms();
-        scene_render_snapshot_build(&snapshot_desc, next_render_snapshot, &cull_profile);
+        scene_render_snapshot_build(&snapshot_desc, next_render_snapshot);
         snapshot_build_ms = engine_app_sim_now_ms() - snapshot_build_started_ms;
         update_ms = engine_app_sim_now_ms() - update_started_ms;
         next_render_snapshot->stats.overlay.update_ms = (float)fmax(update_ms - fixed_step_wall_ms, 0.0);

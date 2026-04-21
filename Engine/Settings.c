@@ -7,17 +7,6 @@ const EngineSettings* EngineSettings_GetDefaults(void)
         .window_height = 540,
         .window_title = "Jimokomi",
 
-        .logger_path = "logs/runtime.log",
-        .logger_max_lines = 800U,
-        .logger_flush_every = 1U,
-        .logger_echo_to_console = true,
-
-        .profiler_enabled = false,
-        .profiler_path = "logs/performance_profile.bin",
-        .profiler_text_path = "logs/performance_profile.txt",
-        .profiler_max_frames = 180U,
-        .profiler_flush_every = 120U,
-
         .renderer_view_width = 960,
         .renderer_view_height = 540,
         .renderer_prebake_target_fps = 60.0f,

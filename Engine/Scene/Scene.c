@@ -161,7 +161,6 @@ void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_s
 {
     size_t index = 0U;
     double phase_started_ms = 0.0;
-    uint32_t dirty_entity_count = 0U;
 
     if (scene == NULL)
     {
@@ -171,11 +170,7 @@ void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_s
     scene->last_input_route_ms = 0.0;
     scene->last_random_force_ms = 0.0;
     scene->last_physics_sync_ms = 0.0;
-    scene->last_spatial_grid_ms = 0.0;
     scene->last_camera_follow_ms = 0.0;
-    scene->spatial_grid.last_incremental_update_ms = 0.0;
-    scene->spatial_grid.last_incremental_dirty_entity_count = 0U;
-    scene->spatial_grid.incremental_update_count = 0U;
     SpatialGrid_ClearDirtyCells(&scene->spatial_grid);
 
     if (scene->on_input != NULL && input_state != NULL)
@@ -196,7 +191,6 @@ void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_s
     PhysicsSyncSystem_Update(scene, dt_seconds);
     scene->last_physics_sync_ms = Scene_NowMs() - phase_started_ms;
 
-    phase_started_ms = Scene_NowMs();
     for (index = 0U; index < scene->renderable_entity_count; ++index)
     {
         Entity* entity = scene->renderable_entities[index];
@@ -215,7 +209,6 @@ void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_s
             (collider != NULL && collider->dirty_flags != COLLIDER_DIRTY_NONE))
         {
             SpatialGrid_UpdateEntity(&scene->spatial_grid, entity);
-            dirty_entity_count += 1U;
             if (transform != NULL)
             {
                 TransformComponent_ClearDirty(transform, TRANSFORM_DIRTY_POSITION | TRANSFORM_DIRTY_TELEPORT);
@@ -226,12 +219,6 @@ void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_s
             );
         }
     }
-    scene->last_spatial_grid_ms = Scene_NowMs() - phase_started_ms;
-    scene->last_spatial_grid_dirty_entity_count = dirty_entity_count;
-    scene->last_spatial_grid_dirty_cell_count = scene->spatial_grid.last_dirty_cell_count;
-    scene->spatial_grid.last_incremental_update_ms = scene->last_spatial_grid_ms;
-    scene->spatial_grid.last_incremental_dirty_entity_count = dirty_entity_count;
-    scene->spatial_grid.incremental_update_count = dirty_entity_count;
 
     if (scene->camera_target_entity != NULL)
     {

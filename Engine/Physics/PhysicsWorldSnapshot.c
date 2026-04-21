@@ -4,8 +4,6 @@
 
 void PhysicsWorld_GetSnapshot(const PhysicsWorld* world, PhysicsWorldSnapshot* snapshot)
 {
-    b2Profile profile = { 0 };
-
     if (snapshot == NULL)
     {
         return;
@@ -15,11 +13,6 @@ void PhysicsWorld_GetSnapshot(const PhysicsWorld* world, PhysicsWorldSnapshot* s
     if (world == NULL)
     {
         return;
-    }
-
-    if (world->has_world)
-    {
-        profile = b2World_GetProfile(world->world_id);
     }
 
     snapshot->body_count = (uint32_t)world->awake_body_count;
@@ -33,10 +26,6 @@ void PhysicsWorld_GetSnapshot(const PhysicsWorld* world, PhysicsWorldSnapshot* s
     snapshot->physics_accumulator = 0.0f;
     snapshot->physics_max_substeps = world->max_substeps;
     snapshot->physics_step_substeps = world->step_substep_count;
-    snapshot->profile_step_ms = profile.step;
-    snapshot->profile_pairs_ms = profile.pairs;
-    snapshot->profile_collide_ms = profile.collide;
-    snapshot->profile_solve_ms = profile.solve;
     snapshot->box2d_step_wall_ms = (float)world->last_box2d_step_wall_ms;
     snapshot->active_entity_count = (uint32_t)world->active_entity_count;
     snapshot->dirty_entity_count = (uint32_t)world->dirty_entity_count;

@@ -123,12 +123,6 @@ void debug_overlay_update_display_values(
     overlay->display_physics_ms = debug_smooth_display_value(overlay->display_physics_ms, snapshot->physics_ms);
     overlay->display_visible_count =
         debug_smooth_display_value(overlay->display_visible_count, (float)snapshot->visible_count);
-    overlay->display_pairs_ms =
-        debug_smooth_display_value(overlay->display_pairs_ms, snapshot->physics_pairs_ms);
-    overlay->display_collide_ms =
-        debug_smooth_display_value(overlay->display_collide_ms, snapshot->physics_collide_ms);
-    overlay->display_solve_ms =
-        debug_smooth_display_value(overlay->display_solve_ms, snapshot->physics_solve_ms);
     overlay->display_physics_hz =
         debug_smooth_display_value(overlay->display_physics_hz, snapshot->physics_hz);
     overlay->display_awake_body_count =
@@ -139,10 +133,6 @@ void debug_overlay_update_display_values(
         debug_smooth_display_value(overlay->display_sleeping_body_count, (float)snapshot->sleeping_body_count);
     overlay->display_moved_body_count =
         debug_smooth_display_value(overlay->display_moved_body_count, (float)snapshot->moved_body_count);
-    overlay->display_spatial_dirty_cells =
-        debug_smooth_display_value(overlay->display_spatial_dirty_cells, (float)snapshot->spatial_dirty_cells);
-    overlay->display_spatial_dirty_entities =
-        debug_smooth_display_value(overlay->display_spatial_dirty_entities, (float)snapshot->spatial_dirty_entities);
     overlay->display_snapshot_age_ms =
         debug_smooth_display_value(overlay->display_snapshot_age_ms, snapshot->snapshot_age_ms);
 }
