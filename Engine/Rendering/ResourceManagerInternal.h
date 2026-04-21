@@ -1,7 +1,11 @@
 #ifndef JIMOKOMI_ENGINE_RENDERING_RESOURCEMANAGER_INTERNAL_H
 #define JIMOKOMI_ENGINE_RENDERING_RESOURCEMANAGER_INTERNAL_H
 
+#include "ResourceDescriptors.h"
 #include "ResourceManager.h"
+#include "ResourceManagerBake.h"
+#include "ResourceManagerRegistry.h"
+#include "ResourceManagerStats.h"
 
 enum {
     SLOT_STATE_EMPTY = 0,
@@ -50,7 +54,7 @@ typedef struct ResourceEntry {
     uint32_t id;
 } ResourceEntry;
 
-typedef struct ResourceManager {
+typedef struct ResourceRegistryState {
     ResourceEntry* textures;
     TextureResource* texture_values;
     size_t texture_count;
@@ -70,13 +74,18 @@ typedef struct ResourceManager {
     VisualSourceResource* visual_source_values;
     size_t visual_source_count;
     size_t visual_source_capacity;
+} ResourceRegistryState;
 
+typedef struct ResourceBakeCacheState {
     BakedSurfaceResource* baked_surfaces;
     size_t baked_surface_count;
     size_t baked_surface_capacity;
     BakedSurfaceSlot* baked_surface_slots;
     size_t baked_surface_slot_capacity;
     size_t baked_surface_slot_count;
+} ResourceBakeCacheState;
+
+typedef struct ResourceBakeQueueState {
     PendingBakeRequest* static_pending_bake_requests;
     size_t static_pending_bake_request_count;
     size_t static_pending_bake_request_capacity;
@@ -97,6 +106,11 @@ typedef struct ResourceManager {
     size_t bake_admission_total_hits;
     size_t bake_admission_frame_hits;
     uint64_t frame_serial;
+    uint32_t* visual_source_last_requested_frame_indices;
+    size_t visual_source_last_requested_frame_capacity;
+} ResourceBakeQueueState;
+
+typedef struct ResourceInvalidationState {
     ResourceHandle* dirty_visual_source_handles;
     size_t dirty_visual_source_count;
     size_t dirty_visual_source_capacity;
@@ -109,8 +123,9 @@ typedef struct ResourceManager {
     BakedSurfaceKey* dirty_baked_surface_keys;
     size_t dirty_baked_surface_count;
     size_t dirty_baked_surface_capacity;
-    uint32_t* visual_source_last_requested_frame_indices;
-    size_t visual_source_last_requested_frame_capacity;
+} ResourceInvalidationState;
+
+typedef struct ResourceStatsState {
     uint64_t bake_cache_hits;
     uint64_t bake_cache_misses;
     uint64_t bake_invalidation_visual_source_count;
@@ -119,6 +134,14 @@ typedef struct ResourceManager {
     uint64_t bake_invalidation_animation_frame_count;
     uint64_t prebake_ready_visual_source_count;
     uint64_t prebake_ready_material_count;
+} ResourceStatsState;
+
+typedef struct ResourceManager {
+    ResourceRegistryState registry;
+    ResourceBakeCacheState bake_cache;
+    ResourceBakeQueueState bake_queue;
+    ResourceInvalidationState invalidation;
+    ResourceStatsState stats;
 
     RenderBackend* backend;
 } ResourceManager;
@@ -141,10 +164,11 @@ bool resource_manager_baked_key_equals(BakedSurfaceKey a, BakedSurfaceKey b);
 bool resource_manager_reserve_baked_surfaces(ResourceManager* manager, size_t required);
 bool resource_manager_insert_baked_surface_slot(ResourceManager* manager, BakedSurfaceKey key, size_t value_index);
 const Surface* resource_manager_find_baked_surface(const ResourceManager* manager, BakedSurfaceKey key);
+bool resource_manager_store_baked_surface(ResourceManager* manager, BakedSurfaceKey key, Surface* surface);
 uint32_t resource_manager_normalize_frame_index(const VisualSourceResource* source, uint32_t frame_index);
 bool resource_manager_is_bake_eligible(const VisualSourceResource* source, BakedSurfacePass pass);
 uint32_t resource_manager_get_bake_frame_count(const VisualSourceResource* source);
-const Surface* resource_manager_build_baked_surface(
+const Surface* resource_manager_execute_baked_surface(
     ResourceManager* manager,
     const VisualSourceResource* source,
     const MaterialResource* material,
@@ -154,5 +178,6 @@ const Surface* resource_manager_build_baked_surface(
 );
 bool resource_manager_enqueue_baked_request(ResourceManager* manager, BakedSurfaceKey key, bool bypass_admission);
 void resource_manager_remove_pending_bake_slot(ResourceManager* manager, BakedSurfaceKey key);
+void resource_manager_reset_empty_bake_queue(ResourceManager* manager);
 
 #endif

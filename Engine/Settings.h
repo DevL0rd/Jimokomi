@@ -3,8 +3,6 @@
 
 #include "Rendering/RenderCommon.h"
 
-#include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
 
 typedef struct EngineSettings
@@ -12,12 +10,6 @@ typedef struct EngineSettings
     int window_width;
     int window_height;
     const char* window_title;
-
-    int renderer_view_width;
-    int renderer_view_height;
-    float renderer_prebake_target_fps;
-    size_t renderer_prebake_admission_total_hits;
-    size_t renderer_prebake_admission_frame_hits;
 
     float app_snapshot_preload_screens;
     uint64_t app_snapshot_publish_interval_ms;

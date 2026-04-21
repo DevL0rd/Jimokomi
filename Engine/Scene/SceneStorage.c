@@ -2,12 +2,8 @@
 
 #include "EntityInternal.h"
 #include "SpatialGrid.h"
-#include "Components/ColliderComponent.h"
-#include "Components/DraggableComponent.h"
 #include "Components/RandomForceComponent.h"
 #include "Components/RigidBodyComponent.h"
-#include "Components/SelectableComponent.h"
-#include "Components/TransformComponent.h"
 #include "../Physics/PhysicsBodyControl.h"
 
 #include <stdlib.h>
@@ -23,25 +19,25 @@ static bool Scene_ReserveEntitySlots(Scene* scene, size_t required_capacity)
         return false;
     }
 
-    if (scene->entity_capacity >= required_capacity)
+    if (scene->storage.entity_capacity >= required_capacity)
     {
         return true;
     }
 
-    new_capacity = scene->entity_capacity == 0 ? 8 : scene->entity_capacity;
+    new_capacity = scene->storage.entity_capacity == 0 ? 8 : scene->storage.entity_capacity;
     while (new_capacity < required_capacity)
     {
         new_capacity *= 2;
     }
 
-    entities = (struct Entity**)realloc(scene->entities, sizeof(struct Entity*) * new_capacity);
+    entities = (struct Entity**)realloc(scene->storage.entities, sizeof(struct Entity*) * new_capacity);
     if (entities == NULL)
     {
         return false;
     }
 
-    scene->entities = entities;
-    scene->entity_capacity = new_capacity;
+    scene->storage.entities = entities;
+    scene->storage.entity_capacity = new_capacity;
     return true;
 }
 
@@ -55,25 +51,25 @@ static bool Scene_ReserveDynamicEntitySlots(Scene* scene, size_t required_capaci
         return false;
     }
 
-    if (scene->dynamic_entity_capacity >= required_capacity)
+    if (scene->storage.dynamic_entity_capacity >= required_capacity)
     {
         return true;
     }
 
-    new_capacity = scene->dynamic_entity_capacity == 0 ? 8 : scene->dynamic_entity_capacity;
+    new_capacity = scene->storage.dynamic_entity_capacity == 0 ? 8 : scene->storage.dynamic_entity_capacity;
     while (new_capacity < required_capacity)
     {
         new_capacity *= 2;
     }
 
-    entities = (struct Entity**)realloc(scene->dynamic_entities, sizeof(struct Entity*) * new_capacity);
+    entities = (struct Entity**)realloc(scene->storage.dynamic_entities, sizeof(struct Entity*) * new_capacity);
     if (entities == NULL)
     {
         return false;
     }
 
-    scene->dynamic_entities = entities;
-    scene->dynamic_entity_capacity = new_capacity;
+    scene->storage.dynamic_entities = entities;
+    scene->storage.dynamic_entity_capacity = new_capacity;
     return true;
 }
 
@@ -111,43 +107,6 @@ static bool Scene_ReserveEntityListSlots(
     *entities = resized;
     *capacity = new_capacity;
     return true;
-}
-
-static bool Scene_IsSelectableEntity(const Entity* entity)
-{
-    return entity != NULL &&
-           Entity_IsActive(entity) &&
-           Entity_GetFixedComponent(entity, COMPONENT_SELECTABLE) != NULL &&
-           Entity_GetFixedComponent(entity, COMPONENT_TRANSFORM) != NULL &&
-           Entity_GetFixedComponent(entity, COMPONENT_COLLIDER) != NULL;
-}
-
-static bool Scene_IsDraggableEntity(const Entity* entity)
-{
-    return Scene_IsSelectableEntity(entity) &&
-           Entity_GetFixedComponent(entity, COMPONENT_DRAGGABLE) != NULL;
-}
-
-static bool Scene_IsRenderableEntity(const Entity* entity)
-{
-    return entity != NULL &&
-           Entity_IsActive(entity) &&
-           Entity_GetFixedComponent(entity, COMPONENT_TRANSFORM) != NULL;
-}
-
-static bool Scene_IsDebugVisibleEntity(const Entity* entity)
-{
-    return Scene_IsSelectableEntity(entity);
-}
-
-static bool Scene_IsTriggerQueryEntity(const Entity* entity)
-{
-    return Scene_IsSelectableEntity(entity);
-}
-
-static bool Scene_IsProximityQueryEntity(const Entity* entity)
-{
-    return Scene_IsSelectableEntity(entity);
 }
 
 bool Scene_AppendEntityToList(
@@ -207,14 +166,14 @@ bool Scene_AddEntity(Scene* scene, struct Entity* entity)
 
     if (entity->id == 0)
     {
-        entity->id = scene->next_entity_id++;
+        entity->id = scene->lifecycle.next_entity_id++;
     }
-    else if (entity->id >= scene->next_entity_id)
+    else if (entity->id >= scene->lifecycle.next_entity_id)
     {
-        scene->next_entity_id = entity->id + 1u;
+        scene->lifecycle.next_entity_id = entity->id + 1u;
     }
 
-    if (!Scene_ReserveEntitySlots(scene, scene->entity_count + 1))
+    if (!Scene_ReserveEntitySlots(scene, scene->storage.entity_count + 1))
     {
         return false;
     }
@@ -224,71 +183,41 @@ bool Scene_AddEntity(Scene* scene, struct Entity* entity)
         entity,
         ENTITY_DIRTY_APPEARED | ENTITY_DIRTY_VISIBILITY | ENTITY_DIRTY_LAYER_SORT
     );
-    scene->entities[scene->entity_count++] = entity;
-    if (scene->camera_target_entity == NULL &&
+    scene->storage.entities[scene->storage.entity_count++] = entity;
+    if (scene->camera_follow.camera_target_entity == NULL &&
         Entity_GetComponent(entity, COMPONENT_CAMERA_TARGET) != NULL)
     {
-        scene->camera_target_entity = entity;
+        scene->camera_follow.camera_target_entity = entity;
     }
     rigid_body = (RigidBodyComponent*)Entity_GetComponent(entity, COMPONENT_RIGID_BODY);
     if (rigid_body != NULL && rigid_body->body_type != RIGID_BODY_STATIC)
     {
-        if (!Scene_ReserveDynamicEntitySlots(scene, scene->dynamic_entity_count + 1))
+        if (!Scene_ReserveDynamicEntitySlots(scene, scene->storage.dynamic_entity_count + 1))
         {
             Scene_RemoveEntity(scene, entity);
             return false;
         }
-        scene->dynamic_entities[scene->dynamic_entity_count++] = entity;
+        scene->storage.dynamic_entities[scene->storage.dynamic_entity_count++] = entity;
     }
-    if (Scene_IsSelectableEntity(entity) &&
-        !Scene_AppendEntityToList(&scene->selectable_entities, &scene->selectable_entity_count, &scene->selectable_entity_capacity, entity))
-    {
-        Scene_RemoveEntity(scene, entity);
-        return false;
-    }
-    if (Scene_IsDraggableEntity(entity) &&
-        !Scene_AppendEntityToList(&scene->draggable_entities, &scene->draggable_entity_count, &scene->draggable_entity_capacity, entity))
-    {
-        Scene_RemoveEntity(scene, entity);
-        return false;
-    }
-    if (Scene_IsRenderableEntity(entity) &&
-        !Scene_AppendEntityToList(&scene->renderable_entities, &scene->renderable_entity_count, &scene->renderable_entity_capacity, entity))
-    {
-        Scene_RemoveEntity(scene, entity);
-        return false;
-    }
-    if (Scene_IsDebugVisibleEntity(entity) &&
-        !Scene_AppendEntityToList(&scene->debug_visible_entities, &scene->debug_visible_entity_count, &scene->debug_visible_entity_capacity, entity))
-    {
-        Scene_RemoveEntity(scene, entity);
-        return false;
-    }
-    if (Scene_IsTriggerQueryEntity(entity) &&
-        !Scene_AppendEntityToList(&scene->trigger_query_entities, &scene->trigger_query_entity_count, &scene->trigger_query_entity_capacity, entity))
-    {
-        Scene_RemoveEntity(scene, entity);
-        return false;
-    }
-    if (Scene_IsProximityQueryEntity(entity) &&
-        !Scene_AppendEntityToList(&scene->proximity_query_entities, &scene->proximity_query_entity_count, &scene->proximity_query_entity_capacity, entity))
+    if (Entity_IsActive(entity) && Entity_GetFixedComponent(entity, COMPONENT_TRANSFORM) != NULL &&
+        !Scene_AppendEntityToList(&scene->storage.renderable_entities, &scene->storage.renderable_entity_count, &scene->storage.renderable_entity_capacity, entity))
     {
         Scene_RemoveEntity(scene, entity);
         return false;
     }
     if (Entity_GetComponent(entity, COMPONENT_RANDOM_FORCE) != NULL)
     {
-        if (!Scene_AppendEntityToList(&scene->random_force_entities, &scene->random_force_entity_count, &scene->random_force_entity_capacity, entity))
+        if (!Scene_AppendEntityToList(&scene->storage.random_force_entities, &scene->storage.random_force_entity_count, &scene->storage.random_force_entity_capacity, entity))
         {
             Scene_RemoveEntity(scene, entity);
             return false;
         }
     }
-    if (scene->physics_world != NULL)
+    if (scene->physics.physics_world != NULL)
     {
-        PhysicsWorld_RegisterEntity(scene->physics_world, entity);
+        PhysicsWorld_RegisterEntity(scene->physics.physics_world, entity);
     }
-    SpatialGrid_UpdateEntity(&scene->spatial_grid, entity);
+    SpatialGrid_UpdateEntity(&scene->spatial.spatial_grid, entity);
     return true;
 }
 
@@ -301,35 +230,30 @@ struct Entity* Scene_RemoveEntity(Scene* scene, struct Entity* entity)
         return NULL;
     }
 
-    Scene_RemoveEntityFromList(scene->dynamic_entities, &scene->dynamic_entity_count, entity);
-    Scene_RemoveEntityFromList(scene->selectable_entities, &scene->selectable_entity_count, entity);
-    Scene_RemoveEntityFromList(scene->draggable_entities, &scene->draggable_entity_count, entity);
-    Scene_RemoveEntityFromList(scene->renderable_entities, &scene->renderable_entity_count, entity);
-    Scene_RemoveEntityFromList(scene->debug_visible_entities, &scene->debug_visible_entity_count, entity);
-    Scene_RemoveEntityFromList(scene->trigger_query_entities, &scene->trigger_query_entity_count, entity);
-    Scene_RemoveEntityFromList(scene->proximity_query_entities, &scene->proximity_query_entity_count, entity);
-    Scene_RemoveEntityFromList(scene->random_force_entities, &scene->random_force_entity_count, entity);
-    SpatialGrid_RemoveEntity(&scene->spatial_grid, entity);
-    if (scene->physics_world != NULL)
+    Scene_RemoveEntityFromList(scene->storage.dynamic_entities, &scene->storage.dynamic_entity_count, entity);
+    Scene_RemoveEntityFromList(scene->storage.renderable_entities, &scene->storage.renderable_entity_count, entity);
+    Scene_RemoveEntityFromList(scene->storage.random_force_entities, &scene->storage.random_force_entity_count, entity);
+    SpatialGrid_RemoveEntity(&scene->spatial.spatial_grid, entity);
+    if (scene->physics.physics_world != NULL)
     {
-        PhysicsWorld_UnregisterEntity(scene->physics_world, entity);
+        PhysicsWorld_UnregisterEntity(scene->physics.physics_world, entity);
     }
 
-    for (index = 0; index < scene->entity_count; ++index)
+    for (index = 0; index < scene->storage.entity_count; ++index)
     {
-        if (scene->entities[index] == entity)
+        if (scene->storage.entities[index] == entity)
         {
-            PhysicsWorld_RemoveBodyForEntity(scene->physics_world, entity);
-            if (scene->camera_target_entity == entity)
+            PhysicsWorld_RemoveBodyForEntity(scene->physics.physics_world, entity);
+            if (scene->camera_follow.camera_target_entity == entity)
             {
-                scene->camera_target_entity = NULL;
+                scene->camera_follow.camera_target_entity = NULL;
             }
             Entity_MarkDirty(entity, ENTITY_DIRTY_REMOVED | ENTITY_DIRTY_VISIBILITY);
-            memmove(&scene->entities[index],
-                    &scene->entities[index + 1],
-                    sizeof(struct Entity*) * (scene->entity_count - index - 1));
-            scene->entity_count -= 1;
-            scene->entities[scene->entity_count] = NULL;
+            memmove(&scene->storage.entities[index],
+                    &scene->storage.entities[index + 1],
+                    sizeof(struct Entity*) * (scene->storage.entity_count - index - 1));
+            scene->storage.entity_count -= 1;
+            scene->storage.entities[scene->storage.entity_count] = NULL;
             entity->scene = NULL;
             return entity;
         }
@@ -347,11 +271,11 @@ struct Entity* Scene_FindEntityById(Scene* scene, uint32_t entity_id)
         return NULL;
     }
 
-    for (index = 0U; index < scene->entity_count; ++index)
+    for (index = 0U; index < scene->storage.entity_count; ++index)
     {
-        if (scene->entities[index] != NULL && Entity_GetId(scene->entities[index]) == entity_id)
+        if (scene->storage.entities[index] != NULL && Entity_GetId(scene->storage.entities[index]) == entity_id)
         {
-            return scene->entities[index];
+            return scene->storage.entities[index];
         }
     }
 
@@ -361,4 +285,32 @@ struct Entity* Scene_FindEntityById(Scene* scene, uint32_t entity_id)
 const struct Entity* Scene_FindEntityByIdConst(const Scene* scene, uint32_t entity_id)
 {
     return Scene_FindEntityById((Scene*)scene, entity_id);
+}
+
+void SceneStorage_Dispose(SceneStorage* storage)
+{
+    if (storage == NULL)
+    {
+        return;
+    }
+
+    free(storage->entities);
+    storage->entities = NULL;
+    storage->entity_count = 0U;
+    storage->entity_capacity = 0U;
+
+    free(storage->dynamic_entities);
+    storage->dynamic_entities = NULL;
+    storage->dynamic_entity_count = 0U;
+    storage->dynamic_entity_capacity = 0U;
+
+    free(storage->renderable_entities);
+    storage->renderable_entities = NULL;
+    storage->renderable_entity_count = 0U;
+    storage->renderable_entity_capacity = 0U;
+
+    free(storage->random_force_entities);
+    storage->random_force_entities = NULL;
+    storage->random_force_entity_count = 0U;
+    storage->random_force_entity_capacity = 0U;
 }

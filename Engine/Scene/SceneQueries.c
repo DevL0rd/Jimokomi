@@ -1,6 +1,8 @@
 #include "SceneInternal.h"
 
 #include "EntityInternal.h"
+#include "SceneQueries.h"
+#include "SceneStats.h"
 #include "SpatialGrid.h"
 #include "Components/ColliderComponent.h"
 #include "Components/TransformComponent.h"
@@ -17,7 +19,7 @@ struct Entity* Scene_PickEntityAtScreen(Scene* scene, float screen_x, float scre
     float world_x = 0.0f;
     float world_y = 0.0f;
 
-    if (scene == NULL || scene->is_overlay)
+    if (scene == NULL || scene->lifecycle.is_overlay)
     {
         return NULL;
     }
@@ -28,8 +30,8 @@ struct Entity* Scene_PickEntityAtScreen(Scene* scene, float screen_x, float scre
         return NULL;
     }
 
-    world_x = scene->view.x + screen_x;
-    world_y = scene->view.y + screen_y;
+    world_x = scene->spatial.view.x + screen_x;
+    world_y = scene->spatial.view.y + screen_y;
 
     hits = (PhysicsQueryResult*)calloc(entity_count, sizeof(*hits));
     if (hits == NULL)
@@ -37,7 +39,7 @@ struct Entity* Scene_PickEntityAtScreen(Scene* scene, float screen_x, float scre
         return NULL;
     }
 
-    hit_count = PhysicsWorld_QueryPoint(scene->physics_world, world_x, world_y, hits, entity_count);
+    hit_count = PhysicsWorld_QueryPoint(scene->physics.physics_world, world_x, world_y, hits, entity_count);
     while (hit_count > 0)
     {
         if (Entity_IsActive(hits[hit_count - 1].entity))
@@ -114,7 +116,7 @@ size_t Scene_QueryEntitiesInAabb(Scene* scene, Aabb bounds, struct Entity** resu
         return 0U;
     }
 
-    return SpatialGrid_QueryAabb(&scene->spatial_grid, bounds, results, capacity);
+    return SpatialGrid_QueryAabb(&scene->spatial.spatial_grid, bounds, results, capacity);
 }
 
 size_t Scene_QueryEntitiesInRadius(Scene* scene, Vec2 center, float radius, struct Entity** results, size_t capacity)
@@ -124,7 +126,7 @@ size_t Scene_QueryEntitiesInRadius(Scene* scene, Vec2 center, float radius, stru
         return 0U;
     }
 
-    return SpatialGrid_QueryCircle(&scene->spatial_grid, center, radius, results, capacity);
+    return SpatialGrid_QueryCircle(&scene->spatial.spatial_grid, center, radius, results, capacity);
 }
 
 size_t Scene_QueryEntitiesAlongSegment(Scene* scene, Vec2 start, Vec2 end, struct Entity** results, size_t capacity)
@@ -134,5 +136,5 @@ size_t Scene_QueryEntitiesAlongSegment(Scene* scene, Vec2 start, Vec2 end, struc
         return 0U;
     }
 
-    return SpatialGrid_QuerySegment(&scene->spatial_grid, start, end, results, capacity);
+    return SpatialGrid_QuerySegment(&scene->spatial.spatial_grid, start, end, results, capacity);
 }

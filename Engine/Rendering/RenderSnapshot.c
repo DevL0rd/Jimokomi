@@ -1,7 +1,19 @@
 #include "RenderSnapshot.h"
+#include "RenderSnapshotInternal.h"
 
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
+
+struct RenderSnapshotExchange {
+    RenderSnapshotBuffer buffers[3];
+    size_t write_index;
+    atomic_size_t published_index;
+    atomic_uint_fast64_t published_sequence;
+    atomic_uint reader_counts[3];
+};
+
+static void render_snapshot_exchange_dispose(RenderSnapshotExchange* exchange);
 
 static bool render_snapshot_exchange_alloc_world(
     RenderWorldSnapshot* world
@@ -26,7 +38,7 @@ static void render_snapshot_exchange_free_world(RenderWorldSnapshot* world) {
     memset(world, 0, sizeof(*world));
 }
 
-bool render_snapshot_exchange_init(RenderSnapshotExchange* exchange) {
+static bool render_snapshot_exchange_init(RenderSnapshotExchange* exchange) {
     size_t index;
 
     if (exchange == NULL) {
@@ -122,7 +134,7 @@ bool render_world_snapshot_reserve_debug_collisions(RenderWorldSnapshot* snapsho
     return true;
 }
 
-void render_snapshot_exchange_dispose(RenderSnapshotExchange* exchange) {
+static void render_snapshot_exchange_dispose(RenderSnapshotExchange* exchange) {
     size_t index;
 
     if (exchange == NULL) {
@@ -134,6 +146,29 @@ void render_snapshot_exchange_dispose(RenderSnapshotExchange* exchange) {
     }
 
     memset(exchange, 0, sizeof(*exchange));
+}
+
+RenderSnapshotExchange* render_snapshot_exchange_create(void) {
+    RenderSnapshotExchange* exchange = (RenderSnapshotExchange*)calloc(1U, sizeof(*exchange));
+
+    if (exchange == NULL) {
+        return NULL;
+    }
+    if (!render_snapshot_exchange_init(exchange)) {
+        free(exchange);
+        return NULL;
+    }
+
+    return exchange;
+}
+
+void render_snapshot_exchange_destroy(RenderSnapshotExchange* exchange) {
+    if (exchange == NULL) {
+        return;
+    }
+
+    render_snapshot_exchange_dispose(exchange);
+    free(exchange);
 }
 
 void render_world_snapshot_reset(RenderWorldSnapshot* snapshot) {

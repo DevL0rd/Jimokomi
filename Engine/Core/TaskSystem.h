@@ -11,12 +11,6 @@ typedef struct TaskSystemConfig {
     int requested_worker_count;
 } TaskSystemConfig;
 
-struct TaskSystem {
-    int online_core_count;
-    int worker_count;
-    void* implementation;
-};
-
 bool task_system_init(TaskSystem* system, const TaskSystemConfig* config);
 void task_system_dispose(TaskSystem* system);
 int task_system_detect_online_core_count(void);

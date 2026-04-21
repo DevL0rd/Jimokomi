@@ -1,4 +1,4 @@
-#include "InputPacketStream.h"
+#include "InputPacketStreamInternal.h"
 
 #include <stdlib.h>
 #include <string.h>

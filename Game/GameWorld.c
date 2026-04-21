@@ -1,6 +1,11 @@
 #include "Game/GameWorld.h"
 
 #include "BallVisualResources.h"
+#include "../Engine/Scene/SceneAccess.h"
+#include "../Engine/Scene/SceneFactories.h"
+#include "../Engine/Scene/ScenePhysics.h"
+#include "../Engine/Scene/SceneView.h"
+#include "../Engine/Scene/Systems/RandomForceSystem.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -112,7 +117,7 @@ static Entity* jimokomi_spawn_ball(JimokomiGameState* game, size_t index)
         return NULL;
     }
 
-    Scene_AddRandomForce(game->scene, entity, BALL_RANDOM_FORCE_STRENGTH, BALL_RANDOM_FORCE_INTERVAL_SECONDS);
+    RandomForceSystem_AddToEntity(game->scene, entity, BALL_RANDOM_FORCE_STRENGTH, BALL_RANDOM_FORCE_INTERVAL_SECONDS);
     game->active_ball_count += 1U;
     return entity;
 }
@@ -134,7 +139,6 @@ bool jimokomi_game_register_resources(EngineAppContext* app, JimokomiGameState* 
 
     if (!game_register_ball_visuals(
             renderer,
-            NULL,
             &game->shared_ball_shader_handle,
             game->ball_source_handles,
             SOURCE_VARIANT_COUNT,

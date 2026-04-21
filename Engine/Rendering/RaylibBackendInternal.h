@@ -3,14 +3,34 @@
 
 #include "RaylibBackend.h"
 
-#include <raylib.h>
+typedef struct RaylibBackend {
+    RenderBackend render_backend;
+    int window_width;
+    int window_height;
+    int target_width;
+    int target_height;
+    int clip_depth;
+    Rect clip_stack[16];
+    EngineInputSnapshot input_snapshot;
+    bool should_close;
+    bool frame_active;
+    bool target_active;
+    bool instancing_enabled;
+    void* instancing_state;
+} RaylibBackend;
 
-typedef struct RaylibSurface {
-    Surface base;
-    RenderTexture2D target;
-} RaylibSurface;
-
-Color raylib_unpack_color(Color32 color);
+bool raylib_backend_surface_get_dimensions(
+    const Surface *surface,
+    int *width,
+    int *height
+);
+unsigned int raylib_backend_surface_get_texture_id(const Surface *surface);
+void raylib_backend_draw_surface_batch_fallback(
+    void *userdata,
+    const Surface *surface,
+    const SurfaceDrawInstance *instances,
+    size_t instance_count
+);
 
 void raylib_backend_draw_surface_batch(
     void *userdata,

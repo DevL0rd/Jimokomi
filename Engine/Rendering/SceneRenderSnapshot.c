@@ -1,7 +1,12 @@
 #include "SceneRenderSnapshot.h"
+#include "RenderSnapshotInternal.h"
 
 #include "../Physics/PhysicsBodyControl.h"
 #include "../Scene/Scene.h"
+#include "../Scene/ScenePhysics.h"
+#include "../Scene/SceneQueries.h"
+#include "../Scene/SceneStats.h"
+#include "../Scene/SceneView.h"
 #include "../Scene/Entity.h"
 #include "../Scene/Components/ColliderComponent.h"
 #include "../Scene/Components/DraggableComponent.h"
@@ -13,6 +18,78 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+
+typedef struct SceneRenderSnapshotDesc
+{
+    struct Scene* scene;
+    struct Entity** scratch_entities;
+    size_t scratch_entity_capacity;
+    Aabb view_bounds;
+    float render_alpha;
+    uint64_t now_ms;
+    double update_ms;
+    uint32_t physics_substeps;
+    bool debug_overlay_enabled;
+    bool draw_debug_world;
+    uint64_t selected_entity_id;
+    uint64_t hovered_entity_id;
+    RendererBackdropDrawFn backdrop_draw;
+    void* backdrop_user_data;
+    uint64_t backdrop_signature;
+    const PhysicsWorldSnapshot* physics_snapshot;
+} SceneRenderSnapshotDesc;
+
+struct SceneRenderSnapshotBuilder {
+    Entity** scratch_entities;
+    size_t scratch_entity_capacity;
+};
+
+static bool scene_render_snapshot_builder_reserve_entities(
+    SceneRenderSnapshotBuilder* builder,
+    size_t required_capacity
+) {
+    Entity** next_entities;
+    size_t next_capacity;
+
+    if (builder == NULL) {
+        return false;
+    }
+    if (builder->scratch_entity_capacity >= required_capacity) {
+        return true;
+    }
+
+    next_capacity = builder->scratch_entity_capacity > 0U
+        ? builder->scratch_entity_capacity
+        : 64U;
+    while (next_capacity < required_capacity) {
+        next_capacity *= 2U;
+    }
+
+    next_entities = (Entity**)realloc(
+        builder->scratch_entities,
+        next_capacity * sizeof(*next_entities)
+    );
+    if (next_entities == NULL) {
+        return false;
+    }
+
+    builder->scratch_entities = next_entities;
+    builder->scratch_entity_capacity = next_capacity;
+    return true;
+}
+
+SceneRenderSnapshotBuilder* scene_render_snapshot_builder_create(void) {
+    return (SceneRenderSnapshotBuilder*)calloc(1U, sizeof(SceneRenderSnapshotBuilder));
+}
+
+void scene_render_snapshot_builder_destroy(SceneRenderSnapshotBuilder* builder) {
+    if (builder == NULL) {
+        return;
+    }
+
+    free(builder->scratch_entities);
+    free(builder);
+}
 
 static float scene_render_snapshot_lerp(float a, float b, float alpha)
 {
@@ -254,7 +331,7 @@ static size_t scene_render_snapshot_collect_frame_data(
     return visible_count;
 }
 
-void scene_render_snapshot_build(
+static bool scene_render_snapshot_build_desc(
     const SceneRenderSnapshotDesc* desc,
     RenderSnapshotBuffer* buffer
 )
@@ -269,7 +346,7 @@ void scene_render_snapshot_build(
 
     if (desc == NULL || desc->scene == NULL || buffer == NULL)
     {
-        return;
+        return false;
     }
 
     memset(&empty_physics_snapshot, 0, sizeof(empty_physics_snapshot));
@@ -279,14 +356,14 @@ void scene_render_snapshot_build(
     entity_capacity = Scene_GetEntityCount(desc->scene);
     if (!render_world_snapshot_reserve_items(&buffer->world, entity_capacity))
     {
-        return;
+        return false;
     }
     contact_hit_capacity = Scene_GetPhysicsWorld(desc->scene) != NULL
         ? PhysicsWorld_GetContactHitCount(Scene_GetPhysicsWorld(desc->scene))
         : 0U;
     if (!render_world_snapshot_reserve_debug_collisions(&buffer->world, contact_hit_capacity))
     {
-        return;
+        return false;
     }
     render_world_snapshot_reset(&buffer->world);
     memset(&buffer->stats, 0, sizeof(buffer->stats));
@@ -392,7 +469,7 @@ void scene_render_snapshot_build(
         contact_hits = (PhysicsContactHit*)calloc(contact_hit_capacity, sizeof(*contact_hits));
         if (contact_hits == NULL)
         {
-            return;
+            return false;
         }
         contact_hit_count = PhysicsWorld_GetContactHits(Scene_GetPhysicsWorld(desc->scene), contact_hits, contact_hit_capacity);
         for (event_index = 0U; event_index < contact_hit_count &&
@@ -412,4 +489,59 @@ void scene_render_snapshot_build(
         free(contact_hits);
         buffer->world.debug_collision_count = collision_index;
     }
+
+    return true;
+}
+
+bool scene_render_snapshot_build(
+    SceneRenderSnapshotBuilder* builder,
+    struct Scene* scene,
+    Aabb view_bounds,
+    float render_alpha,
+    uint64_t now_ms,
+    double update_ms,
+    uint32_t physics_substeps,
+    bool debug_overlay_enabled,
+    bool draw_debug_world,
+    uint64_t selected_entity_id,
+    uint64_t hovered_entity_id,
+    RendererBackdropDrawFn backdrop_draw,
+    void* backdrop_user_data,
+    uint64_t backdrop_signature,
+    RenderSnapshotBuffer* buffer
+) {
+    PhysicsWorldSnapshot physics_snapshot;
+    SceneRenderSnapshotDesc desc;
+
+    if (builder == NULL || scene == NULL || buffer == NULL) {
+        return false;
+    }
+    if (!scene_render_snapshot_builder_reserve_entities(builder, Scene_GetEntityCount(scene))) {
+        return false;
+    }
+
+    memset(&physics_snapshot, 0, sizeof(physics_snapshot));
+    if (Scene_GetPhysicsWorld(scene) != NULL) {
+        PhysicsWorld_GetSnapshot(Scene_GetPhysicsWorld(scene), &physics_snapshot);
+    }
+
+    memset(&desc, 0, sizeof(desc));
+    desc.scene = scene;
+    desc.scratch_entities = builder->scratch_entities;
+    desc.scratch_entity_capacity = builder->scratch_entity_capacity;
+    desc.view_bounds = view_bounds;
+    desc.render_alpha = render_alpha;
+    desc.now_ms = now_ms;
+    desc.update_ms = update_ms;
+    desc.physics_substeps = physics_substeps;
+    desc.debug_overlay_enabled = debug_overlay_enabled;
+    desc.draw_debug_world = draw_debug_world;
+    desc.selected_entity_id = selected_entity_id;
+    desc.hovered_entity_id = hovered_entity_id;
+    desc.backdrop_draw = backdrop_draw;
+    desc.backdrop_user_data = backdrop_user_data;
+    desc.backdrop_signature = backdrop_signature;
+    desc.physics_snapshot = &physics_snapshot;
+
+    return scene_render_snapshot_build_desc(&desc, buffer);
 }

@@ -1,7 +1,7 @@
 #include "App.h"
 
 #include "AppInternal.h"
-#include "Core/InputPacketStream.h"
+#include "Core/InputPacketStreamInternal.h"
 #include "Runtime/AppRenderLoop.h"
 #include "Runtime/AppSimulation.h"
 #include "RuntimeInput.h"
@@ -10,9 +10,8 @@
 #include "Rendering/RaylibBackend.h"
 #include "Rendering/Renderer.h"
 #include "Rendering/RenderSnapshot.h"
-#include "Rendering/ResourceCommandQueue.h"
 #include "Scene/Scene.h"
-#include "Core/TaskSystem.h"
+#include "Scene/SceneView.h"
 
 #include <pthread.h>
 #include <stdatomic.h>
@@ -54,7 +53,7 @@ int EngineApp_Run(const EngineAppDesc* desc)
     EngineAppContext app;
     EngineAppSimThreadContext sim_context;
     InputPacketStream input_stream;
-    RenderSnapshotExchange render_snapshot_exchange;
+    RenderSnapshotExchange* render_snapshot_exchange = NULL;
     RuntimeConfig runtime_config;
     const EngineSettings* settings = EngineSettings_GetDefaults();
     RendererConfig renderer_config;
@@ -71,20 +70,16 @@ int EngineApp_Run(const EngineAppDesc* desc)
     memset(&app, 0, sizeof(app));
     memset(&sim_context, 0, sizeof(sim_context));
     memset(&input_stream, 0, sizeof(input_stream));
-    memset(&render_snapshot_exchange, 0, sizeof(render_snapshot_exchange));
     runtime_config_from_engine_settings(&runtime_config, settings);
+    renderer_config = RendererConfig_Defaults();
     InteractionSystem_Init(&app.interaction_state);
 
     if (!input_packet_stream_init(&input_stream, sizeof(EngineRuntimeInputPacket)))
     {
         goto cleanup;
     }
-    if (!render_snapshot_exchange_init(&render_snapshot_exchange))
-    {
-        goto cleanup;
-    }
-    app.resource_command_queue = resource_command_queue_create(0U);
-    if (app.resource_command_queue == NULL)
+    render_snapshot_exchange = render_snapshot_exchange_create();
+    if (render_snapshot_exchange == NULL)
     {
         goto cleanup;
     }
@@ -103,7 +98,6 @@ int EngineApp_Run(const EngineAppDesc* desc)
         goto cleanup;
     }
 
-    renderer_config = runtime_config.renderer;
     app.renderer = renderer_create(&app.backend.render_backend, &renderer_config);
     if (app.renderer == NULL)
     {
@@ -150,10 +144,8 @@ int EngineApp_Run(const EngineAppDesc* desc)
     sim_context.app = &app;
     sim_context.desc = desc;
     sim_context.settings = settings;
-    sim_context.render_snapshot_exchange = &render_snapshot_exchange;
+    sim_context.render_snapshot_exchange = render_snapshot_exchange;
     sim_context.input_stream = &input_stream;
-    sim_context.visible_query_entity_capacity = 0U;
-    sim_context.visible_query_entities = NULL;
     atomic_init(&sim_context.shutdown_requested, false);
     if (pthread_create(&sim_thread, NULL, engine_app_simulation_thread_main, &sim_context) != 0)
     {
@@ -161,7 +153,7 @@ int EngineApp_Run(const EngineAppDesc* desc)
     }
     sim_thread_started = true;
 
-    engine_app_run_render_loop(&app, settings, &render_snapshot_exchange, &input_stream);
+    engine_app_run_render_loop(&app, settings, render_snapshot_exchange, &input_stream);
     exit_code = 0;
 
 cleanup:
@@ -181,9 +173,7 @@ cleanup:
     task_system_dispose(&app.task_system);
     Engine_dispose(&app.engine);
     raylib_backend_dispose(&app.backend);
-    resource_command_queue_destroy(app.resource_command_queue);
-    render_snapshot_exchange_dispose(&render_snapshot_exchange);
+    render_snapshot_exchange_destroy(render_snapshot_exchange);
     input_packet_stream_dispose(&input_stream);
-    free(sim_context.visible_query_entities);
     return exit_code;
 }

@@ -9,11 +9,7 @@
 #include "Systems/InputRoutingSystem.h"
 #include "Systems/PhysicsSyncSystem.h"
 #include "Components/ColliderComponent.h"
-#include "Components/DraggableComponent.h"
-#include "Components/RandomForceComponent.h"
-#include "Components/RenderableComponent.h"
 #include "Components/RigidBodyComponent.h"
-#include "Components/SelectableComponent.h"
 #include "Components/TransformComponent.h"
 #include "../Physics/PhysicsBodyControl.h"
 #include "../Settings.h"
@@ -37,12 +33,12 @@ void Scene_Init(Scene* scene, const char* name, const PhysicsWorldConfig* physic
     }
 
     memset(scene, 0, sizeof(*scene));
-    strncpy(scene->name, name != NULL ? name : "Scene", sizeof(scene->name) - 1);
-    scene->active = true;
-    scene->next_entity_id = 1u;
-    scene->physics_world = PhysicsWorld_Create(physics_config);
-    SpatialGrid_Init(&scene->spatial_grid, EngineSettings_GetDefaults()->scene_spatial_grid_cell_size);
-    scene->view = (SceneView){
+    strncpy(scene->lifecycle.name, name != NULL ? name : "Scene", sizeof(scene->lifecycle.name) - 1);
+    scene->lifecycle.active = true;
+    scene->lifecycle.next_entity_id = 1u;
+    scene->physics.physics_world = PhysicsWorld_Create(physics_config);
+    SpatialGrid_Init(&scene->spatial.spatial_grid, EngineSettings_GetDefaults()->scene_spatial_grid_cell_size);
+    scene->spatial.view = (SceneView){
         .previous_x = 0.0f,
         .previous_y = 0.0f,
         .previous_view_width = 480.0f,
@@ -73,64 +69,32 @@ Scene* Scene_Create(const char* name, const PhysicsWorldConfig* physics_config)
     return scene;
 }
 
-bool Scene_AddRandomForce(Scene* scene, struct Entity* entity, float force_strength, float interval_seconds)
-{
-    RandomForceComponent* random_force;
-
-    if (scene == NULL || entity == NULL || Entity_GetComponent(entity, COMPONENT_RANDOM_FORCE) != NULL)
-    {
-        return false;
-    }
-
-    random_force = RandomForceComponent_Create();
-    if (random_force == NULL)
-    {
-        return false;
-    }
-
-    random_force->force_strength = force_strength;
-    random_force->interval_seconds = interval_seconds;
-    if (!Entity_AddComponent(entity, &random_force->base))
-    {
-        RandomForceComponent_Destroy(random_force);
-        return false;
-    }
-    if (!Scene_AppendEntityToList(&scene->random_force_entities, &scene->random_force_entity_count, &scene->random_force_entity_capacity, entity))
-    {
-        Entity_RemoveComponent(entity, COMPONENT_RANDOM_FORCE);
-        RandomForceComponent_Destroy(random_force);
-        return false;
-    }
-
-    return true;
-}
-
 bool Scene_GetEntityLinearVelocity(Scene* scene, struct Entity* entity, Vec2* out_velocity)
 {
     return scene != NULL &&
-           scene->physics_world != NULL &&
-           PhysicsWorld_GetEntityLinearVelocity(scene->physics_world, entity, out_velocity);
+           scene->physics.physics_world != NULL &&
+           PhysicsWorld_GetEntityLinearVelocity(scene->physics.physics_world, entity, out_velocity);
 }
 
 bool Scene_SetEntityLinearVelocity(Scene* scene, struct Entity* entity, Vec2 velocity)
 {
     return scene != NULL &&
-           scene->physics_world != NULL &&
-           PhysicsWorld_SetEntityLinearVelocity(scene->physics_world, entity, velocity);
+           scene->physics.physics_world != NULL &&
+           PhysicsWorld_SetEntityLinearVelocity(scene->physics.physics_world, entity, velocity);
 }
 
 bool Scene_ApplyEntityLinearImpulse(Scene* scene, struct Entity* entity, Vec2 impulse, bool wake)
 {
     return scene != NULL &&
-           scene->physics_world != NULL &&
-           PhysicsWorld_ApplyEntityLinearImpulse(scene->physics_world, entity, impulse, wake);
+           scene->physics.physics_world != NULL &&
+           PhysicsWorld_ApplyEntityLinearImpulse(scene->physics.physics_world, entity, impulse, wake);
 }
 
 bool Scene_GetEntityContactCapacity(Scene* scene, struct Entity* entity, int* out_contact_capacity)
 {
     return scene != NULL &&
-           scene->physics_world != NULL &&
-           PhysicsWorld_GetEntityContactCapacity(scene->physics_world, entity, out_contact_capacity);
+           scene->physics.physics_world != NULL &&
+           PhysicsWorld_GetEntityContactCapacity(scene->physics.physics_world, entity, out_contact_capacity);
 }
 
 bool Scene_GetSpatialGridCellSpanForAabb(const Scene* scene, Aabb bounds, SpatialGridCellSpan* out_span)
@@ -144,7 +108,7 @@ bool Scene_GetSpatialGridCellSpanForAabb(const Scene* scene, Aabb bounds, Spatia
         return false;
     }
 
-    return SpatialGrid_GetCellSpanForAabb(&scene->spatial_grid, bounds, out_span);
+    return SpatialGrid_GetCellSpanForAabb(&scene->spatial.spatial_grid, bounds, out_span);
 }
 
 size_t Scene_GetSpatialGridDirtyCellSpans(const Scene* scene, SpatialGridCellSpan* results, size_t capacity)
@@ -154,7 +118,7 @@ size_t Scene_GetSpatialGridDirtyCellSpans(const Scene* scene, SpatialGridCellSpa
         return 0U;
     }
 
-    return SpatialGrid_GetDirtyCellSpans(&scene->spatial_grid, results, capacity);
+    return SpatialGrid_GetDirtyCellSpans(&scene->spatial.spatial_grid, results, capacity);
 }
 
 void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_state)
@@ -167,33 +131,33 @@ void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_s
         return;
     }
 
-    scene->last_input_route_ms = 0.0;
-    scene->last_random_force_ms = 0.0;
-    scene->last_physics_sync_ms = 0.0;
-    scene->last_camera_follow_ms = 0.0;
-    SpatialGrid_ClearDirtyCells(&scene->spatial_grid);
+    scene->stats.last_input_route_ms = 0.0;
+    scene->stats.last_random_force_ms = 0.0;
+    scene->stats.last_physics_sync_ms = 0.0;
+    scene->stats.last_camera_follow_ms = 0.0;
+    SpatialGrid_ClearDirtyCells(&scene->spatial.spatial_grid);
 
-    if (scene->on_input != NULL && input_state != NULL)
+    if (scene->lifecycle.on_input != NULL && input_state != NULL)
     {
         phase_started_ms = Scene_NowMs();
         InputRoutingSystem_Update(scene, input_state, dt_seconds);
-        scene->last_input_route_ms = Scene_NowMs() - phase_started_ms;
+        scene->stats.last_input_route_ms = Scene_NowMs() - phase_started_ms;
     }
 
-    if (scene->random_force_entity_count > 0U)
+    if (scene->storage.random_force_entity_count > 0U)
     {
         phase_started_ms = Scene_NowMs();
         RandomForceSystem_Update(scene, dt_seconds);
-        scene->last_random_force_ms = Scene_NowMs() - phase_started_ms;
+        scene->stats.last_random_force_ms = Scene_NowMs() - phase_started_ms;
     }
 
     phase_started_ms = Scene_NowMs();
     PhysicsSyncSystem_Update(scene, dt_seconds);
-    scene->last_physics_sync_ms = Scene_NowMs() - phase_started_ms;
+    scene->stats.last_physics_sync_ms = Scene_NowMs() - phase_started_ms;
 
-    for (index = 0U; index < scene->renderable_entity_count; ++index)
+    for (index = 0U; index < scene->storage.renderable_entity_count; ++index)
     {
-        Entity* entity = scene->renderable_entities[index];
+        Entity* entity = scene->storage.renderable_entities[index];
         TransformComponent* transform = NULL;
         ColliderComponent* collider = NULL;
 
@@ -208,7 +172,7 @@ void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_s
             (transform != NULL && (transform->dirty_flags & (TRANSFORM_DIRTY_POSITION | TRANSFORM_DIRTY_TELEPORT)) != 0U) ||
             (collider != NULL && collider->dirty_flags != COLLIDER_DIRTY_NONE))
         {
-            SpatialGrid_UpdateEntity(&scene->spatial_grid, entity);
+            SpatialGrid_UpdateEntity(&scene->spatial.spatial_grid, entity);
             if (transform != NULL)
             {
                 TransformComponent_ClearDirty(transform, TRANSFORM_DIRTY_POSITION | TRANSFORM_DIRTY_TELEPORT);
@@ -220,11 +184,11 @@ void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_s
         }
     }
 
-    if (scene->camera_target_entity != NULL)
+    if (scene->camera_follow.camera_target_entity != NULL)
     {
         phase_started_ms = Scene_NowMs();
         CameraFollowSystem_Update(scene, dt_seconds);
-        scene->last_camera_follow_ms = Scene_NowMs() - phase_started_ms;
+        scene->stats.last_camera_follow_ms = Scene_NowMs() - phase_started_ms;
     }
 }
 
@@ -237,61 +201,26 @@ void Scene_Destroy(Scene* scene)
         return;
     }
 
-    for (index = scene->entity_count; index > 0; --index)
+    for (index = scene->storage.entity_count; index > 0; --index)
     {
-        struct Entity* entity = scene->entities[index - 1];
+        struct Entity* entity = scene->storage.entities[index - 1];
         if (entity != NULL)
         {
-            PhysicsWorld_RemoveBodyForEntity(scene->physics_world, entity);
+            PhysicsWorld_RemoveBodyForEntity(scene->physics.physics_world, entity);
             entity->scene = NULL;
             Entity_Destroy(entity);
         }
     }
 
-    free(scene->entities);
-    scene->entities = NULL;
-    scene->entity_count = 0;
-    scene->entity_capacity = 0;
-    free(scene->dynamic_entities);
-    scene->dynamic_entities = NULL;
-    scene->dynamic_entity_count = 0;
-    scene->dynamic_entity_capacity = 0;
-    free(scene->selectable_entities);
-    scene->selectable_entities = NULL;
-    scene->selectable_entity_count = 0;
-    scene->selectable_entity_capacity = 0;
-    free(scene->draggable_entities);
-    scene->draggable_entities = NULL;
-    scene->draggable_entity_count = 0;
-    scene->draggable_entity_capacity = 0;
-    free(scene->renderable_entities);
-    scene->renderable_entities = NULL;
-    scene->renderable_entity_count = 0;
-    scene->renderable_entity_capacity = 0;
-    free(scene->debug_visible_entities);
-    scene->debug_visible_entities = NULL;
-    scene->debug_visible_entity_count = 0;
-    scene->debug_visible_entity_capacity = 0;
-    free(scene->trigger_query_entities);
-    scene->trigger_query_entities = NULL;
-    scene->trigger_query_entity_count = 0;
-    scene->trigger_query_entity_capacity = 0;
-    free(scene->proximity_query_entities);
-    scene->proximity_query_entities = NULL;
-    scene->proximity_query_entity_count = 0;
-    scene->proximity_query_entity_capacity = 0;
-    free(scene->random_force_entities);
-    scene->random_force_entities = NULL;
-    scene->random_force_entity_count = 0;
-    scene->random_force_entity_capacity = 0;
+    SceneStorage_Dispose(&scene->storage);
 
-    if (scene->physics_world != NULL)
+    if (scene->physics.physics_world != NULL)
     {
-        PhysicsWorld_Destroy(scene->physics_world);
-        scene->physics_world = NULL;
+        PhysicsWorld_Destroy(scene->physics.physics_world);
+        scene->physics.physics_world = NULL;
     }
 
-    SpatialGrid_Dispose(&scene->spatial_grid);
+    SpatialGrid_Dispose(&scene->spatial.spatial_grid);
 
     free(scene);
 }

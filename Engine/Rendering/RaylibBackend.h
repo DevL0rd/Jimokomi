@@ -4,21 +4,7 @@
 #include "Target.h"
 #include "../Core/Input.h"
 
-typedef struct RaylibBackend {
-    RenderBackend render_backend;
-    int window_width;
-    int window_height;
-    int target_width;
-    int target_height;
-    int clip_depth;
-    Rect clip_stack[16];
-    EngineInputSnapshot input_snapshot;
-    bool should_close;
-    bool frame_active;
-    bool target_active;
-    bool instancing_enabled;
-    void* instancing_state;
-} RaylibBackend;
+typedef struct RaylibBackend RaylibBackend;
 
 bool raylib_backend_init(
     RaylibBackend *backend,

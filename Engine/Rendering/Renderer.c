@@ -2,7 +2,6 @@
 
 #include "DebugOverlayInternal.h"
 #include "ResourceManagerInternal.h"
-#include "ResourceCommandQueue.h"
 
 #include <time.h>
 #include <stdlib.h>
@@ -287,30 +286,84 @@ void renderer_get_viewport_size(const Renderer* renderer, int* out_width, int* o
     }
 }
 
-ResourceManager* renderer_get_resource_manager(Renderer* renderer) {
-    return renderer != NULL ? renderer->resource_manager : NULL;
-}
-
-const ResourceManager* renderer_get_resource_manager_const(const Renderer* renderer) {
-    return renderer != NULL ? renderer->resource_manager : NULL;
-}
-
-DebugOverlay* renderer_get_debug_overlay(Renderer* renderer) {
-    return renderer != NULL ? renderer->debug_overlay : NULL;
-}
-
-const DebugOverlay* renderer_get_debug_overlay_const(const Renderer* renderer) {
-    return renderer != NULL ? renderer->debug_overlay : NULL;
-}
-
-size_t renderer_drain_resource_commands(Renderer* renderer, ResourceCommandQueue* queue) {
-    if (renderer == NULL || renderer->resource_manager == NULL || queue == NULL) {
-        return 0U;
+void renderer_toggle_debug_overlay(Renderer* renderer) {
+    if (renderer != NULL) {
+        debug_overlay_toggle(renderer->debug_overlay);
     }
+}
 
-    return resource_command_queue_has_pending(queue)
-        ? resource_command_queue_drain(queue, renderer->resource_manager)
-        : 0U;
+void renderer_toggle_debug_world_gizmos(Renderer* renderer) {
+    if (renderer != NULL) {
+        debug_overlay_toggle_world_gizmos(renderer->debug_overlay);
+    }
+}
+
+bool renderer_debug_overlay_is_ui_visible(const Renderer* renderer) {
+    return renderer != NULL && debug_overlay_is_ui_visible(renderer->debug_overlay);
+}
+
+bool renderer_debug_overlay_is_world_gizmos_visible(const Renderer* renderer) {
+    return renderer != NULL && debug_overlay_is_world_gizmos_visible(renderer->debug_overlay);
+}
+
+void renderer_debug_overlay_handle_input(
+    Renderer* renderer,
+    const EngineInput* input,
+    bool has_selection,
+    int window_width,
+    int window_height
+) {
+    if (renderer != NULL) {
+        debug_overlay_handle_input(renderer->debug_overlay, input, has_selection, window_width, window_height);
+    }
+}
+
+bool renderer_debug_overlay_is_pointer_over_ui(
+    const Renderer* renderer,
+    bool has_selection,
+    float mouse_x,
+    float mouse_y,
+    int window_width,
+    int window_height
+) {
+    return renderer != NULL &&
+           debug_overlay_is_pointer_over_ui(renderer->debug_overlay, has_selection, mouse_x, mouse_y, window_width, window_height);
+}
+
+void renderer_draw_debug_overlay_ui(
+    Renderer* renderer,
+    RenderBackend* backend,
+    const DebugOverlaySnapshot* snapshot,
+    const struct EngineStatsSnapshot* engine_stats,
+    const DebugEntityView* selected_entity,
+    int window_width,
+    int window_height
+) {
+    if (renderer != NULL) {
+        debug_overlay_draw_ui(renderer->debug_overlay, backend, snapshot, engine_stats, selected_entity, window_width, window_height);
+    }
+}
+
+ResourceHandle renderer_register_material(Renderer* renderer, const char* name, const Material* material) {
+    return renderer != NULL
+        ? resource_manager_register_material(renderer->resource_manager, name, material)
+        : (ResourceHandle){ 0U };
+}
+
+ResourceHandle renderer_register_shader(Renderer* renderer, const char* name, ShaderStyle style) {
+    return renderer != NULL
+        ? resource_manager_register_shader(renderer->resource_manager, name, style)
+        : (ResourceHandle){ 0U };
+}
+
+ResourceHandle renderer_register_procedural_source(
+    Renderer* renderer,
+    const char* name,
+    const ProceduralSourceDesc* desc
+) {
+    return renderer != NULL
+        ? resource_manager_register_procedural_source(renderer->resource_manager, name, desc)
+        : (ResourceHandle){ 0U };
 }
 
 void renderer_get_stats_snapshot(const Renderer* renderer, RendererStatsSnapshot* out_snapshot) {

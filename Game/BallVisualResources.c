@@ -1,17 +1,16 @@
 #include "BallVisualResources.h"
 
-#include "../Engine/RuntimeConfig.h"
 #include "../Engine/Rendering/Renderer.h"
-#include "../Engine/Rendering/ResourceManager.h"
+#include "../Engine/Rendering/RendererResources.h"
 #include "../Engine/Rendering/Target.h"
 
 #include <math.h>
-#include <stdio.h>
 #include <string.h>
 
 #define BALL_RENDER_SIZE 28.0f
 #define BALL_RENDER_CENTER 14.0f
 #define BALL_RENDER_SCALE 2.0f
+#define BALL_BODY_RADIUS 13.0f
 
 static void game_fill_ball_material(Material* material, size_t index) {
     float hue = fmodf((float)index * 37.0f, 360.0f);
@@ -54,17 +53,16 @@ static void game_draw_ball_body(
 
     (void)user_data;
 
-    target_circle_filled(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, 7.0f * BALL_RENDER_SCALE, outer_color);
+    target_circle_filled(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, BALL_BODY_RADIUS, outer_color);
     target_circle_filled(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, 5.7f * BALL_RENDER_SCALE, inner_color);
     target_circle_filled(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, 4.3f * BALL_RENDER_SCALE, core_color);
-    target_circle(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, 7.0f * BALL_RENDER_SCALE, (Color32){ 0xe9f5ffU });
 
     for (index = 0; index < ring_count; ++index) {
         float ring_phase = swirl_phase * (0.8f + (float)index * 0.15f) + (float)index * 1.7f;
-        float ring_radius = (1.5f + (float)index * 1.05f + sinf(ring_phase) * 0.3f) * BALL_RENDER_SCALE;
+        float ring_radius = (1.2f + (float)index * 0.85f + sinf(ring_phase) * 0.2f) * BALL_RENDER_SCALE;
         Vec2 ring_center = {
-            BALL_RENDER_CENTER + cosf(ring_phase * 0.25f) * ((0.8f + (float)index * 0.35f) * BALL_RENDER_SCALE),
-            BALL_RENDER_CENTER + sinf(ring_phase * 0.22f) * ((0.8f + (float)index * 0.35f) * BALL_RENDER_SCALE)
+            BALL_RENDER_CENTER + cosf(ring_phase * 0.25f) * ((0.55f + (float)index * 0.25f) * BALL_RENDER_SCALE),
+            BALL_RENDER_CENTER + sinf(ring_phase * 0.22f) * ((0.55f + (float)index * 0.25f) * BALL_RENDER_SCALE)
         };
         target_circle(target, ring_center, ring_radius, index % 2 == 0 ? glow_color : inner_color);
     }
@@ -81,11 +79,17 @@ static void game_draw_ball_body(
 
     for (index = 0; index < 3; ++index) {
         float nebula_angle = swirl_phase + (float)index * 2.09439510239f;
+        float nebula_width = (6.2f + pulse * 0.6f) * BALL_RENDER_SCALE;
+        float nebula_height = (2.1f + pulse * 0.4f) * BALL_RENDER_SCALE;
+        Vec2 nebula_center = {
+            BALL_RENDER_CENTER + cosf(nebula_angle) * (2.2f * BALL_RENDER_SCALE),
+            BALL_RENDER_CENTER + sinf(nebula_angle * 1.3f) * (1.3f * BALL_RENDER_SCALE)
+        };
         Rect nebula = {
-            3.0f + cosf(nebula_angle) * (3.5f * BALL_RENDER_SCALE),
-            3.5f + sinf(nebula_angle * 1.3f) * (2.5f * BALL_RENDER_SCALE),
-            (10.0f + pulse * 1.5f) * BALL_RENDER_SCALE,
-            (4.0f + pulse) * BALL_RENDER_SCALE
+            nebula_center.x - nebula_width * 0.5f,
+            nebula_center.y - nebula_height * 0.5f,
+            nebula_width,
+            nebula_height
         };
         target_oval_filled(target, nebula, index == 1 ? glow_color : inner_color);
     }
@@ -108,11 +112,12 @@ static void game_draw_ball_body(
         target_oval(target, glare_outline_rect, outer_color);
         target_oval_filled(target, (Rect){ 8.0f, 8.5f, 2.0f, 1.0f }, glow_color);
     }
+
+    target_circle(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, BALL_BODY_RADIUS, (Color32){ 0xe9f5ffU });
 }
 
 bool game_register_ball_visuals(
     Renderer* renderer,
-    const RuntimeConfig* runtime_config,
     ResourceHandle* shared_shader_handle,
     ResourceHandle* source_handles,
     size_t source_count,
@@ -135,21 +140,15 @@ bool game_register_ball_visuals(
     source_desc.animation_fps = 60.0f;
     source_desc.bake_animation_fps = 60.0f;
     source_desc.loop = true;
-    source_desc.bake_policy = runtime_config != NULL
-        ? runtime_config->default_procedural_bake_policy
-        : BAKE_POLICY_SHARED_FRAME;
-    source_desc.prebake_required = runtime_config != NULL
-        ? runtime_config->default_prebake_required
-        : true;
-    source_desc.bake_instance_invariant = runtime_config != NULL
-        ? runtime_config->default_bake_instance_invariant
-        : true;
+    source_desc.bake_policy = RESOURCE_DEFAULT_PROCEDURAL_BAKE_POLICY;
+    source_desc.prebake_required = RESOURCE_DEFAULT_PREBAKE_REQUIRED;
+    source_desc.bake_instance_invariant = RESOURCE_DEFAULT_BAKE_INSTANCE_INVARIANT;
     source_desc.bake_ignores_material = false;
     source_desc.bake_frame_count = 240U;
     source_desc.draw_body = game_draw_ball_body;
     source_desc.draw_overlay = NULL;
-    shared_source_handle = resource_manager_register_procedural_source(
-        renderer_get_resource_manager(renderer),
+    shared_source_handle = renderer_register_procedural_source(
+        renderer,
         "procedural.space_ball.shared_60fps",
         &source_desc
     );
@@ -160,8 +159,8 @@ bool game_register_ball_visuals(
         source_handles[index] = shared_source_handle;
     }
 
-    *shared_shader_handle = resource_manager_register_shader(
-        renderer_get_resource_manager(renderer),
+    *shared_shader_handle = renderer_register_shader(
+        renderer,
         "shader.space.v1",
         SHADER_STYLE_SPACE
     );
@@ -170,8 +169,8 @@ bool game_register_ball_visuals(
     }
 
     game_fill_ball_material(&material, 0U);
-    shared_material_handle = resource_manager_register_material(
-        renderer_get_resource_manager(renderer),
+    shared_material_handle = renderer_register_material(
+        renderer,
         "material.space_ball.shared",
         &material
     );

@@ -1,6 +1,7 @@
 #include "RandomForceSystem.h"
 
 #include "../SceneInternal.h"
+#include "../SceneStorage.h"
 #include "../EntityInternal.h"
 #include "../Components/RandomForceComponent.h"
 #include "../Components/RigidBodyComponent.h"
@@ -36,18 +37,54 @@ static float random_force_motion_next_unit(uint32_t* state)
     return (float)(random_force_motion_next_u32(state) & 0x00FFFFFFu) / (float)0x01000000u;
 }
 
+bool RandomForceSystem_AddToEntity(
+    struct Scene* scene,
+    struct Entity* entity,
+    float force_strength,
+    float interval_seconds
+) {
+    RandomForceComponent* random_force = NULL;
+
+    if (scene == NULL || entity == NULL || Entity_GetComponent(entity, COMPONENT_RANDOM_FORCE) != NULL)
+    {
+        return false;
+    }
+
+    random_force = RandomForceComponent_Create();
+    if (random_force == NULL)
+    {
+        return false;
+    }
+
+    random_force->force_strength = force_strength;
+    random_force->interval_seconds = interval_seconds;
+    if (!Entity_AddComponent(entity, &random_force->base))
+    {
+        RandomForceComponent_Destroy(random_force);
+        return false;
+    }
+    if (!Scene_AppendEntityToList(&scene->storage.random_force_entities, &scene->storage.random_force_entity_count, &scene->storage.random_force_entity_capacity, entity))
+    {
+        Entity_RemoveComponent(entity, COMPONENT_RANDOM_FORCE);
+        RandomForceComponent_Destroy(random_force);
+        return false;
+    }
+
+    return true;
+}
+
 void RandomForceSystem_Update(struct Scene* scene, float dt_seconds)
 {
     size_t index = 0U;
 
-    if (scene == NULL || dt_seconds <= 0.0f || scene->random_force_entity_count == 0U)
+    if (scene == NULL || dt_seconds <= 0.0f || scene->storage.random_force_entity_count == 0U)
     {
         return;
     }
 
-    for (index = 0U; index < scene->random_force_entity_count; ++index)
+    for (index = 0U; index < scene->storage.random_force_entity_count; ++index)
     {
-        Entity* entity = scene->random_force_entities[index];
+        Entity* entity = scene->storage.random_force_entities[index];
         RandomForceComponent* random_force = NULL;
         RigidBodyComponent* rigid_body = NULL;
 
@@ -78,7 +115,7 @@ void RandomForceSystem_Update(struct Scene* scene, float dt_seconds)
         if (random_force->current_force_x != 0.0f || random_force->current_force_y != 0.0f)
         {
             PhysicsWorld_ApplyEntityForce(
-                scene->physics_world,
+                scene->physics.physics_world,
                 entity,
                 (Vec2){ random_force->current_force_x, random_force->current_force_y },
                 true

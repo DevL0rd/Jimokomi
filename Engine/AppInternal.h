@@ -2,12 +2,11 @@
 #define JIMOKOMI_ENGINE_APP_INTERNAL_H
 
 #include "App.h"
-#include "Rendering/RaylibBackend.h"
+#include "Rendering/RaylibBackendInternal.h"
 #include "Rendering/Renderer.h"
-#include "Rendering/ResourceCommandQueue.h"
 #include "Scene/Scene.h"
 #include "Runtime/InteractionSystem.h"
-#include "Core/TaskSystem.h"
+#include "Core/TaskSystemInternal.h"
 
 struct EngineAppContext
 {
@@ -16,7 +15,6 @@ struct EngineAppContext
     Renderer* renderer;
     Scene* scene;
     TaskSystem task_system;
-    ResourceCommandQueue* resource_command_queue;
     InteractionSystemState interaction_state;
     uint64_t dropped_render_snapshots;
 };

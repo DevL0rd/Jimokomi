@@ -9,6 +9,88 @@ static double resource_manager_now_ms(void) {
     return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
 }
 
+const Surface* resource_manager_execute_baked_surface(
+    ResourceManager* manager,
+    const VisualSourceResource* source,
+    const MaterialResource* material,
+    const ShaderResource* shader,
+    BakedSurfaceKey key,
+    void* user_data
+) {
+    Surface* surface;
+    Target target;
+    ProceduralTextureContext context;
+    Material neutral_material;
+    const Material* context_material;
+
+    if (manager == NULL || source == NULL || manager->backend == NULL) {
+        return NULL;
+    }
+    if (manager->backend->create_surface == NULL ||
+        manager->backend->set_target == NULL ||
+        manager->backend->reset_target == NULL ||
+        manager->backend->clear == NULL) {
+        return NULL;
+    }
+
+    surface = manager->backend->create_surface(manager->backend->userdata, source->width, source->height);
+    if (surface == NULL) {
+        return NULL;
+    }
+
+    manager->bake_queue.bake_requests_this_frame += 1U;
+    manager->backend->set_target(manager->backend->userdata, surface);
+    manager->backend->clear(manager->backend->userdata, color_rgba(0U, 0U, 0U, 0U));
+    target_init(&target, manager->backend, 0.0f, 0.0f);
+
+    memset(&context, 0, sizeof(context));
+    context.now_ms = (uint64_t)(((source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps) > 0.0f)
+        ? ((double)key.frame_index / (source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps)) * 1000.0
+        : 0.0);
+    context.time_seconds = (source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps) > 0.0f
+        ? (float)key.frame_index / (source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps)
+        : 0.0f;
+    context.animation_fps = source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps;
+    context.frame_index = key.frame_index;
+    context.angle_radians = 0.0f;
+    memset(&neutral_material, 0, sizeof(neutral_material));
+    neutral_material.base_color = 0xffffffU;
+    neutral_material.accent_color = 0xd0d8e8U;
+    neutral_material.glow_color = 0xffffffU;
+    neutral_material.glare_color = 0xffffffU;
+    neutral_material.emissive = 1.0f;
+    neutral_material.distortion = 0.0f;
+    neutral_material.glare_strength = 1.0f;
+    neutral_material.pulse_rate = 1.0f;
+    neutral_material.shader_style = shader != NULL
+        ? shader->style
+        : (material != NULL ? material->value.shader_style : SHADER_STYLE_NONE);
+    context_material = source->bake_ignores_material
+        ? NULL
+        : (material != NULL ? &material->value : &neutral_material);
+    context.material = context_material;
+    context.shader_style = shader != NULL
+        ? shader->style
+        : (material != NULL ? material->value.shader_style : neutral_material.shader_style);
+
+    if (key.pass == BAKED_SURFACE_PASS_BODY) {
+        source->draw_body(&target, &context, user_data);
+    } else {
+        source->draw_overlay(&target, &context, user_data);
+    }
+
+    manager->backend->reset_target(manager->backend->userdata);
+
+    if (!resource_manager_store_baked_surface(manager, key, surface)) {
+        if (manager->backend->destroy_surface != NULL) {
+            manager->backend->destroy_surface(manager->backend->userdata, surface);
+        }
+        return NULL;
+    }
+
+    return surface;
+}
+
 void resource_manager_process_pending_bakes(ResourceManager* manager, double time_budget_ms) {
     double started_ms;
     double effective_budget_ms;
@@ -17,16 +99,16 @@ void resource_manager_process_pending_bakes(ResourceManager* manager, double tim
         return;
     }
 
-    effective_budget_ms = time_budget_ms > 0.0 ? time_budget_ms : manager->bake_time_budget_ms;
-    manager->bake_time_budget_ms = effective_budget_ms;
-    manager->last_bake_process_ms = 0.0;
+    effective_budget_ms = time_budget_ms > 0.0 ? time_budget_ms : manager->bake_queue.bake_time_budget_ms;
+    manager->bake_queue.bake_time_budget_ms = effective_budget_ms;
+    manager->bake_queue.last_bake_process_ms = 0.0;
     if (effective_budget_ms <= 0.0) {
         return;
     }
 
     started_ms = resource_manager_now_ms();
-    while ((manager->static_pending_bake_request_head < manager->static_pending_bake_request_count ||
-            manager->transient_pending_bake_request_head < manager->transient_pending_bake_request_count) &&
+    while ((manager->bake_queue.static_pending_bake_request_head < manager->bake_queue.static_pending_bake_request_count ||
+            manager->bake_queue.transient_pending_bake_request_head < manager->bake_queue.transient_pending_bake_request_count) &&
            resource_manager_now_ms() - started_ms < effective_budget_ms) {
         PendingBakeRequest request;
         BakedSurfaceKey key;
@@ -34,10 +116,10 @@ void resource_manager_process_pending_bakes(ResourceManager* manager, double tim
         const MaterialResource* material;
         const ShaderResource* shader;
 
-        if (manager->static_pending_bake_request_head < manager->static_pending_bake_request_count) {
-            request = manager->static_pending_bake_requests[manager->static_pending_bake_request_head++];
+        if (manager->bake_queue.static_pending_bake_request_head < manager->bake_queue.static_pending_bake_request_count) {
+            request = manager->bake_queue.static_pending_bake_requests[manager->bake_queue.static_pending_bake_request_head++];
         } else {
-            request = manager->transient_pending_bake_requests[manager->transient_pending_bake_request_head++];
+            request = manager->bake_queue.transient_pending_bake_requests[manager->bake_queue.transient_pending_bake_request_head++];
         }
 
         key = request.key;
@@ -56,33 +138,11 @@ void resource_manager_process_pending_bakes(ResourceManager* manager, double tim
             continue;
         }
 
-        (void)resource_manager_build_baked_surface(manager, source, material, shader, key, NULL);
+        (void)resource_manager_execute_baked_surface(manager, source, material, shader, key, NULL);
     }
-    manager->last_bake_process_ms = resource_manager_now_ms() - started_ms;
+    manager->bake_queue.last_bake_process_ms = resource_manager_now_ms() - started_ms;
 
-    if (manager->static_pending_bake_request_head > 0U &&
-        manager->static_pending_bake_request_head == manager->static_pending_bake_request_count) {
-        manager->static_pending_bake_request_head = 0U;
-        manager->static_pending_bake_request_count = 0U;
-    }
-
-    if (manager->transient_pending_bake_request_head > 0U &&
-        manager->transient_pending_bake_request_head == manager->transient_pending_bake_request_count) {
-        manager->transient_pending_bake_request_head = 0U;
-        manager->transient_pending_bake_request_count = 0U;
-    }
-
-    if (manager->static_pending_bake_request_count == 0U &&
-        manager->transient_pending_bake_request_count == 0U) {
-        manager->pending_bake_slot_count = 0U;
-        if (manager->pending_bake_slots != NULL && manager->pending_bake_slot_capacity > 0U) {
-            memset(
-                manager->pending_bake_slots,
-                0,
-                manager->pending_bake_slot_capacity * sizeof(*manager->pending_bake_slots)
-            );
-        }
-    }
+    resource_manager_reset_empty_bake_queue(manager);
 }
 
 bool resource_manager_prewarm_procedural_source(
@@ -123,7 +183,7 @@ bool resource_manager_prewarm_procedural_source(
             key.frame_index = frame_index;
             key.pass = (uint8_t)BAKED_SURFACE_PASS_BODY;
             if (resource_manager_find_baked_surface(manager, key) == NULL &&
-                resource_manager_build_baked_surface(manager, source, material, shader, key, user_data) == NULL) {
+                resource_manager_execute_baked_surface(manager, source, material, shader, key, user_data) == NULL) {
                 return false;
             }
         }
@@ -134,7 +194,7 @@ bool resource_manager_prewarm_procedural_source(
             key.frame_index = frame_index;
             key.pass = (uint8_t)BAKED_SURFACE_PASS_OVERLAY;
             if (resource_manager_find_baked_surface(manager, key) == NULL &&
-                resource_manager_build_baked_surface(manager, source, material, shader, key, user_data) == NULL) {
+                resource_manager_execute_baked_surface(manager, source, material, shader, key, user_data) == NULL) {
                 return false;
             }
         }

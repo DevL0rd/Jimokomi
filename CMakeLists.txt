@@ -57,7 +57,6 @@ set(SOURCES
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Rendering/RendererSurfaceBatch.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Rendering/RendererVisibility.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Rendering/RenderSnapshot.c"
-	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Rendering/ResourceCommandQueue.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Rendering/ResourceManager.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Rendering/ResourceManagerBakeCache.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Rendering/ResourceManagerBakeKey.c"

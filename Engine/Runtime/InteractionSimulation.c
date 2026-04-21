@@ -6,6 +6,7 @@
 #include "../Scene/Components/RigidBodyComponent.h"
 #include "../Scene/Entity.h"
 #include "../Scene/Scene.h"
+#include "../Scene/ScenePhysics.h"
 
 void InteractionSystem_ApplyDragPacket(Scene* scene, const EngineRuntimeInputPacket* input_packet)
 {

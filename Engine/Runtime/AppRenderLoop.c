@@ -1,8 +1,7 @@
 #include "AppRenderLoop.h"
 
 #include "InteractionSystem.h"
-#include "../Rendering/DebugOverlay.h"
-#include "../Rendering/RaylibBackend.h"
+#include "../Rendering/RaylibBackendInternal.h"
 #include "../Rendering/Renderer.h"
 
 #include <time.h>
@@ -83,11 +82,11 @@ void engine_app_run_render_loop(
         Engine_update(&app->engine, 0.0, &input_snapshot);
         if (EngineInput_was_pressed(&app->engine.input, ENGINE_INPUT_ACTION_DEBUG_TOGGLE))
         {
-            debug_overlay_toggle(renderer_get_debug_overlay(app->renderer));
+            renderer_toggle_debug_overlay(app->renderer);
         }
         if (EngineInput_was_pressed(&app->engine.input, ENGINE_INPUT_ACTION_DEBUG_WORLD_TOGGLE))
         {
-            debug_overlay_toggle_world_gizmos(renderer_get_debug_overlay(app->renderer));
+            renderer_toggle_debug_world_gizmos(app->renderer);
         }
 
         engine_stats_snapshot = Engine_get_stats_snapshot(&app->engine);
@@ -105,15 +104,15 @@ void engine_app_run_render_loop(
 
         selected_entity = render_snapshot->world.has_selected_entity ? &render_snapshot->world.selected_entity : NULL;
         has_selection = selected_entity != NULL || app->interaction_state.selected_entity_id != 0U;
-        debug_overlay_handle_input(
-            renderer_get_debug_overlay(app->renderer),
+        renderer_debug_overlay_handle_input(
+            app->renderer,
             &app->engine.input,
             has_selection,
             app->backend.window_width,
             app->backend.window_height
         );
-        pointer_over_ui = debug_overlay_is_pointer_over_ui(
-            renderer_get_debug_overlay(app->renderer),
+        pointer_over_ui = renderer_debug_overlay_is_pointer_over_ui(
+            app->renderer,
             has_selection,
             (float)input_snapshot.mouse_x,
             (float)input_snapshot.mouse_y,
@@ -138,8 +137,8 @@ void engine_app_run_render_loop(
                 &input_snapshot,
                 app->renderer,
                 pointer_over_ui,
-                debug_overlay_is_ui_visible(renderer_get_debug_overlay(app->renderer)),
-                debug_overlay_is_world_gizmos_visible(renderer_get_debug_overlay(app->renderer)),
+                renderer_debug_overlay_is_ui_visible(app->renderer),
+                renderer_debug_overlay_is_world_gizmos_visible(app->renderer),
                 app->backend.window_width,
                 app->backend.window_height,
                 input_packet_stream_next_frame_id(input_stream),
@@ -149,7 +148,6 @@ void engine_app_run_render_loop(
         }
         InteractionSystem_ClearReleasedDrag(&app->interaction_state, &app->engine.input);
 
-        renderer_drain_resource_commands(app->renderer, app->resource_command_queue);
         render_world_snapshot_build_frame(&render_snapshot->world, &frame);
         selected_entity = render_snapshot->world.has_selected_entity ? &render_snapshot->world.selected_entity : NULL;
         debug_overlay_snapshot = render_snapshot->stats.overlay;
@@ -165,8 +163,8 @@ void engine_app_run_render_loop(
         frame.selected_debug_entity_id = selected_entity != NULL ? selected_entity->id : app->interaction_state.selected_entity_id;
         frame.hovered_debug_entity_id = app->interaction_state.hovered_entity_id;
         renderer_draw(app->renderer, &app->backend.render_backend, &frame);
-        debug_overlay_draw_ui(
-            renderer_get_debug_overlay(app->renderer),
+        renderer_draw_debug_overlay_ui(
+            app->renderer,
             &app->backend.render_backend,
             &debug_overlay_snapshot,
             &engine_stats_snapshot,

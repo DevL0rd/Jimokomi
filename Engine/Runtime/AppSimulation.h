@@ -5,7 +5,6 @@
 #include "../Core/InputPacketStream.h"
 #include "../Rendering/RenderSnapshot.h"
 #include "../Settings.h"
-#include "../Scene/Entity.h"
 
 #include <stdatomic.h>
 
@@ -17,8 +16,6 @@ typedef struct EngineAppSimThreadContext
     RenderSnapshotExchange* render_snapshot_exchange;
     InputPacketStream* input_stream;
     atomic_bool shutdown_requested;
-    Entity** visible_query_entities;
-    size_t visible_query_entity_capacity;
     double accumulator_seconds;
     double fixed_dt_seconds;
     uint32_t max_substeps;

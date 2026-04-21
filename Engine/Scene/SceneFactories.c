@@ -1,5 +1,6 @@
-#include "Scene.h"
+#include "SceneFactories.h"
 
+#include "SceneInternal.h"
 #include "Entity.h"
 #include "Components/ColliderComponent.h"
 #include "Components/DraggableComponent.h"

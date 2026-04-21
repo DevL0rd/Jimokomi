@@ -8,7 +8,6 @@
 
 typedef struct DebugOverlay DebugOverlay;
 typedef struct ResourceManager ResourceManager;
-typedef struct ResourceCommandQueue ResourceCommandQueue;
 typedef struct Renderer Renderer;
 struct Scene;
 
@@ -47,10 +46,33 @@ void renderer_get_stats_snapshot(const Renderer* renderer, RendererStatsSnapshot
 Camera* renderer_get_camera(Renderer* renderer);
 const Camera* renderer_get_camera_const(const Renderer* renderer);
 void renderer_get_viewport_size(const Renderer* renderer, int* out_width, int* out_height);
-ResourceManager* renderer_get_resource_manager(Renderer* renderer);
-const ResourceManager* renderer_get_resource_manager_const(const Renderer* renderer);
-DebugOverlay* renderer_get_debug_overlay(Renderer* renderer);
-const DebugOverlay* renderer_get_debug_overlay_const(const Renderer* renderer);
-size_t renderer_drain_resource_commands(Renderer* renderer, ResourceCommandQueue* queue);
+void renderer_toggle_debug_overlay(Renderer* renderer);
+void renderer_toggle_debug_world_gizmos(Renderer* renderer);
+bool renderer_debug_overlay_is_ui_visible(const Renderer* renderer);
+bool renderer_debug_overlay_is_world_gizmos_visible(const Renderer* renderer);
+void renderer_debug_overlay_handle_input(
+    Renderer* renderer,
+    const EngineInput* input,
+    bool has_selection,
+    int window_width,
+    int window_height
+);
+bool renderer_debug_overlay_is_pointer_over_ui(
+    const Renderer* renderer,
+    bool has_selection,
+    float mouse_x,
+    float mouse_y,
+    int window_width,
+    int window_height
+);
+void renderer_draw_debug_overlay_ui(
+    Renderer* renderer,
+    RenderBackend* backend,
+    const DebugOverlaySnapshot* snapshot,
+    const struct EngineStatsSnapshot* engine_stats,
+    const DebugEntityView* selected_entity,
+    int window_width,
+    int window_height
+);
 
 #endif

@@ -10,4 +10,6 @@ bool Scene_AppendEntityToList(
     struct Entity* entity
 );
 
+void SceneStorage_Dispose(SceneStorage* storage);
+
 #endif

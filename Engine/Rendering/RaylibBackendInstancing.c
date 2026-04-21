@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <raylib.h>
 #include <rlgl.h>
 
 typedef struct RaylibInstancingState {
@@ -83,48 +84,6 @@ static void raylib_backend_set_attribute_divisor(unsigned int index, unsigned in
     else if (raylib_backend_has_arb_instancing())
     {
         glad_glVertexAttribDivisorARB(index, divisor);
-    }
-}
-
-static void raylib_backend_draw_surface_batch_fallback(
-    const RaylibSurface* raylib_surface,
-    const SurfaceDrawInstance* instances,
-    size_t instance_count
-)
-{
-    Rectangle source;
-    size_t index = 0U;
-
-    if (raylib_surface == NULL || instances == NULL)
-    {
-        return;
-    }
-
-    source.x = 0.0f;
-    source.y = 0.0f;
-    source.width = (float)raylib_surface->base.width;
-    source.height = (float)-raylib_surface->base.height;
-
-    for (index = 0U; index < instance_count; ++index)
-    {
-        Rectangle draw_dest = {
-            instances[index].dest.x + instances[index].origin.x,
-            instances[index].dest.y + instances[index].origin.y,
-            instances[index].dest.w,
-            instances[index].dest.h
-        };
-        Vector2 draw_origin = {
-            instances[index].origin.x,
-            instances[index].origin.y
-        };
-        DrawTexturePro(
-            raylib_surface->target.texture,
-            source,
-            draw_dest,
-            draw_origin,
-            instances[index].rotation_degrees,
-            raylib_unpack_color(instances[index].tint)
-        );
     }
 }
 
@@ -341,12 +300,12 @@ void raylib_backend_draw_surface_batch(
     size_t instance_count
 )
 {
-    const RaylibSurface *raylib_surface = (const RaylibSurface*)surface;
     RaylibBackend *backend = (RaylibBackend*)userdata;
     RaylibInstancingState* state = raylib_backend_get_instancing_state(backend);
+    unsigned int texture_id = 0U;
     size_t index = 0U;
 
-    if (raylib_surface == NULL || instances == NULL || instance_count == 0U)
+    if (surface == NULL || instances == NULL || instance_count == 0U)
     {
         return;
     }
@@ -362,7 +321,7 @@ void raylib_backend_draw_surface_batch(
 
     if (state == NULL || !state->ready || !raylib_backend_reserve_instance_rects(state, instance_count))
     {
-        raylib_backend_draw_surface_batch_fallback(raylib_surface, instances, instance_count);
+        raylib_backend_draw_surface_batch_fallback(userdata, surface, instances, instance_count);
         return;
     }
 
@@ -370,7 +329,7 @@ void raylib_backend_draw_surface_batch(
     {
         if (instances[index].tint.value != instances[0].tint.value)
         {
-            raylib_backend_draw_surface_batch_fallback(raylib_surface, instances, instance_count);
+            raylib_backend_draw_surface_batch_fallback(userdata, surface, instances, instance_count);
             return;
         }
     }
@@ -391,7 +350,7 @@ void raylib_backend_draw_surface_batch(
 
     if (!raylib_backend_reserve_instance_vbo(state, instance_count))
     {
-        raylib_backend_draw_surface_batch_fallback(raylib_surface, instances, instance_count);
+        raylib_backend_draw_surface_batch_fallback(userdata, surface, instances, instance_count);
         return;
     }
 
@@ -399,7 +358,18 @@ void raylib_backend_draw_surface_batch(
     rlEnableShader(state->shader.id);
     if (state->shader.locs[SHADER_LOC_COLOR_DIFFUSE] != -1)
     {
-        Color tint_color = raylib_unpack_color(instances[0].tint);
+        Color tint_color;
+        tint_color.r = (unsigned char)((instances[0].tint.value >> 16U) & 0xffU);
+        tint_color.g = (unsigned char)((instances[0].tint.value >> 8U) & 0xffU);
+        tint_color.b = (unsigned char)(instances[0].tint.value & 0xffU);
+        if ((instances[0].tint.value & 0xff000000U) != 0U || instances[0].tint.value == 0U)
+        {
+            tint_color.a = (unsigned char)((instances[0].tint.value >> 24U) & 0xffU);
+        }
+        else
+        {
+            tint_color.a = 255U;
+        }
         float tint_values[4] = {
             (float)tint_color.r / 255.0f,
             (float)tint_color.g / 255.0f,
@@ -413,8 +383,14 @@ void raylib_backend_draw_surface_batch(
         int slot = 0;
         rlSetUniform(state->shader.locs[SHADER_LOC_MAP_DIFFUSE], &slot, SHADER_UNIFORM_INT, 1);
     }
+    texture_id = raylib_backend_surface_get_texture_id(surface);
+    if (texture_id == 0U)
+    {
+        raylib_backend_draw_surface_batch_fallback(userdata, surface, instances, instance_count);
+        return;
+    }
     rlActiveTextureSlot(0);
-    rlEnableTexture(raylib_surface->target.texture.id);
+    rlEnableTexture(texture_id);
 
     rlEnableVertexArray(state->quad_mesh.vaoId);
 

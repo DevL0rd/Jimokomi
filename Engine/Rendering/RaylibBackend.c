@@ -5,10 +5,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <raylib.h>
 #include <raymath.h>
 #include <rlgl.h>
 
-Color raylib_unpack_color(Color32 color) {
+typedef struct RaylibSurface {
+    Surface base;
+    RenderTexture2D target;
+} RaylibSurface;
+
+static RaylibSurface *raylib_surface_from_base(Surface *surface);
+static const RaylibSurface *raylib_surface_from_const_base(const Surface *surface);
+
+static Color raylib_unpack_color(Color32 color) {
     Color unpacked;
     unpacked.r = (unsigned char)((color.value >> 16U) & 0xffU);
     unpacked.g = (unsigned char)((color.value >> 8U) & 0xffU);
@@ -19,6 +28,77 @@ Color raylib_unpack_color(Color32 color) {
         unpacked.a = 255U;
     }
     return unpacked;
+}
+
+bool raylib_backend_surface_get_dimensions(
+    const Surface *surface,
+    int *width,
+    int *height
+) {
+    const RaylibSurface *raylib_surface = raylib_surface_from_const_base(surface);
+
+    if (raylib_surface == NULL) {
+        return false;
+    }
+
+    if (width != NULL) {
+        *width = raylib_surface->base.width;
+    }
+    if (height != NULL) {
+        *height = raylib_surface->base.height;
+    }
+    return true;
+}
+
+unsigned int raylib_backend_surface_get_texture_id(const Surface *surface) {
+    const RaylibSurface *raylib_surface = raylib_surface_from_const_base(surface);
+
+    return raylib_surface != NULL ? raylib_surface->target.texture.id : 0U;
+}
+
+void raylib_backend_draw_surface_batch_fallback(
+    void *userdata,
+    const Surface *surface,
+    const SurfaceDrawInstance *instances,
+    size_t instance_count
+) {
+    const RaylibSurface *raylib_surface = raylib_surface_from_const_base(surface);
+    Rectangle source;
+    size_t index = 0U;
+
+    (void)userdata;
+
+    if (raylib_surface == NULL || instances == NULL)
+    {
+        return;
+    }
+
+    source.x = 0.0f;
+    source.y = 0.0f;
+    source.width = (float)raylib_surface->base.width;
+    source.height = (float)-raylib_surface->base.height;
+
+    for (index = 0U; index < instance_count; ++index)
+    {
+        Rectangle draw_dest = {
+            instances[index].dest.x + instances[index].origin.x,
+            instances[index].dest.y + instances[index].origin.y,
+            instances[index].dest.w,
+            instances[index].dest.h
+        };
+        Vector2 draw_origin = {
+            instances[index].origin.x,
+            instances[index].origin.y
+        };
+        DrawTexturePro(
+            raylib_surface->target.texture,
+            source,
+            draw_dest,
+            draw_origin,
+            instances[index].rotation_degrees,
+            raylib_unpack_color(instances[index].tint)
+        );
+    }
 }
 
 static RaylibBackend *raylib_backend_from_user_data(void *userdata) {

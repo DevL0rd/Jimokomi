@@ -2,9 +2,9 @@
 
 #include "InteractionSystem.h"
 #include "../Rendering/Renderer.h"
-#include "../Rendering/ResourceCommandQueue.h"
 #include "../Rendering/SceneRenderSnapshot.h"
 #include "../Scene/Scene.h"
+#include "../Scene/ScenePhysics.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -25,40 +25,6 @@ static void engine_app_sim_sleep_ms(uint32_t milliseconds)
     request.tv_sec = (time_t)(milliseconds / 1000U);
     request.tv_nsec = (long)(milliseconds % 1000U) * 1000000L;
     nanosleep(&request, NULL);
-}
-
-static bool engine_app_sim_reserve_visible_query_entities(
-    EngineAppSimThreadContext* context,
-    size_t required_capacity
-) {
-    Entity** next_entities;
-    size_t next_capacity;
-
-    if (context == NULL) {
-        return false;
-    }
-    if (context->visible_query_entity_capacity >= required_capacity) {
-        return true;
-    }
-
-    next_capacity = context->visible_query_entity_capacity > 0U
-        ? context->visible_query_entity_capacity
-        : 64U;
-    while (next_capacity < required_capacity) {
-        next_capacity *= 2U;
-    }
-
-    next_entities = (Entity**)realloc(
-        context->visible_query_entities,
-        next_capacity * sizeof(*next_entities)
-    );
-    if (next_entities == NULL) {
-        return false;
-    }
-
-    context->visible_query_entities = next_entities;
-    context->visible_query_entity_capacity = next_capacity;
-    return true;
 }
 
 static void engine_app_sim_get_scene_step_config(EngineAppSimThreadContext* context)
@@ -147,6 +113,7 @@ void* engine_app_simulation_thread_main(void* user_data)
     EngineInputBindings bindings;
     EngineInputSnapshot empty_snapshot;
     EngineRuntimeInputPacket latest_input;
+    SceneRenderSnapshotBuilder* snapshot_builder;
     uint64_t last_tick_ms;
     uint64_t last_snapshot_publish_ms;
     uint64_t last_input_frame_id = 0U;
@@ -162,6 +129,11 @@ void* engine_app_simulation_thread_main(void* user_data)
     EngineInput_init(&sim_input, &bindings);
     memset(&empty_snapshot, 0, sizeof(empty_snapshot));
     memset(&latest_input, 0, sizeof(latest_input));
+    snapshot_builder = scene_render_snapshot_builder_create();
+    if (snapshot_builder == NULL)
+    {
+        return NULL;
+    }
     engine_app_sim_get_scene_step_config(context);
     last_tick_ms = (uint64_t)engine_app_sim_now_ms();
     last_snapshot_publish_ms = last_tick_ms;
@@ -170,8 +142,6 @@ void* engine_app_simulation_thread_main(void* user_data)
     {
         EngineRuntimeInputPacket packet;
         RenderSnapshotBuffer* next_render_snapshot;
-        PhysicsWorldSnapshot physics_snapshot;
-        SceneRenderSnapshotDesc snapshot_desc;
         uint64_t now_ms;
         double dt_seconds;
         double update_started_ms;
@@ -262,11 +232,6 @@ void* engine_app_simulation_thread_main(void* user_data)
             continue;
         }
 
-        memset(&physics_snapshot, 0, sizeof(physics_snapshot));
-        if (app->scene != NULL && Scene_GetPhysicsWorld(app->scene) != NULL)
-        {
-            PhysicsWorld_GetSnapshot(Scene_GetPhysicsWorld(app->scene), &physics_snapshot);
-        }
         snapshot_view_bounds = scene_render_snapshot_compute_view_bounds(
             app->scene,
             has_input && latest_input.camera_view_width > 0.0f
@@ -280,33 +245,30 @@ void* engine_app_simulation_thread_main(void* user_data)
             context->settings->app_snapshot_preload_screens
         );
 
-        memset(&snapshot_desc, 0, sizeof(snapshot_desc));
-        if (!engine_app_sim_reserve_visible_query_entities(context, Scene_GetEntityCount(app->scene)))
+        snapshot_build_started_ms = engine_app_sim_now_ms();
+        if (!scene_render_snapshot_build(
+            snapshot_builder,
+            app->scene,
+            snapshot_view_bounds,
+            render_alpha,
+            now_ms,
+            0.0,
+            physics_substeps,
+            context->cached_debug_overlay_enabled,
+            context->cached_draw_debug_world,
+            latest_input.selected_entity_id,
+            latest_input.hovered_entity_id,
+            context->desc->backdrop_draw,
+            context->desc->backdrop_user_data,
+            context->desc->backdrop_signature != NULL
+                ? context->desc->backdrop_signature(context->desc->backdrop_user_data)
+                : 0U,
+            next_render_snapshot
+        ))
         {
             engine_app_sim_sleep_ms(context->settings->app_idle_sleep_ms);
             continue;
         }
-        snapshot_desc.scene = app->scene;
-        snapshot_desc.scratch_entities = context->visible_query_entities;
-        snapshot_desc.scratch_entity_capacity = context->visible_query_entity_capacity;
-        snapshot_desc.view_bounds = snapshot_view_bounds;
-        snapshot_desc.render_alpha = render_alpha;
-        snapshot_desc.now_ms = now_ms;
-        snapshot_desc.update_ms = 0.0;
-        snapshot_desc.physics_substeps = physics_substeps;
-        snapshot_desc.debug_overlay_enabled = context->cached_debug_overlay_enabled;
-        snapshot_desc.draw_debug_world = context->cached_draw_debug_world;
-        snapshot_desc.selected_entity_id = latest_input.selected_entity_id;
-        snapshot_desc.hovered_entity_id = latest_input.hovered_entity_id;
-        snapshot_desc.backdrop_draw = context->desc->backdrop_draw;
-        snapshot_desc.backdrop_user_data = context->desc->backdrop_user_data;
-        snapshot_desc.backdrop_signature = context->desc->backdrop_signature != NULL
-            ? context->desc->backdrop_signature(context->desc->backdrop_user_data)
-            : 0U;
-        snapshot_desc.physics_snapshot = &physics_snapshot;
-
-        snapshot_build_started_ms = engine_app_sim_now_ms();
-        scene_render_snapshot_build(&snapshot_desc, next_render_snapshot);
         snapshot_build_ms = engine_app_sim_now_ms() - snapshot_build_started_ms;
         update_ms = engine_app_sim_now_ms() - update_started_ms;
         next_render_snapshot->stats.overlay.update_ms = (float)fmax(update_ms - fixed_step_wall_ms, 0.0);
@@ -317,16 +279,10 @@ void* engine_app_simulation_thread_main(void* user_data)
         next_render_snapshot->stats.sim.drag_ms = (float)drag_ms;
         next_render_snapshot->stats.sim.snapshot_acquire_ms = (float)snapshot_acquire_ms;
         next_render_snapshot->stats.sim.snapshot_build_ms = (float)snapshot_build_ms;
-        if (app->resource_command_queue != NULL)
-        {
-            next_render_snapshot->stats.resources.resource_commands_enqueued =
-                resource_command_queue_get_enqueued_count(app->resource_command_queue);
-            next_render_snapshot->stats.resources.resource_commands_dropped =
-                resource_command_queue_get_dropped_count(app->resource_command_queue);
-        }
         render_snapshot_exchange_publish(context->render_snapshot_exchange, next_render_snapshot);
         last_snapshot_publish_ms = now_ms;
     }
 
+    scene_render_snapshot_builder_destroy(snapshot_builder);
     return NULL;
 }

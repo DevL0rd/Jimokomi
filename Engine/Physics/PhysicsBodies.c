@@ -42,7 +42,7 @@ b2BodyId PhysicsWorld_EnsureEntityBody(PhysicsWorld* world, struct Entity* entit
     RigidBodyComponent* rigid_body = NULL;
     ColliderComponent* collider = NULL;
 
-    if (world == NULL || entity == NULL || !world->has_world)
+    if (world == NULL || entity == NULL || !world->lifecycle.has_world)
     {
         return b2_nullBodyId;
     }
@@ -79,7 +79,7 @@ b2BodyId PhysicsWorld_EnsureEntityBody(PhysicsWorld* world, struct Entity* entit
         body_def.enableSleep = true;
         body_def.motionLocks.angularZ = rigid_body->fixed_rotation;
 
-        body_id = b2CreateBody(world->world_id, &body_def);
+        body_id = b2CreateBody(world->lifecycle.world_id, &body_def);
         shape_def.density = rigid_body->density;
         shape_def.material.friction = rigid_body->friction;
         shape_def.material.restitution = rigid_body->restitution;
@@ -171,9 +171,9 @@ void PhysicsWorld_ClearEntityBodies(PhysicsWorld* world, struct Scene* scene)
         return;
     }
 
-    for (index = 0; index < world->tracked_entity_count; ++index)
+    for (index = 0; index < world->entities.tracked_entity_count; ++index)
     {
-        PhysicsWorld_RemoveBodyForEntity(world, world->tracked_entities[index]);
+        PhysicsWorld_RemoveBodyForEntity(world, world->entities.tracked_entities[index]);
     }
 
     (void)scene;

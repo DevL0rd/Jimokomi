@@ -4,10 +4,11 @@
 #include "RenderTypes.h"
 #include "../Core/Stats.h"
 
-#include <stdatomic.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+typedef struct RenderSnapshotExchange RenderSnapshotExchange;
 
 typedef struct RenderSnapshotRenderStats {
     float render_alpha;
@@ -36,8 +37,6 @@ typedef struct RenderSnapshotPhysicsStats {
 
 typedef struct RenderSnapshotResourceStats {
     size_t pending_bakes;
-    uint64_t resource_commands_enqueued;
-    uint64_t resource_commands_dropped;
 } RenderSnapshotResourceStats;
 
 typedef struct RenderSnapshotCameraStats {
@@ -106,18 +105,8 @@ typedef struct RenderSnapshotBuffer {
     uint64_t published_at_ms;
 } RenderSnapshotBuffer;
 
-typedef struct RenderSnapshotExchange {
-    RenderSnapshotBuffer buffers[3];
-    size_t write_index;
-    atomic_size_t published_index;
-    atomic_uint_fast64_t published_sequence;
-    atomic_uint reader_counts[3];
-} RenderSnapshotExchange;
-
-bool render_snapshot_exchange_init(RenderSnapshotExchange* exchange);
-void render_snapshot_exchange_dispose(RenderSnapshotExchange* exchange);
-bool render_world_snapshot_reserve_items(RenderWorldSnapshot* snapshot, size_t required_capacity);
-bool render_world_snapshot_reserve_debug_collisions(RenderWorldSnapshot* snapshot, size_t required_capacity);
+RenderSnapshotExchange* render_snapshot_exchange_create(void);
+void render_snapshot_exchange_destroy(RenderSnapshotExchange* exchange);
 RenderSnapshotBuffer* render_snapshot_exchange_begin_write(RenderSnapshotExchange* exchange);
 void render_snapshot_exchange_publish(RenderSnapshotExchange* exchange, RenderSnapshotBuffer* buffer);
 uint64_t render_snapshot_exchange_get_published_sequence(const RenderSnapshotExchange* exchange);
@@ -127,7 +116,6 @@ const RenderSnapshotBuffer* render_snapshot_exchange_acquire_if_new(
     uint64_t last_sequence
 );
 void render_snapshot_exchange_release_published(RenderSnapshotExchange* exchange, const RenderSnapshotBuffer* buffer);
-void render_world_snapshot_reset(RenderWorldSnapshot* snapshot);
 void render_world_snapshot_build_frame(const RenderWorldSnapshot* snapshot, RendererFrame* frame);
 
 #endif
