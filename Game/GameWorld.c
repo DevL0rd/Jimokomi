@@ -217,15 +217,9 @@ static void game_scene_input(Scene* scene, const SceneInputState* input_state, f
 void game_init_world(GameState *game) {
     PhysicsWorldConfig physics_config = {0};
     SceneView view = { 0 };
-    static const float adaptive_levels[] = { 120.0f, 90.0f, 75.0f, 60.0f, 45.0f, 30.0f, 20.0f, 4.0f };
 
-    physics_config.gravity_y = 9.81f;
-    physics_config.target_hz = 120.0f;
-    physics_config.adaptive_enabled = true;
-    physics_config.adaptive_levels = adaptive_levels;
-    physics_config.adaptive_level_count = sizeof(adaptive_levels) / sizeof(adaptive_levels[0]);
-    physics_config.downshift_frame_ms = 18.0f;
-    physics_config.upshift_frame_ms = 14.5f;
+    physics_config.gravity_y = PHYSICS_EARTH_GRAVITY_MPS2 * PHYSICS_PIXELS_PER_METER;
+    physics_config.target_hz = 30.0f;
     physics_config.max_substeps = 8U;
     physics_config.step_substep_count = 4U;
     physics_config.task_system = &game->task_system;

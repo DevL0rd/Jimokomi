@@ -10,9 +10,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#define BALL_RENDER_SIZE 14.0f
-#define BALL_RENDER_CENTER 7.0f
-#define BALL_RENDER_SCALE 1.0f
+#define BALL_RENDER_SIZE 28.0f
+#define BALL_RENDER_CENTER 14.0f
+#define BALL_RENDER_SCALE 2.0f
 
 static uint32_t game_color_from_hsv(float hue, float saturation, float value) {
     float r;

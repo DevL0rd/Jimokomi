@@ -61,24 +61,6 @@ typedef struct PhysicsQueryAccumulator
     b2Vec2 ray_origin;
 } PhysicsQueryAccumulator;
 
-static float PhysicsWorld_ClampFloat(float value, float min_value, float max_value)
-{
-    if (value < min_value)
-    {
-        return min_value;
-    }
-    if (value > max_value)
-    {
-        return max_value;
-    }
-    return value;
-}
-
-static float PhysicsWorld_LerpFloat(float a, float b, float alpha)
-{
-    return a + ((b - a) * alpha);
-}
-
 static bool PhysicsWorld_ReserveTileBodies(PhysicsWorld* world, size_t required_capacity)
 {
     b2BodyId* bodies = NULL;
@@ -157,50 +139,6 @@ static bool PhysicsWorld_AppendTrackedEntity(PhysicsWorld* world, struct Entity*
 
     world->tracked_entities[world->tracked_entity_count++] = entity;
     return true;
-}
-
-static size_t PhysicsWorld_FindNearestLevelIndex(const PhysicsWorld* world, float target_hz)
-{
-    size_t best_index = 0;
-    float best_distance = 1.0e30f;
-    size_t index = 0;
-
-    if (world == NULL || world->adaptive_level_count == 0)
-    {
-        return 0;
-    }
-
-    for (index = 0; index < world->adaptive_level_count; ++index)
-    {
-        float distance = fabsf(world->adaptive_levels[index] - target_hz);
-        if (distance < best_distance)
-        {
-            best_distance = distance;
-            best_index = index;
-        }
-    }
-
-    return best_index;
-}
-
-static uint32_t PhysicsWorld_ComputeAdaptiveStepSubstepsForHz(const PhysicsWorld* world, float target_hz)
-{
-    uint32_t base_substeps = 4u;
-
-    if (world != NULL)
-    {
-        base_substeps = world->base_step_substep_count > 0u ? world->base_step_substep_count : 4u;
-    }
-
-    if (target_hz >= 90.0f)
-    {
-        return base_substeps;
-    }
-    if (target_hz >= 45.0f)
-    {
-        return base_substeps > 2u ? 2u : base_substeps;
-    }
-    return 1u;
 }
 
 static int PhysicsWorld_GetTileValue(const PhysicsWorld* world, int tile_x, int tile_y, int layer_index)
@@ -621,9 +559,6 @@ static float PhysicsWorld_RayCollector(b2ShapeId shape_id, b2Vec2 point, b2Vec2 
 void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
 {
     b2WorldDef world_def;
-    float default_levels[] = {120.0f, 90.0f, 75.0f, 60.0f, 45.0f, 30.0f, 20.0f, 15.0f};
-    size_t index = 0;
-
     if (world == NULL)
     {
         return;
@@ -638,51 +573,6 @@ void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
     world->max_substeps = config != NULL && config->max_substeps > 0 ? config->max_substeps : 4u;
     world->base_step_substep_count = config != NULL && config->step_substep_count > 0 ? config->step_substep_count : 4u;
     world->step_substep_count = world->base_step_substep_count;
-    world->adaptive_enabled = config != NULL && config->adaptive_enabled;
-    world->adaptive_budget_ms = config != NULL && config->downshift_frame_ms > 0.0f ? config->downshift_frame_ms : 40.0f;
-    world->adaptive_recovery_ms = config != NULL && config->upshift_frame_ms > 0.0f ? config->upshift_frame_ms : world->adaptive_budget_ms * 0.5f;
-    world->adaptive_blend_alpha = 0.24f;
-    strncpy(world->last_tuner_reason, "init", sizeof(world->last_tuner_reason) - 1);
-
-    if (config != NULL && config->adaptive_levels != NULL && config->adaptive_level_count > 0)
-    {
-        world->adaptive_level_count = config->adaptive_level_count > 8 ? 8 : config->adaptive_level_count;
-        for (index = 0; index < world->adaptive_level_count; ++index)
-        {
-            world->adaptive_levels[index] = config->adaptive_levels[index];
-        }
-    }
-    else
-    {
-        world->adaptive_level_count = sizeof(default_levels) / sizeof(default_levels[0]);
-        for (index = 0; index < world->adaptive_level_count; ++index)
-        {
-            world->adaptive_levels[index] = default_levels[index];
-        }
-    }
-
-    world->adaptive_min_hz = world->target_hz;
-    world->adaptive_max_hz = world->target_hz;
-    if (world->adaptive_level_count > 0u)
-    {
-        world->adaptive_max_hz = world->adaptive_levels[0];
-        world->adaptive_min_hz = world->adaptive_levels[0];
-        for (index = 1; index < world->adaptive_level_count; ++index)
-        {
-            if (world->adaptive_levels[index] > world->adaptive_max_hz)
-            {
-                world->adaptive_max_hz = world->adaptive_levels[index];
-            }
-            if (world->adaptive_levels[index] < world->adaptive_min_hz)
-            {
-                world->adaptive_min_hz = world->adaptive_levels[index];
-            }
-        }
-    }
-    world->target_hz = PhysicsWorld_ClampFloat(world->target_hz, world->adaptive_min_hz, world->adaptive_max_hz);
-    world->fixed_dt = 1.0f / world->target_hz;
-    world->step_substep_count = PhysicsWorld_ComputeAdaptiveStepSubstepsForHz(world, world->target_hz);
-    world->current_level_index = (uint32_t)PhysicsWorld_FindNearestLevelIndex(world, world->target_hz);
     world_def.gravity = (b2Vec2){world->gravity_x, world->gravity_y};
     world_def.enableSleep = true;
     if (config != NULL && config->task_system != NULL)
@@ -748,65 +638,6 @@ void PhysicsWorld_UnregisterEntity(PhysicsWorld* world, struct Entity* entity)
     }
 
     PhysicsWorld_RemoveBodyForEntity(world, entity);
-}
-
-void PhysicsWorld_SetTargetHz(PhysicsWorld* world, float target_hz, const char* reason)
-{
-    if (world == NULL)
-    {
-        return;
-    }
-
-    if (world->adaptive_enabled)
-    {
-        target_hz = PhysicsWorld_ClampFloat(target_hz, world->adaptive_min_hz, world->adaptive_max_hz);
-    }
-
-    world->target_hz = target_hz < 1.0f ? 1.0f : target_hz;
-    world->fixed_dt = 1.0f / world->target_hz;
-    world->step_substep_count = PhysicsWorld_ComputeAdaptiveStepSubstepsForHz(world, world->target_hz);
-    world->current_level_index = (uint32_t)PhysicsWorld_FindNearestLevelIndex(world, world->target_hz);
-    if (reason != NULL)
-    {
-        memset(world->last_tuner_reason, 0, sizeof(world->last_tuner_reason));
-        strncpy(world->last_tuner_reason, reason, sizeof(world->last_tuner_reason) - 1);
-    }
-}
-
-void PhysicsWorld_UpdateAdaptiveBudget(PhysicsWorld* world, float frame_ms)
-{
-    float desired_hz = 0.0f;
-    float clamped_hz = 0.0f;
-    const char* reason = "hold";
-
-    if (world == NULL || !world->adaptive_enabled || frame_ms <= 0.0f)
-    {
-        return;
-    }
-
-    desired_hz = world->target_hz;
-    if (frame_ms > world->adaptive_budget_ms)
-    {
-        desired_hz = world->target_hz * (world->adaptive_budget_ms / frame_ms);
-        reason = "budget";
-    }
-    else if (frame_ms < world->adaptive_recovery_ms)
-    {
-        float safe_frame_ms = frame_ms < 0.25f ? 0.25f : frame_ms;
-        desired_hz = world->target_hz * (world->adaptive_recovery_ms / safe_frame_ms);
-        reason = "recover";
-    }
-    else
-    {
-        reason = "hold";
-    }
-
-    clamped_hz = PhysicsWorld_ClampFloat(desired_hz, world->adaptive_min_hz, world->adaptive_max_hz);
-    PhysicsWorld_SetTargetHz(
-        world,
-        PhysicsWorld_LerpFloat(world->target_hz, clamped_hz, world->adaptive_blend_alpha),
-        reason
-    );
 }
 
 void PhysicsWorld_GetStepConfig(const PhysicsWorld* world, float* out_fixed_dt, uint32_t* out_max_substeps)

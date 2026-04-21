@@ -38,8 +38,6 @@ void PhysicsWorld_GetSnapshot(const PhysicsWorld* world, PhysicsWorldSnapshot* s
     snapshot->profile_collide_ms = profile.collide;
     snapshot->profile_solve_ms = profile.solve;
     snapshot->box2d_step_wall_ms = (float)world->last_box2d_step_wall_ms;
-    snapshot->adaptive_enabled = world->adaptive_enabled;
-    snapshot->tuner_level_index = world->current_level_index;
     snapshot->active_entity_count = (uint32_t)world->active_entity_count;
     snapshot->dirty_entity_count = (uint32_t)world->dirty_entity_count;
     snapshot->collider_changed_entity_count = (uint32_t)world->collider_changed_entity_count;

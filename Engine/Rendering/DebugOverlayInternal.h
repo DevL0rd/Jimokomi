@@ -73,7 +73,6 @@ typedef struct DebugOverlay {
     float display_one_percent_low_fps;
     float display_update_ms;
     float display_sim_ms;
-    float display_optimizer_ms;
     float display_physics_ms;
     float display_visible_count;
     float display_pairs_ms;

@@ -47,7 +47,6 @@ typedef struct DebugOverlaySnapshot {
     float fps;
     float update_ms;
     float sim_ms;
-    float optimizer_ms;
     float draw_ms;
     float physics_ms;
     float snapshot_age_ms;

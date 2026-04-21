@@ -16,16 +16,6 @@ struct PhysicsWorld
     uint32_t max_substeps;
     uint32_t base_step_substep_count;
     uint32_t step_substep_count;
-    bool adaptive_enabled;
-    float adaptive_levels[8];
-    size_t adaptive_level_count;
-    float adaptive_min_hz;
-    float adaptive_max_hz;
-    float adaptive_budget_ms;
-    float adaptive_recovery_ms;
-    float adaptive_blend_alpha;
-    uint32_t current_level_index;
-    char last_tuner_reason[16];
     const struct SceneTilemapAdapter* tilemap_adapter;
     const void* tilemap;
     const struct TileRule* tile_rules;

@@ -25,19 +25,21 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define BALL_COUNT 20000
+#define BALL_COUNT 5000
 #define SOURCE_VARIANT_COUNT 8
 #define INVALID_INDEX ((size_t)-1)
 #define PLAYER_INDEX 0U
 #define WORLD_WIDTH 1920.0f
 #define WORLD_HEIGHT 1080.0f
 #define GRID_CELL_SIZE 96.0f
+#define PHYSICS_PIXELS_PER_METER 100.0f
+#define PHYSICS_EARTH_GRAVITY_MPS2 9.81f
 #define PLAYER_MOVE_SPEED 160.0f
 #define PLAYER_MOVE_SMOOTHING 0.085f
 #define PLAYER_JUMP_IMPULSE 585.0f
 #define WORLD_WALL_THICKNESS 32.0f
-#define BALL_DIAMETER 14.0f
-#define BALL_RADIUS 7.0f
+#define BALL_DIAMETER 28.0f
+#define BALL_RADIUS 14.0f
 #define BALL_SPAWN_INTERVAL_SECONDS 0.01
 #define BALL_SPAWN_WIGGLE_X 24.0f
 #define BALL_RANDOM_FORCE_STRENGTH 18.0f
@@ -201,7 +203,6 @@ void game_build_render_snapshot(
     float render_alpha,
     uint64_t now_ms,
     double update_ms,
-    double fixed_step_wall_ms,
     uint32_t physics_substeps,
     bool debug_overlay_enabled,
     bool draw_debug_world,

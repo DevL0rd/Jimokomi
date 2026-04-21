@@ -18,14 +18,6 @@ bool Scene_IsPhysicsPaused(const Scene* scene)
     return scene != NULL && scene->physics_paused;
 }
 
-void Scene_UpdatePerformanceBudget(Scene* scene, float frame_ms)
-{
-    if (scene != NULL && scene->physics_world != NULL)
-    {
-        PhysicsWorld_UpdateAdaptiveBudget(scene->physics_world, frame_ms);
-    }
-}
-
 void Scene_SetUserData(Scene* scene, void* user_data)
 {
     if (scene != NULL)
@@ -119,4 +111,3 @@ void Scene_GetSpatialGridStatsSnapshot(const Scene* scene, SpatialGridStatsSnaps
 
     SpatialGrid_GetStatsSnapshot(&scene->spatial_grid, out_snapshot);
 }
-

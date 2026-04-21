@@ -313,7 +313,6 @@ void game_build_render_snapshot(
     float render_alpha,
     uint64_t now_ms,
     double update_ms,
-    double fixed_step_wall_ms,
     uint32_t physics_substeps,
     bool debug_overlay_enabled,
     bool draw_debug_world,
@@ -410,7 +409,6 @@ void game_build_render_snapshot(
     buffer->stats.overlay.fps = 0.0f;
     buffer->stats.overlay.update_ms = (float)update_ms;
     buffer->stats.overlay.sim_ms = (float)update_ms;
-    buffer->stats.overlay.optimizer_ms = (float)fixed_step_wall_ms;
     buffer->stats.overlay.draw_ms = 0.0f;
     buffer->stats.overlay.physics_ms = 0.0f;
     buffer->stats.overlay.snapshot_age_ms = 0.0f;
@@ -492,7 +490,6 @@ void game_build_render_snapshot(
         buffer->stats.overlay.moved_body_count = source_physics_snapshot->moved_body_count;
         buffer->stats.physics_hz = source_physics_snapshot->physics_hz;
         buffer->stats.physics_step_substeps = source_physics_snapshot->physics_step_substeps;
-        buffer->stats.physics_tuner_level = source_physics_snapshot->tuner_level_index;
         buffer->stats.physics_active_entities = source_physics_snapshot->active_entity_count;
         buffer->stats.physics_dirty_entities = source_physics_snapshot->dirty_entity_count;
         buffer->stats.physics_collider_changed_entities = source_physics_snapshot->collider_changed_entity_count;

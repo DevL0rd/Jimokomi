@@ -38,7 +38,6 @@ void* game_simulation_thread_main(void* user_data) {
         double update_ms;
         double fixed_step_started_ms;
         double fixed_step_wall_ms;
-        double optimizer_ms = 0.0;
         double input_started_ms;
         double input_ms;
         double spawn_started_ms;
@@ -157,7 +156,6 @@ void* game_simulation_thread_main(void* user_data) {
             render_alpha,
             now_ms,
             0.0,
-            fixed_step_wall_ms,
             physics_substeps,
             game->cached_debug_overlay_enabled,
             game->cached_draw_debug_world,
@@ -169,12 +167,6 @@ void* game_simulation_thread_main(void* user_data) {
         update_ms = game_now_ms() - update_started_ms;
         next_render_snapshot->stats.overlay.update_ms = (float)fmax(update_ms - fixed_step_wall_ms, 0.0);
         next_render_snapshot->stats.overlay.sim_ms = (float)update_ms;
-        if (physics_substeps > 0U && game->sim_step_dt_seconds > 0.0) {
-            optimizer_ms = fixed_step_wall_ms;
-            Scene_UpdatePerformanceBudget(game->scene, (float)optimizer_ms);
-            game_refresh_sim_step_config(game);
-        }
-        next_render_snapshot->stats.overlay.optimizer_ms = (float)optimizer_ms;
         next_render_snapshot->stats.sim_input_ms = input_captured ? (float)input_ms : 0.0f;
         next_render_snapshot->stats.sim_spawn_ms = (float)spawn_ms;
         next_render_snapshot->stats.sim_fixed_step_wall_ms = (float)fixed_step_wall_ms;

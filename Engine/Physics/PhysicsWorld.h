@@ -19,11 +19,6 @@ typedef struct PhysicsWorldConfig
     float gravity_x;
     float gravity_y;
     float target_hz;
-    bool adaptive_enabled;
-    const float* adaptive_levels;
-    size_t adaptive_level_count;
-    float downshift_frame_ms;
-    float upshift_frame_ms;
     uint32_t max_substeps;
     uint32_t step_substep_count;
     const struct TaskSystem* task_system;
@@ -55,8 +50,6 @@ typedef struct PhysicsWorldSnapshot
     float profile_collide_ms;
     float profile_solve_ms;
     float box2d_step_wall_ms;
-    bool adaptive_enabled;
-    uint32_t tuner_level_index;
     uint32_t active_entity_count;
     uint32_t dirty_entity_count;
     uint32_t collider_changed_entity_count;
@@ -79,8 +72,6 @@ void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config);
 PhysicsWorld* PhysicsWorld_Create(const PhysicsWorldConfig* config);
 void PhysicsWorld_Destroy(PhysicsWorld* world);
 
-void PhysicsWorld_SetTargetHz(PhysicsWorld* world, float target_hz, const char* reason);
-void PhysicsWorld_UpdateAdaptiveBudget(PhysicsWorld* world, float frame_ms);
 void PhysicsWorld_GetStepConfig(const PhysicsWorld* world, float* out_fixed_dt, uint32_t* out_max_substeps);
 void PhysicsWorld_RegisterEntity(PhysicsWorld* world, struct Entity* entity);
 void PhysicsWorld_UnregisterEntity(PhysicsWorld* world, struct Entity* entity);

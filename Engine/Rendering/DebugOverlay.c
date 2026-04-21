@@ -282,7 +282,6 @@ static void debug_update_display_values(
         debug_smooth_display_value(overlay->display_one_percent_low_fps, one_percent_low_fps);
     overlay->display_update_ms = debug_smooth_display_value(overlay->display_update_ms, snapshot->update_ms);
     overlay->display_sim_ms = debug_smooth_display_value(overlay->display_sim_ms, snapshot->sim_ms);
-    overlay->display_optimizer_ms = debug_smooth_display_value(overlay->display_optimizer_ms, snapshot->optimizer_ms);
     overlay->display_physics_ms = debug_smooth_display_value(overlay->display_physics_ms, snapshot->physics_ms);
     overlay->display_visible_count =
         debug_smooth_display_value(overlay->display_visible_count, (float)snapshot->visible_count);
@@ -1093,8 +1092,8 @@ static void debug_overlay_draw_dashboard_contents(
     float row_height;
     float stat_width;
     float stats_top;
-    DebugStatChip stat_chips[12];
-    char stat_text[12][24];
+    DebugStatChip stat_chips[11];
+    char stat_text[11][24];
 
     if (overlay == NULL || target == NULL || snapshot == NULL || stats == NULL) {
         return;
@@ -1146,25 +1145,23 @@ static void debug_overlay_draw_dashboard_contents(
     snprintf(stat_text[2], sizeof(stat_text[2]), "%.1f ms", overlay->display_solve_ms);
     snprintf(stat_text[3], sizeof(stat_text[3]), "%.0f", overlay->display_physics_hz);
     snprintf(stat_text[4], sizeof(stat_text[4]), "%.0f", overlay->display_awake_body_count);
-    snprintf(stat_text[5], sizeof(stat_text[5]), "%.1f ms", overlay->display_optimizer_ms);
-    snprintf(stat_text[6], sizeof(stat_text[6]), "%.0f", overlay->display_total_body_count);
-    snprintf(stat_text[7], sizeof(stat_text[7]), "%.0f", overlay->display_sleeping_body_count);
-    snprintf(stat_text[8], sizeof(stat_text[8]), "%.0f", overlay->display_moved_body_count);
-    snprintf(stat_text[9], sizeof(stat_text[9]), "%.0f", overlay->display_spatial_dirty_cells);
-    snprintf(stat_text[10], sizeof(stat_text[10]), "%.0f", overlay->display_spatial_dirty_entities);
-    snprintf(stat_text[11], sizeof(stat_text[11]), "%.1f ms", overlay->display_snapshot_age_ms);
+    snprintf(stat_text[5], sizeof(stat_text[5]), "%.0f", overlay->display_total_body_count);
+    snprintf(stat_text[6], sizeof(stat_text[6]), "%.0f", overlay->display_sleeping_body_count);
+    snprintf(stat_text[7], sizeof(stat_text[7]), "%.0f", overlay->display_moved_body_count);
+    snprintf(stat_text[8], sizeof(stat_text[8]), "%.0f", overlay->display_spatial_dirty_cells);
+    snprintf(stat_text[9], sizeof(stat_text[9]), "%.0f", overlay->display_spatial_dirty_entities);
+    snprintf(stat_text[10], sizeof(stat_text[10]), "%.1f ms", overlay->display_snapshot_age_ms);
     stat_chips[0] = (DebugStatChip){ "Pairs", stat_text[0], clamp_f(overlay->display_pairs_ms / 16.67f, 0.0f, 1.0f), (Color32){ 0x7fd7ffU } };
     stat_chips[1] = (DebugStatChip){ "Collide", stat_text[1], clamp_f(overlay->display_collide_ms / 16.67f, 0.0f, 1.0f), (Color32){ 0x96f0b7U } };
     stat_chips[2] = (DebugStatChip){ "Solve", stat_text[2], clamp_f(overlay->display_solve_ms / 16.67f, 0.0f, 1.0f), (Color32){ 0xff9a7aU } };
     stat_chips[3] = (DebugStatChip){ "Hz", stat_text[3], clamp_f(overlay->display_physics_hz / 120.0f, 0.0f, 1.0f), (Color32){ 0xb896ffU } };
     stat_chips[4] = (DebugStatChip){ "Awake", stat_text[4], clamp_f(overlay->display_awake_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0xffd07aU } };
-    stat_chips[5] = (DebugStatChip){ "Tune", stat_text[5], clamp_f(overlay->display_optimizer_ms / 16.67f, 0.0f, 1.0f), (Color32){ 0xc4a2ffU } };
-    stat_chips[6] = (DebugStatChip){ "Bodies", stat_text[6], clamp_f(overlay->display_total_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x8fe8c4U } };
-    stat_chips[7] = (DebugStatChip){ "Sleep", stat_text[7], clamp_f(overlay->display_sleeping_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x7f99adU } };
-    stat_chips[8] = (DebugStatChip){ "Moved", stat_text[8], clamp_f(overlay->display_moved_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x7ce2ffU } };
-    stat_chips[9] = (DebugStatChip){ "Cells", stat_text[9], clamp_f(overlay->display_spatial_dirty_cells / 512.0f, 0.0f, 1.0f), (Color32){ 0xb896ffU } };
-    stat_chips[10] = (DebugStatChip){ "Dirty", stat_text[10], clamp_f(overlay->display_spatial_dirty_entities / 20000.0f, 0.0f, 1.0f), (Color32){ 0xffb36bU } };
-    stat_chips[11] = (DebugStatChip){ "Age", stat_text[11], clamp_f(overlay->display_snapshot_age_ms / 16.67f, 0.0f, 1.0f), (Color32){ 0xd8d08fU } };
+    stat_chips[5] = (DebugStatChip){ "Bodies", stat_text[5], clamp_f(overlay->display_total_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x8fe8c4U } };
+    stat_chips[6] = (DebugStatChip){ "Sleep", stat_text[6], clamp_f(overlay->display_sleeping_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x7f99adU } };
+    stat_chips[7] = (DebugStatChip){ "Moved", stat_text[7], clamp_f(overlay->display_moved_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x7ce2ffU } };
+    stat_chips[8] = (DebugStatChip){ "Cells", stat_text[8], clamp_f(overlay->display_spatial_dirty_cells / 512.0f, 0.0f, 1.0f), (Color32){ 0xb896ffU } };
+    stat_chips[9] = (DebugStatChip){ "Dirty", stat_text[9], clamp_f(overlay->display_spatial_dirty_entities / 20000.0f, 0.0f, 1.0f), (Color32){ 0xffb36bU } };
+    stat_chips[10] = (DebugStatChip){ "Age", stat_text[10], clamp_f(overlay->display_snapshot_age_ms / 16.67f, 0.0f, 1.0f), (Color32){ 0xd8d08fU } };
 
     stat_width = (overlay->dashboard_panel.width - 24.0f - 10.0f) / 3.0f;
     stats_top = card_rect.y + row_height + 12.0f;
@@ -1193,8 +1190,6 @@ static void debug_overlay_draw_dashboard_contents(
     debug_draw_stat_chip(target, stat_rect, &stat_chips[9]);
     stat_rect.x += stat_width + 5.0f;
     debug_draw_stat_chip(target, stat_rect, &stat_chips[10]);
-    stat_rect.x += stat_width + 5.0f;
-    debug_draw_stat_chip(target, stat_rect, &stat_chips[11]);
 
 }
 

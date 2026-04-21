@@ -87,7 +87,6 @@ void game_emit_profiler_metadata(
     EngineProfiler_set_metadata_number(&game->engine.profiler, "physics_substeps", (double)render_snapshot->stats.physics_substeps);
     EngineProfiler_set_metadata_number(&game->engine.profiler, "physics_ms", render_snapshot->stats.overlay.physics_ms);
     EngineProfiler_set_metadata_number(&game->engine.profiler, "sim_ms", render_snapshot->stats.overlay.sim_ms);
-    EngineProfiler_set_metadata_number(&game->engine.profiler, "physics_tune_ms", render_snapshot->stats.overlay.optimizer_ms);
     EngineProfiler_set_metadata_number(&game->engine.profiler, "physics_total_bodies", (double)render_snapshot->stats.overlay.total_body_count);
     EngineProfiler_set_metadata_number(&game->engine.profiler, "physics_sleeping_bodies", (double)render_snapshot->stats.overlay.sleeping_body_count);
     EngineProfiler_set_metadata_number(&game->engine.profiler, "physics_moved_bodies", (double)render_snapshot->stats.overlay.moved_body_count);
@@ -115,7 +114,6 @@ void game_emit_profiler_metadata(
     EngineProfiler_set_metadata_number(&game->engine.profiler, "render_alpha", render_snapshot->stats.render_alpha);
     EngineProfiler_set_metadata_number(&game->engine.profiler, "physics_hz", render_snapshot->stats.physics_hz);
     EngineProfiler_set_metadata_number(&game->engine.profiler, "physics_step_substeps", (double)render_snapshot->stats.physics_step_substeps);
-    EngineProfiler_set_metadata_number(&game->engine.profiler, "physics_tuner_level", (double)render_snapshot->stats.physics_tuner_level);
     EngineProfiler_set_metadata_number(&game->engine.profiler, "render_snapshot_sequence", (double)render_snapshot->sequence);
     EngineProfiler_set_metadata_number(
             &game->engine.profiler,

@@ -29,7 +29,6 @@ typedef struct RenderStatsSnapshot {
     uint32_t physics_substeps;
     float physics_hz;
     uint32_t physics_step_substeps;
-    uint32_t physics_tuner_level;
     uint32_t physics_active_entities;
     uint32_t physics_dirty_entities;
     uint32_t physics_collider_changed_entities;

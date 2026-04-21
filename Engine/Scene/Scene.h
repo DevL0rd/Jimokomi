@@ -34,7 +34,6 @@ void Scene_Destroy(Scene* scene);
 
 void Scene_SetPhysicsPaused(Scene* scene, bool paused);
 bool Scene_IsPhysicsPaused(const Scene* scene);
-void Scene_UpdatePerformanceBudget(Scene* scene, float frame_ms);
 void Scene_SetUserData(Scene* scene, void* user_data);
 void* Scene_GetUserData(const Scene* scene);
 void Scene_SetInputCallback(Scene* scene, SceneInputCallback callback);
