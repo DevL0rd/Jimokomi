@@ -44,6 +44,31 @@ RigidBodyComponent* RigidBodyComponent_Create(void)
     return component;
 }
 
+RigidBodyComponent* RigidBodyComponent_CreateWithDesc(const RigidBodyComponentDesc* desc)
+{
+    RigidBodyComponent* component = RigidBodyComponent_Create();
+    if (component == NULL)
+    {
+        return NULL;
+    }
+    if (desc == NULL)
+    {
+        return component;
+    }
+
+    component->body_type = desc->body_type;
+    component->fixed_rotation = desc->fixed_rotation;
+    component->density = desc->density > 0.0f ? desc->density : component->density;
+    component->friction_air = desc->friction_air;
+    component->friction = desc->friction;
+    component->restitution = desc->restitution;
+    component->initial_velocity_x = desc->initial_velocity_x;
+    component->initial_velocity_y = desc->initial_velocity_y;
+    component->initial_angular_velocity = desc->initial_angular_velocity;
+    RigidBodyComponent_MarkDefinitionDirty(component);
+    return component;
+}
+
 void RigidBodyComponent_Destroy(RigidBodyComponent* component)
 {
     if (component == NULL)

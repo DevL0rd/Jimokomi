@@ -68,6 +68,26 @@ ColliderComponent* ColliderComponent_Create(void)
     return component;
 }
 
+ColliderComponent* ColliderComponent_CreateCircle(float radius)
+{
+    ColliderComponent* component = ColliderComponent_Create();
+    if (component != NULL)
+    {
+        ColliderComponent_SetCircle(component, radius);
+    }
+    return component;
+}
+
+ColliderComponent* ColliderComponent_CreateRect(float width, float height)
+{
+    ColliderComponent* component = ColliderComponent_Create();
+    if (component != NULL)
+    {
+        ColliderComponent_SetRect(component, width, height);
+    }
+    return component;
+}
+
 void ColliderComponent_Destroy(ColliderComponent* component)
 {
     if (component == NULL)

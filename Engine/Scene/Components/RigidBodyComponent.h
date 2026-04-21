@@ -29,6 +29,19 @@ typedef struct RigidBodyComponent
     bool has_body;
 } RigidBodyComponent;
 
+typedef struct RigidBodyComponentDesc
+{
+    RigidBodyType body_type;
+    bool fixed_rotation;
+    float density;
+    float friction_air;
+    float friction;
+    float restitution;
+    float initial_velocity_x;
+    float initial_velocity_y;
+    float initial_angular_velocity;
+} RigidBodyComponentDesc;
+
 typedef enum RigidBodyDirtyFlags
 {
     RIGID_BODY_DIRTY_NONE = 0,
@@ -37,6 +50,7 @@ typedef enum RigidBodyDirtyFlags
 
 void RigidBodyComponent_Init(RigidBodyComponent* component);
 RigidBodyComponent* RigidBodyComponent_Create(void);
+RigidBodyComponent* RigidBodyComponent_CreateWithDesc(const RigidBodyComponentDesc* desc);
 void RigidBodyComponent_Destroy(RigidBodyComponent* component);
 void RigidBodyComponent_MarkDefinitionDirty(RigidBodyComponent* component);
 void RigidBodyComponent_ClearDirty(RigidBodyComponent* component, uint32_t dirty_flags);

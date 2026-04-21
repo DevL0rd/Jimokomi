@@ -29,6 +29,24 @@ typedef struct SceneStatsSnapshot {
 
 typedef void (*SceneInputCallback)(Scene* scene, const SceneInputState* input_state, float dt_seconds, void* user_data);
 
+typedef struct SceneDynamicCircleDesc
+{
+    float x;
+    float y;
+    float radius;
+    ResourceHandle visual_source_handle;
+    ResourceHandle material_handle;
+    ResourceHandle shader_handle;
+    Vec2 initial_velocity;
+    float initial_angular_velocity;
+    float density;
+    float friction;
+    float restitution;
+    bool selectable;
+    bool draggable;
+    float drag_pick_radius;
+} SceneDynamicCircleDesc;
+
 void Scene_Init(Scene* scene, const char* name, const PhysicsWorldConfig* physics_config);
 Scene* Scene_Create(const char* name, const PhysicsWorldConfig* physics_config);
 void Scene_Destroy(Scene* scene);
@@ -50,18 +68,14 @@ bool Scene_AddEntity(Scene* scene, struct Entity* entity);
 struct Entity* Scene_RemoveEntity(Scene* scene, struct Entity* entity);
 struct Entity* Scene_FindEntityById(Scene* scene, uint32_t entity_id);
 const struct Entity* Scene_FindEntityByIdConst(const Scene* scene, uint32_t entity_id);
-struct Entity* Scene_CreateDynamicCircle(
-    Scene* scene,
-    float x,
-    float y,
-    float radius,
-    ResourceHandle visual_source_handle,
-    ResourceHandle material_handle,
-    ResourceHandle shader_handle
-);
+struct Entity* Scene_CreateDynamicCircle(Scene* scene, const SceneDynamicCircleDesc* desc);
 struct Entity* Scene_CreateStaticBox(Scene* scene, float x, float y, float width, float height);
 bool Scene_AddRandomForce(Scene* scene, struct Entity* entity, float force_strength, float interval_seconds);
 bool Scene_AddBoundsColliders(Scene* scene, Rect bounds, float thickness);
+bool Scene_GetEntityLinearVelocity(Scene* scene, struct Entity* entity, Vec2* out_velocity);
+bool Scene_SetEntityLinearVelocity(Scene* scene, struct Entity* entity, Vec2 velocity);
+bool Scene_ApplyEntityLinearImpulse(Scene* scene, struct Entity* entity, Vec2 impulse, bool wake);
+bool Scene_GetEntityContactCapacity(Scene* scene, struct Entity* entity, int* out_contact_capacity);
 
 void Scene_SetTilemap(Scene* scene,
                         const SceneTilemapAdapter* adapter,

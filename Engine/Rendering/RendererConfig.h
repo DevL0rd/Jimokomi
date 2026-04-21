@@ -6,7 +6,7 @@
 typedef struct RendererConfig {
     int view_width;
     int view_height;
-    size_t prebake_budget_per_frame;
+    float prebake_target_fps;
     size_t prebake_admission_total_hits;
     size_t prebake_admission_frame_hits;
 } RendererConfig;

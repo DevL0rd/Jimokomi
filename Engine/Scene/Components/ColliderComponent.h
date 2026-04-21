@@ -31,6 +31,8 @@ typedef enum ColliderDirtyFlags
 
 void ColliderComponent_Init(ColliderComponent* component);
 ColliderComponent* ColliderComponent_Create(void);
+ColliderComponent* ColliderComponent_CreateCircle(float radius);
+ColliderComponent* ColliderComponent_CreateRect(float width, float height);
 void ColliderComponent_Destroy(ColliderComponent* component);
 void ColliderComponent_SetCircle(ColliderComponent* component, float radius);
 void ColliderComponent_SetRect(ColliderComponent* component, float width, float height);

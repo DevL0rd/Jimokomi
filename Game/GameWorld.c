@@ -2,11 +2,6 @@
 
 #include "BallVisualResources.h"
 
-#include "../Engine/Physics/PhysicsWorld.h"
-#include "../Engine/Scene/Components/ColliderComponent.h"
-#include "../Engine/Scene/Components/RigidBodyComponent.h"
-#include "../Engine/Scene/Components/TransformComponent.h"
-
 #include <math.h>
 #include <stdlib.h>
 
@@ -30,8 +25,6 @@ static void jimokomi_ball_spawn_position(float* out_x, float* out_y)
 
 static bool jimokomi_player_is_grounded(const JimokomiGameState* game)
 {
-    PhysicsWorld* physics_world;
-    RigidBodyComponent* rigid_body;
     int contact_capacity = 0;
 
     if (game == NULL || game->scene == NULL || game->player == NULL)
@@ -39,34 +32,18 @@ static bool jimokomi_player_is_grounded(const JimokomiGameState* game)
         return false;
     }
 
-    physics_world = Scene_GetPhysicsWorld(game->scene);
-    rigid_body = (RigidBodyComponent*)Entity_GetComponent(game->player, COMPONENT_RIGID_BODY);
-    if (physics_world == NULL || rigid_body == NULL || !rigid_body->has_body)
-    {
-        return false;
-    }
-
-    return PhysicsWorld_GetEntityContactCapacity(physics_world, game->player, &contact_capacity) &&
+    return Scene_GetEntityContactCapacity(game->scene, game->player, &contact_capacity) &&
            contact_capacity > 0;
 }
 
 static void jimokomi_scene_input(Scene* scene, const SceneInputState* input_state, float dt_seconds, void* user_data)
 {
     JimokomiGameState* game = (JimokomiGameState*)user_data;
-    PhysicsWorld* physics_world;
-    RigidBodyComponent* rigid_body;
     Vec2 velocity;
     float move_axis = 0.0f;
     float target_velocity_x;
 
     if (scene == NULL || game == NULL || input_state == NULL || game->player == NULL)
-    {
-        return;
-    }
-
-    physics_world = Scene_GetPhysicsWorld(scene);
-    rigid_body = (RigidBodyComponent*)Entity_GetComponent(game->player, COMPONENT_RIGID_BODY);
-    if (physics_world == NULL || rigid_body == NULL || !rigid_body->has_body)
     {
         return;
     }
@@ -80,19 +57,19 @@ static void jimokomi_scene_input(Scene* scene, const SceneInputState* input_stat
         move_axis += 1.0f;
     }
 
-    if (!PhysicsWorld_GetEntityLinearVelocity(physics_world, game->player, &velocity))
+    if (!Scene_GetEntityLinearVelocity(scene, game->player, &velocity))
     {
         return;
     }
 
     target_velocity_x = move_axis * PLAYER_MOVE_SPEED;
     velocity.x = damp_f(velocity.x, target_velocity_x, PLAYER_MOVE_SMOOTHING, dt_seconds);
-    PhysicsWorld_SetEntityLinearVelocity(physics_world, game->player, velocity);
+    Scene_SetEntityLinearVelocity(scene, game->player, velocity);
 
     if (input_state->buttons[ENGINE_INPUT_ACTION_JUMP] && jimokomi_player_is_grounded(game))
     {
-        PhysicsWorld_ApplyEntityLinearImpulse(
-            physics_world,
+        Scene_ApplyEntityLinearImpulse(
+            scene,
             game->player,
             (Vec2){ 0.0f, -PLAYER_JUMP_IMPULSE },
             true
@@ -103,7 +80,7 @@ static void jimokomi_scene_input(Scene* scene, const SceneInputState* input_stat
 static Entity* jimokomi_spawn_ball(JimokomiGameState* game, size_t index)
 {
     Entity* entity;
-    RigidBodyComponent* rigid_body;
+    SceneDynamicCircleDesc desc = { 0 };
     float x = 0.0f;
     float y = 0.0f;
 
@@ -113,31 +90,28 @@ static Entity* jimokomi_spawn_ball(JimokomiGameState* game, size_t index)
     }
 
     jimokomi_ball_spawn_position(&x, &y);
-    entity = Scene_CreateDynamicCircle(
-        game->scene,
-        x,
-        y,
-        BALL_RADIUS,
-        game->ball_source_handles[index % SOURCE_VARIANT_COUNT],
-        game->ball_material_handle,
-        game->shared_ball_shader_handle
-    );
+    desc.x = x;
+    desc.y = y;
+    desc.radius = BALL_RADIUS;
+    desc.visual_source_handle = game->ball_source_handles[index % SOURCE_VARIANT_COUNT];
+    desc.material_handle = game->ball_material_handle;
+    desc.shader_handle = game->shared_ball_shader_handle;
+    desc.initial_velocity.x = ((index % 2U) == 0U) ? 8.0f : -8.0f;
+    desc.initial_velocity.y = ((index % 3U) == 0U) ? -4.0f : 4.0f;
+    desc.initial_angular_velocity = 0.9f + (float)index * 0.04f;
+    desc.density = 1.0f;
+    desc.friction = 0.12f;
+    desc.restitution = 0.0f;
+    desc.selectable = true;
+    desc.draggable = true;
+    desc.drag_pick_radius = BALL_RADIUS;
+
+    entity = Scene_CreateDynamicCircle(game->scene, &desc);
     if (entity == NULL)
     {
         return NULL;
     }
 
-    rigid_body = (RigidBodyComponent*)Entity_GetComponent(entity, COMPONENT_RIGID_BODY);
-    if (rigid_body != NULL)
-    {
-        rigid_body->initial_velocity_x = ((index % 2U) == 0U) ? 8.0f : -8.0f;
-        rigid_body->initial_velocity_y = ((index % 3U) == 0U) ? -4.0f : 4.0f;
-        rigid_body->initial_angular_velocity = 0.9f + (float)index * 0.04f;
-        rigid_body->density = 1.0f;
-        rigid_body->friction = 0.12f;
-        rigid_body->restitution = 0.0f;
-        RigidBodyComponent_MarkDefinitionDirty(rigid_body);
-    }
     Scene_AddRandomForce(game->scene, entity, BALL_RANDOM_FORCE_STRENGTH, BALL_RANDOM_FORCE_INTERVAL_SECONDS);
     game->active_ball_count += 1U;
     return entity;

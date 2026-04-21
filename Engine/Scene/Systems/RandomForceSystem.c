@@ -4,6 +4,7 @@
 #include "../EntityInternal.h"
 #include "../Components/RandomForceComponent.h"
 #include "../Components/RigidBodyComponent.h"
+#include "../../Physics/PhysicsBodyControl.h"
 #include "../../Physics/PhysicsWorld.h"
 
 #include <math.h>

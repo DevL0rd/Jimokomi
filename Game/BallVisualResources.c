@@ -13,55 +13,6 @@
 #define BALL_RENDER_CENTER 14.0f
 #define BALL_RENDER_SCALE 2.0f
 
-static uint32_t game_color_from_hsv(float hue, float saturation, float value) {
-    float r;
-    float g;
-    float b;
-    float scaled_hue;
-    float sector_fraction;
-    float p;
-    float q;
-    float t;
-    int sector;
-    uint32_t red;
-    uint32_t green;
-    uint32_t blue;
-
-    while (hue < 0.0f) {
-        hue += 360.0f;
-    }
-    while (hue >= 360.0f) {
-        hue -= 360.0f;
-    }
-
-    if (saturation <= 0.0f) {
-        r = value;
-        g = value;
-        b = value;
-    } else {
-        scaled_hue = hue / 60.0f;
-        sector = (int)scaled_hue;
-        sector_fraction = scaled_hue - (float)sector;
-        p = value * (1.0f - saturation);
-        q = value * (1.0f - saturation * sector_fraction);
-        t = value * (1.0f - saturation * (1.0f - sector_fraction));
-
-        switch (sector) {
-            case 0: r = value; g = t; b = p; break;
-            case 1: r = q; g = value; b = p; break;
-            case 2: r = p; g = value; b = t; break;
-            case 3: r = p; g = q; b = value; break;
-            case 4: r = t; g = p; b = value; break;
-            default: r = value; g = p; b = q; break;
-        }
-    }
-
-    red = (uint32_t)(clamp_f(r, 0.0f, 1.0f) * 255.0f);
-    green = (uint32_t)(clamp_f(g, 0.0f, 1.0f) * 255.0f);
-    blue = (uint32_t)(clamp_f(b, 0.0f, 1.0f) * 255.0f);
-    return (red << 16) | (green << 8) | blue;
-}
-
 static void game_fill_ball_material(Material* material, size_t index) {
     float hue = fmodf((float)index * 37.0f, 360.0f);
     float accent_hue = fmodf(hue + 34.0f + (float)(index % 5U) * 7.0f, 360.0f);
@@ -72,10 +23,10 @@ static void game_fill_ball_material(Material* material, size_t index) {
     }
 
     memset(material, 0, sizeof(*material));
-    material->base_color = game_color_from_hsv(hue, 0.68f, 0.14f + (float)(index % 5U) * 0.03f);
-    material->accent_color = game_color_from_hsv(accent_hue, 0.62f, 0.75f + (float)(index % 4U) * 0.05f);
-    material->glow_color = game_color_from_hsv(glow_hue, 0.35f, 0.92f);
-    material->glare_color = game_color_from_hsv(glow_hue, 0.08f, 0.98f);
+    material->base_color = color_rgb_from_hsv(hue, 0.68f, 0.14f + (float)(index % 5U) * 0.03f).value;
+    material->accent_color = color_rgb_from_hsv(accent_hue, 0.62f, 0.75f + (float)(index % 4U) * 0.05f).value;
+    material->glow_color = color_rgb_from_hsv(glow_hue, 0.35f, 0.92f).value;
+    material->glare_color = color_rgb_from_hsv(glow_hue, 0.08f, 0.98f).value;
     material->emissive = 0.85f + (float)(index % 7U) * 0.08f;
     material->distortion = 0.18f + (float)(index % 9U) * 0.03f;
     material->glare_strength = 0.40f + (float)(index % 6U) * 0.06f;

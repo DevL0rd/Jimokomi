@@ -1,14 +1,9 @@
 #include "InteractionSystem.h"
 
-#include "../Scene.h"
-#include "../Entity.h"
-#include "../Components/DraggableComponent.h"
-#include "../Components/RigidBodyComponent.h"
-#include "../../Physics/PhysicsWorld.h"
-#include "../../Rendering/Camera.h"
-#include "../../Rendering/Renderer.h"
-#include "../../Rendering/RenderSnapshot.h"
-#include "../../Settings.h"
+#include "../Rendering/Camera.h"
+#include "../Rendering/Renderer.h"
+#include "../Rendering/RenderSnapshot.h"
+#include "../Settings.h"
 
 #include <math.h>
 #include <string.h>
@@ -285,125 +280,5 @@ void InteractionSystem_UpdateRender(
             );
             state->hover_cache_valid = false;
         }
-    }
-}
-
-void InteractionSystem_WriteInputPacket(
-    const InteractionSystemState* state,
-    const EngineInputSnapshot* input_snapshot,
-    const Renderer* renderer,
-    bool pointer_over_ui,
-    bool debug_overlay_enabled,
-    bool draw_debug_world,
-    int window_width,
-    int window_height,
-    uint64_t frame_id,
-    EngineRuntimeInputPacket* out_packet
-)
-{
-    const Camera* camera;
-
-    if (state == NULL || input_snapshot == NULL || out_packet == NULL)
-    {
-        return;
-    }
-
-    memset(out_packet, 0, sizeof(*out_packet));
-    out_packet->snapshot = *input_snapshot;
-    out_packet->pointer_over_ui = pointer_over_ui;
-    out_packet->debug_overlay_enabled = debug_overlay_enabled;
-    out_packet->draw_debug_world = draw_debug_world;
-    out_packet->drag_entity_active = state->entity_drag_active && state->dragged_entity_id != 0U;
-    out_packet->drag_entity_release = !state->entity_drag_active && state->dragged_entity_id != 0U &&
-        (input_snapshot->mouse_buttons & 1U) == 0U;
-    out_packet->drag_entity_id = (uint32_t)state->dragged_entity_id;
-    out_packet->drag_world_x = state->drag_world_position.x;
-    out_packet->drag_world_y = state->drag_world_position.y;
-    out_packet->drag_linear_velocity_x = state->drag_release_velocity.x;
-    out_packet->drag_linear_velocity_y = state->drag_release_velocity.y;
-    out_packet->window_width = window_width;
-    out_packet->window_height = window_height;
-    out_packet->selected_entity_id = state->selected_entity_id;
-    out_packet->hovered_entity_id = state->hovered_entity_id;
-    out_packet->frame_id = frame_id;
-    camera = renderer_get_camera_const(renderer);
-    if (camera != NULL)
-    {
-        out_packet->camera_x = camera->x;
-        out_packet->camera_y = camera->y;
-        out_packet->camera_view_width = camera->view_width;
-        out_packet->camera_view_height = camera->view_height;
-    }
-}
-
-void InteractionSystem_ClearReleasedDrag(InteractionSystemState* state, const EngineInput* input)
-{
-    if (state == NULL || input == NULL)
-    {
-        return;
-    }
-
-    if (!state->entity_drag_active && EngineInput_was_mouse_released(input, 1U))
-    {
-        state->dragged_entity_id = 0U;
-        state->drag_release_velocity = (Vec2){ 0.0f, 0.0f };
-    }
-}
-
-void InteractionSystem_ApplyDragPacket(Scene* scene, const EngineRuntimeInputPacket* input_packet)
-{
-    PhysicsWorld* physics_world;
-    Entity* entity;
-    RigidBodyComponent* rigid_body;
-    DraggableComponent* draggable;
-    float release_velocity_scale = 0.55f;
-
-    if (scene == NULL || input_packet == NULL ||
-        (!input_packet->drag_entity_active && !input_packet->drag_entity_release) ||
-        input_packet->drag_entity_id == 0U)
-    {
-        return;
-    }
-
-    physics_world = Scene_GetPhysicsWorld(scene);
-    entity = Scene_FindEntityById(scene, input_packet->drag_entity_id);
-    if (physics_world == NULL || entity == NULL)
-    {
-        return;
-    }
-
-    rigid_body = (RigidBodyComponent*)Entity_GetComponent(entity, COMPONENT_RIGID_BODY);
-    draggable = (DraggableComponent*)Entity_GetComponent(entity, COMPONENT_DRAGGABLE);
-    if (rigid_body == NULL || draggable == NULL || !draggable->enabled)
-    {
-        return;
-    }
-    release_velocity_scale = draggable->release_velocity_scale;
-
-    if (input_packet->drag_entity_active)
-    {
-        if (rigid_body->has_body)
-        {
-            PhysicsWorld_SetEntityAwake(physics_world, entity, true);
-        }
-        PhysicsWorld_SetEntityPosition(physics_world, entity, input_packet->drag_world_x, input_packet->drag_world_y);
-        if (rigid_body->has_body)
-        {
-            PhysicsWorld_SetEntityLinearVelocity(physics_world, entity, (Vec2){ 0.0f, 0.0f });
-            PhysicsWorld_SetEntityAngularVelocity(physics_world, entity, 0.0f);
-        }
-    }
-
-    if (input_packet->drag_entity_release && rigid_body->has_body)
-    {
-        PhysicsWorld_SetEntityAwake(physics_world, entity, true);
-        PhysicsWorld_SetEntityLinearVelocity(
-            physics_world,
-            entity,
-            (Vec2){
-                input_packet->drag_linear_velocity_x * release_velocity_scale,
-                input_packet->drag_linear_velocity_y * release_velocity_scale
-            }
-        );
     }
 }

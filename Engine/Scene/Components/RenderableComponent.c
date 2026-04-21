@@ -38,6 +38,24 @@ RenderableComponent* RenderableComponent_Create(void)
     return component;
 }
 
+RenderableComponent* RenderableComponent_CreateWithDesc(const RenderableComponentDesc* desc)
+{
+    RenderableComponent* component = RenderableComponent_Create();
+    if (component == NULL || desc == NULL)
+    {
+        return component;
+    }
+
+    component->visual_source_handle = desc->visual_source_handle;
+    component->material_handle = desc->material_handle;
+    component->shader_handle = desc->shader_handle;
+    component->anchor_x = desc->anchor_x;
+    component->anchor_y = desc->anchor_y;
+    component->layer = desc->layer;
+    component->visible = desc->visible;
+    return component;
+}
+
 void RenderableComponent_Destroy(RenderableComponent* component)
 {
     if (component == NULL)

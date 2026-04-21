@@ -20,13 +20,10 @@ const EngineSettings* EngineSettings_GetDefaults(void)
 
         .renderer_view_width = 960,
         .renderer_view_height = 540,
-        .renderer_prebake_budget_per_frame = 20U,
+        .renderer_prebake_target_fps = 60.0f,
         .renderer_prebake_admission_total_hits = 1U,
         .renderer_prebake_admission_frame_hits = 1U,
 
-        .app_render_item_capacity = 8192U,
-        .app_debug_entity_capacity = 8192U,
-        .app_debug_collision_capacity = 256U,
         .app_snapshot_preload_screens = 1.0f,
         .app_snapshot_publish_interval_ms = 16ULL,
         .app_idle_sleep_ms = 1U,

@@ -1,9 +1,9 @@
 #ifndef JIMOKOMI_ENGINE_SCENE_SYSTEMS_INTERACTIONSYSTEM_H
 #define JIMOKOMI_ENGINE_SCENE_SYSTEMS_INTERACTIONSYSTEM_H
 
-#include "../../Core/Input.h"
-#include "../../Core/Geometry.h"
-#include "../../RuntimeInput.h"
+#include "../Core/Input.h"
+#include "../Core/Geometry.h"
+#include "../RuntimeInput.h"
 
 #include <stdbool.h>
 #include <stdint.h>

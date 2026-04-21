@@ -9,6 +9,7 @@ struct Renderer {
     ResourceManager* resource_manager;
     int view_width;
     int view_height;
+    float prebake_target_fps;
     SpriteRenderable* scratch_items;
     size_t scratch_capacity;
     SurfaceDrawInstance* scratch_instances;

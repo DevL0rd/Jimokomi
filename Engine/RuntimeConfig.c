@@ -3,11 +3,12 @@
 
 #include <string.h>
 
-void runtime_config_init_defaults(RuntimeConfig* config) {
-    const EngineSettings* settings = EngineSettings_GetDefaults();
-
+void runtime_config_from_engine_settings(RuntimeConfig* config, const EngineSettings* settings) {
     if (config == NULL) {
         return;
+    }
+    if (settings == NULL) {
+        settings = EngineSettings_GetDefaults();
     }
 
     memset(config, 0, sizeof(*config));
@@ -28,7 +29,7 @@ void runtime_config_init_defaults(RuntimeConfig* config) {
 
     config->renderer.view_width = settings->renderer_view_width;
     config->renderer.view_height = settings->renderer_view_height;
-    config->renderer.prebake_budget_per_frame = settings->renderer_prebake_budget_per_frame;
+    config->renderer.prebake_target_fps = settings->renderer_prebake_target_fps;
     config->renderer.prebake_admission_total_hits = settings->renderer_prebake_admission_total_hits;
     config->renderer.prebake_admission_frame_hits = settings->renderer_prebake_admission_frame_hits;
 

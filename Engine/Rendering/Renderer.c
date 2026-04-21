@@ -458,6 +458,19 @@ static int renderer_compare_item_layer(const void *left, const void *right) {
     return (a->layer > b->layer) - (a->layer < b->layer);
 }
 
+static double renderer_compute_bake_budget_ms(double frame_started_ms, float target_fps) {
+    double target_frame_ms;
+    double elapsed_ms;
+
+    if (target_fps <= 0.0f) {
+        target_fps = 60.0f;
+    }
+
+    target_frame_ms = 1000.0 / (double)target_fps;
+    elapsed_ms = renderer_now_ms() - frame_started_ms;
+    return elapsed_ms < target_frame_ms ? target_frame_ms - elapsed_ms : 0.0;
+}
+
 void renderer_init(Renderer *renderer, RenderBackend *backend, const RendererConfig *config) {
     (void)backend;
     if (renderer == NULL) {
@@ -474,10 +487,11 @@ void renderer_init(Renderer *renderer, RenderBackend *backend, const RendererCon
     }
     renderer->view_width = config != NULL && config->view_width > 0 ? config->view_width : 480;
     renderer->view_height = config != NULL && config->view_height > 0 ? config->view_height : 270;
+    renderer->prebake_target_fps = config != NULL && config->prebake_target_fps > 0.0f
+        ? config->prebake_target_fps
+        : 60.0f;
     resource_manager_init(renderer->resource_manager, backend);
-    if (config != NULL && config->prebake_budget_per_frame > 0U) {
-        resource_manager_set_bake_budget(renderer->resource_manager, config->prebake_budget_per_frame);
-    }
+    resource_manager_set_bake_time_budget(renderer->resource_manager, 1000.0 / (double)renderer->prebake_target_fps);
     if (config != NULL) {
         resource_manager_set_bake_admission_thresholds(
             renderer->resource_manager,
@@ -603,9 +617,12 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
     uint64_t overlay_signature;
     uint64_t instance_signature;
     bool items_sorted_by_layer = true;
+    double frame_started_ms;
     if (renderer == NULL || backend == NULL || frame == NULL) {
         return;
     }
+
+    frame_started_ms = renderer_now_ms();
 
     renderer_compute_frame_signatures(frame, &frame_signature, &sort_signature, &instance_signature, &items_sorted_by_layer);
     overlay_signature = renderer_compute_overlay_signature(frame);
@@ -663,7 +680,10 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
                 renderer->last_visibility_ms = renderer_now_ms() - started_ms;
             }
             if (resource_manager_has_pending_bakes(renderer->resource_manager)) {
-                resource_manager_process_pending_bakes(renderer->resource_manager);
+                resource_manager_process_pending_bakes(
+                    renderer->resource_manager,
+                    renderer_compute_bake_budget_ms(frame_started_ms, renderer->prebake_target_fps)
+                );
             }
             goto draw_debug;
         }
@@ -717,7 +737,10 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
             renderer_flush_surface_batch(renderer, backend, &batch);
         }
         if (resource_manager_has_pending_bakes(renderer->resource_manager)) {
-            resource_manager_process_pending_bakes(renderer->resource_manager);
+            resource_manager_process_pending_bakes(
+                renderer->resource_manager,
+                renderer_compute_bake_budget_ms(frame_started_ms, renderer->prebake_target_fps)
+            );
         }
     }
 

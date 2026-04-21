@@ -16,8 +16,20 @@ typedef struct RenderableComponent
     bool visible;
 } RenderableComponent;
 
+typedef struct RenderableComponentDesc
+{
+    ResourceHandle visual_source_handle;
+    ResourceHandle material_handle;
+    ResourceHandle shader_handle;
+    float anchor_x;
+    float anchor_y;
+    int layer;
+    bool visible;
+} RenderableComponentDesc;
+
 void RenderableComponent_Init(RenderableComponent* component);
 RenderableComponent* RenderableComponent_Create(void);
+RenderableComponent* RenderableComponent_CreateWithDesc(const RenderableComponentDesc* desc);
 void RenderableComponent_Destroy(RenderableComponent* component);
 
 #endif

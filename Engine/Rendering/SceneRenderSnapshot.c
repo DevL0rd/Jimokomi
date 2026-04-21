@@ -1,5 +1,6 @@
 #include "SceneRenderSnapshot.h"
 
+#include "../Physics/PhysicsBodyControl.h"
 #include "../Scene/Scene.h"
 #include "../Scene/Entity.h"
 #include "../Scene/Components/ColliderComponent.h"
@@ -10,6 +11,7 @@
 #include "../Scene/Components/TransformComponent.h"
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -298,6 +300,8 @@ void scene_render_snapshot_build(
     SpatialGridCellSpan query_span;
     uint64_t snapshot_metadata_signature;
     const PhysicsWorldSnapshot* physics_snapshot;
+    size_t entity_capacity;
+    size_t contact_hit_capacity;
 
     if (desc == NULL || desc->scene == NULL || buffer == NULL)
     {
@@ -308,6 +312,18 @@ void scene_render_snapshot_build(
     physics_snapshot = desc->physics_snapshot != NULL ? desc->physics_snapshot : &empty_physics_snapshot;
     memset(&scene_stats, 0, sizeof(scene_stats));
     Scene_GetStatsSnapshot(desc->scene, &scene_stats);
+    entity_capacity = Scene_GetEntityCount(desc->scene);
+    if (!render_world_snapshot_reserve_items(&buffer->world, entity_capacity))
+    {
+        return;
+    }
+    contact_hit_capacity = Scene_GetPhysicsWorld(desc->scene) != NULL
+        ? PhysicsWorld_GetContactHitCount(Scene_GetPhysicsWorld(desc->scene))
+        : 0U;
+    if (!render_world_snapshot_reserve_debug_collisions(&buffer->world, contact_hit_capacity))
+    {
+        return;
+    }
     render_world_snapshot_reset(&buffer->world);
     memset(&buffer->stats, 0, sizeof(buffer->stats));
 
@@ -379,9 +395,9 @@ void scene_render_snapshot_build(
     buffer->stats.overlay.sleeping_body_count = physics_snapshot->sleeping_body_count;
     buffer->stats.overlay.moved_body_count = physics_snapshot->moved_body_count;
     buffer->stats.overlay.render_alpha = desc->render_alpha;
-    buffer->stats.render_alpha = desc->render_alpha;
-    buffer->stats.cull_grid_ms = out_profile != NULL ? (float)out_profile->cull_grid_ms : 0.0f;
-    buffer->stats.cull_grid_candidates = out_profile != NULL ? out_profile->cull_grid_candidates : 0U;
+    buffer->stats.render.render_alpha = desc->render_alpha;
+    buffer->stats.culling.cull_grid_ms = out_profile != NULL ? (float)out_profile->cull_grid_ms : 0.0f;
+    buffer->stats.culling.cull_grid_candidates = out_profile != NULL ? out_profile->cull_grid_candidates : 0U;
 
     memset(&query_span, 0, sizeof(query_span));
     if ((desc->profile_culling || buffer->world.draw_debug_world) &&
@@ -391,40 +407,41 @@ void scene_render_snapshot_build(
         buffer->world.debug_grid.span_max_x = query_span.max_cell_x;
         buffer->world.debug_grid.span_min_y = query_span.min_cell_y;
         buffer->world.debug_grid.span_max_y = query_span.max_cell_y;
-        buffer->stats.cull_grid_span_min_x = query_span.min_cell_x;
-        buffer->stats.cull_grid_span_max_x = query_span.max_cell_x;
-        buffer->stats.cull_grid_span_min_y = query_span.min_cell_y;
-        buffer->stats.cull_grid_span_max_y = query_span.max_cell_y;
-        buffer->stats.cull_grid_span_cells = query_span.cell_count;
+        buffer->stats.culling.cull_grid_span_min_x = query_span.min_cell_x;
+        buffer->stats.culling.cull_grid_span_max_x = query_span.max_cell_x;
+        buffer->stats.culling.cull_grid_span_min_y = query_span.min_cell_y;
+        buffer->stats.culling.cull_grid_span_max_y = query_span.max_cell_y;
+        buffer->stats.culling.cull_grid_span_cells = query_span.cell_count;
     }
 
-    buffer->stats.physics_substeps = desc->physics_substeps;
-    buffer->stats.physics_hz = physics_snapshot->physics_hz;
-    buffer->stats.physics_step_substeps = physics_snapshot->physics_step_substeps;
-    buffer->stats.physics_active_entities = physics_snapshot->active_entity_count;
-    buffer->stats.physics_dirty_entities = physics_snapshot->dirty_entity_count;
-    buffer->stats.physics_collider_changed_entities = physics_snapshot->collider_changed_entity_count;
-    buffer->stats.physics_body_create_queue = physics_snapshot->body_create_count;
-    buffer->stats.physics_body_remove_queue = physics_snapshot->body_remove_count;
-    buffer->stats.physics_shape_change_queue = physics_snapshot->shape_change_count;
+    buffer->stats.physics.physics_substeps = desc->physics_substeps;
+    buffer->stats.physics.physics_hz = physics_snapshot->physics_hz;
+    buffer->stats.physics.physics_step_substeps = physics_snapshot->physics_step_substeps;
+    buffer->stats.physics.physics_active_entities = physics_snapshot->active_entity_count;
+    buffer->stats.physics.physics_dirty_entities = physics_snapshot->dirty_entity_count;
+    buffer->stats.physics.physics_collider_changed_entities = physics_snapshot->collider_changed_entity_count;
+    buffer->stats.physics.physics_body_create_queue = physics_snapshot->body_create_count;
+    buffer->stats.physics.physics_body_remove_queue = physics_snapshot->body_remove_count;
+    buffer->stats.physics.physics_shape_change_queue = physics_snapshot->shape_change_count;
     {
         SceneView scene_view = Scene_GetViewSnapshot(desc->scene);
-        buffer->stats.camera_x = scene_view.x;
-        buffer->stats.camera_y = scene_view.y;
+        buffer->stats.camera.camera_x = scene_view.x;
+        buffer->stats.camera.camera_y = scene_view.y;
     }
 
-    if (buffer->world.draw_debug_world && Scene_GetPhysicsWorld(desc->scene) != NULL &&
+    if (contact_hit_capacity > 0U &&
+        buffer->world.draw_debug_world && Scene_GetPhysicsWorld(desc->scene) != NULL &&
         buffer->world.debug_collisions != NULL && buffer->world.debug_collision_capacity > 0U)
     {
-        PhysicsContactHit contact_hits[256];
-        size_t contact_hit_capacity = buffer->world.debug_collision_capacity;
+        PhysicsContactHit* contact_hits;
         size_t contact_hit_count;
         size_t collision_index = 0U;
         size_t event_index = 0U;
 
-        if (contact_hit_capacity > sizeof(contact_hits) / sizeof(contact_hits[0]))
+        contact_hits = (PhysicsContactHit*)calloc(contact_hit_capacity, sizeof(*contact_hits));
+        if (contact_hits == NULL)
         {
-            contact_hit_capacity = sizeof(contact_hits) / sizeof(contact_hits[0]);
+            return;
         }
         contact_hit_count = PhysicsWorld_GetContactHits(Scene_GetPhysicsWorld(desc->scene), contact_hits, contact_hit_capacity);
         for (event_index = 0U; event_index < contact_hit_count &&
@@ -441,6 +458,7 @@ void scene_render_snapshot_build(
             collision->sensor = false;
             collision->sleeping = false;
         }
+        free(contact_hits);
         buffer->world.debug_collision_count = collision_index;
     }
 }

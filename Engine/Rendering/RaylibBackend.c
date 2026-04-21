@@ -1,5 +1,7 @@
 #include "RaylibBackend.h"
 
+#include "../Settings.h"
+
 #include "../../third_party/raylib/src/external/glad.h"
 
 #include <stdlib.h>
@@ -797,7 +799,7 @@ bool raylib_backend_init(
 
     memset(backend, 0, sizeof(*backend));
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(width, height, title != NULL ? title : "Application");
+    InitWindow(width, height, title != NULL ? title : EngineSettings_GetDefaults()->window_title);
     if (!IsWindowReady()) {
         return false;
     }

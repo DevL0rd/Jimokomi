@@ -9,23 +9,30 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef struct RenderStatsSnapshot {
-    DebugOverlaySnapshot overlay;
-    EngineStatsSnapshot engine_stats;
+typedef struct RenderSnapshotRenderStats {
     float render_alpha;
+} RenderSnapshotRenderStats;
+
+typedef struct RenderSnapshotSimStats {
+    float input_ms;
+    float game_update_ms;
+    float fixed_step_wall_ms;
+    float drag_ms;
+    float snapshot_acquire_ms;
+    float snapshot_build_ms;
+} RenderSnapshotSimStats;
+
+typedef struct RenderSnapshotCullingStats {
     float cull_grid_ms;
-    float sim_input_ms;
-    float sim_spawn_ms;
-    float sim_fixed_step_wall_ms;
-    float sim_drag_ms;
-    float sim_snapshot_acquire_ms;
-    float sim_snapshot_build_ms;
     uint32_t cull_grid_candidates;
     int32_t cull_grid_span_min_x;
     int32_t cull_grid_span_max_x;
     int32_t cull_grid_span_min_y;
     int32_t cull_grid_span_max_y;
     uint32_t cull_grid_span_cells;
+} RenderSnapshotCullingStats;
+
+typedef struct RenderSnapshotPhysicsStats {
     uint32_t physics_substeps;
     float physics_hz;
     uint32_t physics_step_substeps;
@@ -35,11 +42,28 @@ typedef struct RenderStatsSnapshot {
     uint32_t physics_body_create_queue;
     uint32_t physics_body_remove_queue;
     uint32_t physics_shape_change_queue;
+} RenderSnapshotPhysicsStats;
+
+typedef struct RenderSnapshotResourceStats {
     size_t pending_bakes;
     uint64_t resource_commands_enqueued;
     uint64_t resource_commands_dropped;
+} RenderSnapshotResourceStats;
+
+typedef struct RenderSnapshotCameraStats {
     float camera_x;
     float camera_y;
+} RenderSnapshotCameraStats;
+
+typedef struct RenderStatsSnapshot {
+    DebugOverlaySnapshot overlay;
+    EngineStatsSnapshot engine_stats;
+    RenderSnapshotRenderStats render;
+    RenderSnapshotSimStats sim;
+    RenderSnapshotCullingStats culling;
+    RenderSnapshotPhysicsStats physics;
+    RenderSnapshotResourceStats resources;
+    RenderSnapshotCameraStats camera;
 } RenderStatsSnapshot;
 
 typedef struct PickTargetView {
@@ -96,21 +120,15 @@ typedef struct RenderSnapshotBuffer {
 typedef struct RenderSnapshotExchange {
     RenderSnapshotBuffer buffers[3];
     size_t write_index;
-    size_t item_capacity;
-    size_t debug_entity_capacity;
-    size_t debug_collision_capacity;
     atomic_size_t published_index;
     atomic_uint_fast64_t published_sequence;
     atomic_uint reader_counts[3];
 } RenderSnapshotExchange;
 
-bool render_snapshot_exchange_init(
-    RenderSnapshotExchange* exchange,
-    size_t item_capacity,
-    size_t debug_entity_capacity,
-    size_t debug_collision_capacity
-);
+bool render_snapshot_exchange_init(RenderSnapshotExchange* exchange);
 void render_snapshot_exchange_dispose(RenderSnapshotExchange* exchange);
+bool render_world_snapshot_reserve_items(RenderWorldSnapshot* snapshot, size_t required_capacity);
+bool render_world_snapshot_reserve_debug_collisions(RenderWorldSnapshot* snapshot, size_t required_capacity);
 RenderSnapshotBuffer* render_snapshot_exchange_begin_write(RenderSnapshotExchange* exchange);
 void render_snapshot_exchange_publish(RenderSnapshotExchange* exchange, RenderSnapshotBuffer* buffer);
 uint64_t render_snapshot_exchange_get_published_sequence(const RenderSnapshotExchange* exchange);

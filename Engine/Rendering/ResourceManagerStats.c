@@ -25,8 +25,9 @@ void resource_manager_get_stats_snapshot(const ResourceManager* manager, Resourc
     snapshot->dirty_shader_count = manager->dirty_shader_count;
     snapshot->dirty_baked_surface_count = manager->dirty_baked_surface_count;
     snapshot->bake_interest_count = manager->bake_interest_count;
-    snapshot->bake_budget_per_frame = manager->bake_budget_per_frame;
     snapshot->bake_requests_this_frame = manager->bake_requests_this_frame;
+    snapshot->bake_time_budget_ms = manager->bake_time_budget_ms;
+    snapshot->bake_process_ms = manager->last_bake_process_ms;
     snapshot->baked_surface_memory_bytes = resource_manager_get_baked_surface_memory_bytes(manager);
     snapshot->bake_cache_hits = manager->bake_cache_hits;
     snapshot->bake_cache_misses = manager->bake_cache_misses;

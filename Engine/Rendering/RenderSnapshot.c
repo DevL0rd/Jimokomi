@@ -4,58 +4,13 @@
 #include <string.h>
 
 static bool render_snapshot_exchange_alloc_world(
-    RenderWorldSnapshot* world,
-    size_t item_capacity,
-    size_t debug_entity_capacity,
-    size_t debug_collision_capacity
+    RenderWorldSnapshot* world
 ) {
     if (world == NULL) {
         return false;
     }
 
     memset(world, 0, sizeof(*world));
-    world->item_capacity = item_capacity;
-    world->debug_entity_capacity = debug_entity_capacity;
-    world->debug_collision_capacity = debug_collision_capacity;
-
-    if (item_capacity > 0U) {
-        world->items = (SpriteRenderable*)calloc(item_capacity, sizeof(*world->items));
-        if (world->items == NULL) {
-            return false;
-        }
-    }
-
-    if (debug_entity_capacity > 0U) {
-        world->debug_entities = (DebugEntityView*)calloc(debug_entity_capacity, sizeof(*world->debug_entities));
-        if (world->debug_entities == NULL) {
-            free(world->items);
-            memset(world, 0, sizeof(*world));
-            return false;
-        }
-    }
-
-    if (debug_collision_capacity > 0U) {
-        world->debug_collisions = (DebugCollisionView*)calloc(debug_collision_capacity, sizeof(*world->debug_collisions));
-        if (world->debug_collisions == NULL) {
-            free(world->debug_entities);
-            free(world->items);
-            memset(world, 0, sizeof(*world));
-            return false;
-        }
-    }
-
-    if (item_capacity > 0U) {
-        world->pick_targets = (PickTargetView*)calloc(item_capacity, sizeof(*world->pick_targets));
-        if (world->pick_targets == NULL) {
-            free(world->debug_collisions);
-            free(world->debug_entities);
-            free(world->items);
-            memset(world, 0, sizeof(*world));
-            return false;
-        }
-        world->pick_target_capacity = item_capacity;
-    }
-
     return true;
 }
 
@@ -71,12 +26,7 @@ static void render_snapshot_exchange_free_world(RenderWorldSnapshot* world) {
     memset(world, 0, sizeof(*world));
 }
 
-bool render_snapshot_exchange_init(
-    RenderSnapshotExchange* exchange,
-    size_t item_capacity,
-    size_t debug_entity_capacity,
-    size_t debug_collision_capacity
-) {
+bool render_snapshot_exchange_init(RenderSnapshotExchange* exchange) {
     size_t index;
 
     if (exchange == NULL) {
@@ -84,9 +34,6 @@ bool render_snapshot_exchange_init(
     }
 
     memset(exchange, 0, sizeof(*exchange));
-    exchange->item_capacity = item_capacity;
-    exchange->debug_entity_capacity = debug_entity_capacity;
-    exchange->debug_collision_capacity = debug_collision_capacity;
     atomic_init(&exchange->published_index, 0U);
     atomic_init(&exchange->published_sequence, 0U);
     for (index = 0U; index < 3U; ++index) {
@@ -94,16 +41,84 @@ bool render_snapshot_exchange_init(
     }
 
     for (index = 0U; index < 3U; ++index) {
-        if (!render_snapshot_exchange_alloc_world(
-                &exchange->buffers[index].world,
-                item_capacity,
-                debug_entity_capacity,
-                debug_collision_capacity)) {
+        if (!render_snapshot_exchange_alloc_world(&exchange->buffers[index].world)) {
             render_snapshot_exchange_dispose(exchange);
             return false;
         }
     }
 
+    return true;
+}
+
+bool render_world_snapshot_reserve_items(RenderWorldSnapshot* snapshot, size_t required_capacity) {
+    SpriteRenderable* next_items;
+    DebugEntityView* next_debug_entities;
+    PickTargetView* next_pick_targets;
+    size_t next_capacity;
+
+    if (snapshot == NULL) {
+        return false;
+    }
+    if (snapshot->item_capacity >= required_capacity &&
+        snapshot->debug_entity_capacity >= required_capacity &&
+        snapshot->pick_target_capacity >= required_capacity) {
+        return true;
+    }
+
+    next_capacity = snapshot->item_capacity > 0U ? snapshot->item_capacity : 64U;
+    while (next_capacity < required_capacity) {
+        next_capacity *= 2U;
+    }
+
+    next_items = (SpriteRenderable*)realloc(snapshot->items, next_capacity * sizeof(*next_items));
+    if (next_items == NULL) {
+        return false;
+    }
+    snapshot->items = next_items;
+    snapshot->item_capacity = next_capacity;
+
+    next_debug_entities = (DebugEntityView*)realloc(snapshot->debug_entities, next_capacity * sizeof(*next_debug_entities));
+    if (next_debug_entities == NULL) {
+        return false;
+    }
+    snapshot->debug_entities = next_debug_entities;
+    snapshot->debug_entity_capacity = next_capacity;
+
+    next_pick_targets = (PickTargetView*)realloc(snapshot->pick_targets, next_capacity * sizeof(*next_pick_targets));
+    if (next_pick_targets == NULL) {
+        return false;
+    }
+    snapshot->pick_targets = next_pick_targets;
+    snapshot->pick_target_capacity = next_capacity;
+    return true;
+}
+
+bool render_world_snapshot_reserve_debug_collisions(RenderWorldSnapshot* snapshot, size_t required_capacity) {
+    DebugCollisionView* next_collisions;
+    size_t next_capacity;
+
+    if (snapshot == NULL) {
+        return false;
+    }
+    if (snapshot->debug_collision_capacity >= required_capacity) {
+        return true;
+    }
+
+    next_capacity = snapshot->debug_collision_capacity > 0U ? snapshot->debug_collision_capacity : 64U;
+    while (next_capacity < required_capacity) {
+        next_capacity *= 2U;
+    }
+
+    next_collisions = (DebugCollisionView*)realloc(
+        snapshot->debug_collisions,
+        next_capacity * sizeof(*next_collisions)
+    );
+    if (next_collisions == NULL) {
+        return false;
+    }
+
+    snapshot->debug_collisions = next_collisions;
+    snapshot->debug_collision_capacity = next_capacity;
     return true;
 }
 

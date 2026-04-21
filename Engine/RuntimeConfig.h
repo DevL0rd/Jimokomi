@@ -7,6 +7,8 @@
 
 #include <stdbool.h>
 
+typedef struct EngineSettings EngineSettings;
+
 typedef struct RuntimeConfig {
     int window_width;
     int window_height;
@@ -18,6 +20,6 @@ typedef struct RuntimeConfig {
     bool default_bake_instance_invariant;
 } RuntimeConfig;
 
-void runtime_config_init_defaults(RuntimeConfig* config);
+void runtime_config_from_engine_settings(RuntimeConfig* config, const EngineSettings* settings);
 
 #endif

@@ -95,6 +95,41 @@ static bool resource_command_queue_reserve_slots(ResourceCommandQueue* queue, si
     return true;
 }
 
+static bool resource_command_queue_reserve_commands(ResourceCommandQueue* queue, size_t required_capacity) {
+    ResourceCommand* next_commands;
+    size_t next_capacity;
+
+    if (queue == NULL) {
+        return false;
+    }
+
+    if (queue->capacity >= required_capacity) {
+        return true;
+    }
+
+    next_capacity = queue->capacity > 0U ? queue->capacity : 64U;
+    while (next_capacity < required_capacity) {
+        next_capacity *= 2U;
+    }
+
+    next_commands = (ResourceCommand*)realloc(queue->commands, sizeof(*queue->commands) * next_capacity);
+    if (next_commands == NULL) {
+        return false;
+    }
+
+    if (next_capacity > queue->capacity) {
+        memset(
+            next_commands + queue->capacity,
+            0,
+            sizeof(*next_commands) * (next_capacity - queue->capacity)
+        );
+    }
+
+    queue->commands = next_commands;
+    queue->capacity = next_capacity;
+    return true;
+}
+
 static bool resource_command_queue_contains_locked(const ResourceCommandQueue* queue, const ResourceCommand* command) {
     size_t slot_index;
 
@@ -201,22 +236,24 @@ static void resource_command_queue_remove_locked(ResourceCommandQueue* queue, co
 }
 
 bool resource_command_queue_init(ResourceCommandQueue* queue, size_t capacity) {
-    if (queue == NULL || capacity < 2U) {
+    if (queue == NULL) {
         return false;
     }
 
     memset(queue, 0, sizeof(*queue));
-    queue->commands = (ResourceCommand*)calloc(capacity, sizeof(*queue->commands));
-    if (queue->commands == NULL) {
+    if (!resource_command_queue_reserve_commands(queue, capacity > 0U ? capacity : 64U)) {
         return false;
     }
 
-    queue->capacity = capacity;
     queue->slots = NULL;
     queue->slot_capacity = 0U;
     queue->slot_count = 0U;
-    atomic_init(&queue->head, 0U);
-    atomic_init(&queue->tail, 0U);
+    if (pthread_mutex_init(&queue->mutex, NULL) != 0) {
+        free(queue->commands);
+        memset(queue, 0, sizeof(*queue));
+        return false;
+    }
+
     atomic_init(&queue->dropped_count, 0U);
     atomic_init(&queue->enqueued_count, 0U);
     atomic_init(&queue->drained_count, 0U);
@@ -243,6 +280,9 @@ void resource_command_queue_dispose(ResourceCommandQueue* queue) {
         return;
     }
 
+    if (queue->commands != NULL) {
+        pthread_mutex_destroy(&queue->mutex);
+    }
     free(queue->commands);
     free(queue->slots);
     memset(queue, 0, sizeof(*queue));
@@ -258,44 +298,49 @@ void resource_command_queue_destroy(ResourceCommandQueue* queue) {
 }
 
 bool resource_command_queue_enqueue(ResourceCommandQueue* queue, const ResourceCommand* command) {
-    size_t tail;
-    size_t next_tail;
-    size_t head;
-
     if (queue == NULL || queue->commands == NULL || command == NULL) {
         return false;
     }
 
-    tail = atomic_load_explicit(&queue->tail, memory_order_relaxed);
-    next_tail = (tail + 1U) % queue->capacity;
-    head = atomic_load_explicit(&queue->head, memory_order_acquire);
+    pthread_mutex_lock(&queue->mutex);
+
     if (resource_command_queue_contains_locked(queue, command)) {
+        pthread_mutex_unlock(&queue->mutex);
         atomic_fetch_add_explicit(&queue->deduped_count, 1U, memory_order_relaxed);
         return true;
     }
-    if (next_tail == head) {
+
+    if (!resource_command_queue_reserve_commands(queue, queue->count + 1U)) {
+        pthread_mutex_unlock(&queue->mutex);
         atomic_fetch_add_explicit(&queue->dropped_count, 1U, memory_order_relaxed);
         return false;
     }
 
     if (!resource_command_queue_insert_locked(queue, command)) {
+        pthread_mutex_unlock(&queue->mutex);
         atomic_fetch_add_explicit(&queue->dropped_count, 1U, memory_order_relaxed);
         return false;
     }
 
-    queue->commands[tail] = *command;
-    atomic_store_explicit(&queue->tail, next_tail, memory_order_release);
+    queue->commands[queue->count] = *command;
+    queue->count += 1U;
+    pthread_mutex_unlock(&queue->mutex);
     atomic_fetch_add_explicit(&queue->enqueued_count, 1U, memory_order_relaxed);
     return true;
 }
 
 bool resource_command_queue_has_pending(const ResourceCommandQueue* queue) {
+    ResourceCommandQueue* mutable_queue = (ResourceCommandQueue*)queue;
+    bool has_pending;
+
     if (queue == NULL || queue->commands == NULL) {
         return false;
     }
 
-    return atomic_load_explicit(&queue->head, memory_order_acquire) !=
-           atomic_load_explicit(&queue->tail, memory_order_acquire);
+    pthread_mutex_lock(&mutable_queue->mutex);
+    has_pending = queue->count > 0U;
+    pthread_mutex_unlock(&mutable_queue->mutex);
+    return has_pending;
 }
 
 size_t resource_command_queue_drain(ResourceCommandQueue* queue, ResourceManager* manager) {
@@ -306,17 +351,25 @@ size_t resource_command_queue_drain(ResourceCommandQueue* queue, ResourceManager
     }
 
     for (;;) {
-        size_t head = atomic_load_explicit(&queue->head, memory_order_relaxed);
-        size_t tail = atomic_load_explicit(&queue->tail, memory_order_acquire);
         ResourceCommand command;
 
-        if (head == tail) {
+        pthread_mutex_lock(&queue->mutex);
+        if (queue->count == 0U) {
+            pthread_mutex_unlock(&queue->mutex);
             break;
         }
 
-        command = queue->commands[head];
+        command = queue->commands[0];
         resource_command_queue_remove_locked(queue, &command);
-        atomic_store_explicit(&queue->head, (head + 1U) % queue->capacity, memory_order_release);
+        if (queue->count > 1U) {
+            memmove(
+                queue->commands,
+                queue->commands + 1U,
+                sizeof(*queue->commands) * (queue->count - 1U)
+            );
+        }
+        queue->count -= 1U;
+        pthread_mutex_unlock(&queue->mutex);
         drained += 1U;
 
         if (command.type == RESOURCE_COMMAND_REQUEST_BAKED_SURFACE) {

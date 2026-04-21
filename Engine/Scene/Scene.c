@@ -1,6 +1,8 @@
 #include "SceneInternal.h"
 
 #include "EntityInternal.h"
+#include "SceneStorage.h"
+#include "SceneView.h"
 #include "SpatialGrid.h"
 #include "Systems/CameraFollowSystem.h"
 #include "Systems/RandomForceSystem.h"
@@ -13,256 +15,18 @@
 #include "Components/RigidBodyComponent.h"
 #include "Components/SelectableComponent.h"
 #include "Components/TransformComponent.h"
+#include "../Physics/PhysicsBodyControl.h"
 #include "../Settings.h"
 
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
 
-static void Scene_UpdateSpatialGridBounds(Scene* scene);
-
 static double Scene_NowMs(void)
 {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
-}
-
-static bool Scene_ReserveEntitySlots(Scene* scene, size_t required_capacity)
-{
-    struct Entity** entities = NULL;
-    size_t new_capacity = 0;
-
-    if (scene == NULL)
-    {
-        return false;
-    }
-
-    if (scene->entity_capacity >= required_capacity)
-    {
-        return true;
-    }
-
-    new_capacity = scene->entity_capacity == 0 ? 8 : scene->entity_capacity;
-    while (new_capacity < required_capacity)
-    {
-        new_capacity *= 2;
-    }
-
-    entities = (struct Entity**)realloc(scene->entities, sizeof(struct Entity*) * new_capacity);
-    if (entities == NULL)
-    {
-        return false;
-    }
-
-    scene->entities = entities;
-    scene->entity_capacity = new_capacity;
-    return true;
-}
-
-static bool Scene_ReserveDynamicEntitySlots(Scene* scene, size_t required_capacity)
-{
-    struct Entity** entities = NULL;
-    size_t new_capacity = 0;
-
-    if (scene == NULL)
-    {
-        return false;
-    }
-
-    if (scene->dynamic_entity_capacity >= required_capacity)
-    {
-        return true;
-    }
-
-    new_capacity = scene->dynamic_entity_capacity == 0 ? 8 : scene->dynamic_entity_capacity;
-    while (new_capacity < required_capacity)
-    {
-        new_capacity *= 2;
-    }
-
-    entities = (struct Entity**)realloc(scene->dynamic_entities, sizeof(struct Entity*) * new_capacity);
-    if (entities == NULL)
-    {
-        return false;
-    }
-
-    scene->dynamic_entities = entities;
-    scene->dynamic_entity_capacity = new_capacity;
-    return true;
-}
-
-static bool Scene_ReserveEntityListSlots(
-    struct Entity*** entities,
-    size_t* capacity,
-    size_t required_capacity
-)
-{
-    struct Entity** resized = NULL;
-    size_t new_capacity = 0U;
-
-    if (entities == NULL || capacity == NULL)
-    {
-        return false;
-    }
-
-    if (*capacity >= required_capacity)
-    {
-        return true;
-    }
-
-    new_capacity = *capacity == 0U ? 8U : *capacity;
-    while (new_capacity < required_capacity)
-    {
-        new_capacity *= 2U;
-    }
-
-    resized = (struct Entity**)realloc(*entities, sizeof(struct Entity*) * new_capacity);
-    if (resized == NULL)
-    {
-        return false;
-    }
-
-    *entities = resized;
-    *capacity = new_capacity;
-    return true;
-}
-
-static bool Scene_IsSelectableEntity(const Entity* entity)
-{
-    return entity != NULL &&
-           Entity_IsActive(entity) &&
-           Entity_GetFixedComponent(entity, COMPONENT_SELECTABLE) != NULL &&
-           Entity_GetFixedComponent(entity, COMPONENT_TRANSFORM) != NULL &&
-           Entity_GetFixedComponent(entity, COMPONENT_COLLIDER) != NULL;
-}
-
-static bool Scene_IsDraggableEntity(const Entity* entity)
-{
-    return Scene_IsSelectableEntity(entity) &&
-           Entity_GetFixedComponent(entity, COMPONENT_DRAGGABLE) != NULL;
-}
-
-static bool Scene_IsRenderableEntity(const Entity* entity)
-{
-    return entity != NULL &&
-           Entity_IsActive(entity) &&
-           Entity_GetFixedComponent(entity, COMPONENT_TRANSFORM) != NULL;
-}
-
-static bool Scene_IsDebugVisibleEntity(const Entity* entity)
-{
-    return Scene_IsSelectableEntity(entity);
-}
-
-static bool Scene_IsTriggerQueryEntity(const Entity* entity)
-{
-    return Scene_IsSelectableEntity(entity);
-}
-
-static bool Scene_IsProximityQueryEntity(const Entity* entity)
-{
-    return Scene_IsSelectableEntity(entity);
-}
-
-static bool Scene_AppendEntityToList(
-    struct Entity*** entities,
-    size_t* count,
-    size_t* capacity,
-    struct Entity* entity
-)
-{
-    if (entities == NULL || count == NULL || capacity == NULL)
-    {
-        return false;
-    }
-
-    if (!Scene_ReserveEntityListSlots(entities, capacity, *count + 1U))
-    {
-        return false;
-    }
-
-    (*entities)[(*count)++] = entity;
-    return true;
-}
-
-static void Scene_RemoveEntityFromList(struct Entity** entities, size_t* count, struct Entity* entity)
-{
-    size_t index = 0U;
-
-    if (entities == NULL || count == NULL || entity == NULL)
-    {
-        return;
-    }
-
-    for (index = 0U; index < *count; ++index)
-    {
-        if (entities[index] == entity)
-        {
-            memmove(
-                &entities[index],
-                &entities[index + 1U],
-                sizeof(struct Entity*) * (*count - index - 1U)
-            );
-            *count -= 1U;
-            entities[*count] = NULL;
-            return;
-        }
-    }
-}
-
-static void Scene_UpdateBoundsFromTilemap(Scene* scene)
-{
-    int pixel_width = 0;
-    int pixel_height = 0;
-
-    if (scene == NULL || scene->tilemap_adapter == NULL || scene->tilemap == NULL || scene->is_overlay)
-    {
-        scene->view.has_world_bounds = false;
-        Scene_UpdateSpatialGridBounds(scene);
-        return;
-    }
-
-    if (scene->tilemap_adapter->get_pixel_width == NULL || scene->tilemap_adapter->get_pixel_height == NULL)
-    {
-        return;
-    }
-
-    pixel_width = scene->tilemap_adapter->get_pixel_width(scene->tilemap);
-    pixel_height = scene->tilemap_adapter->get_pixel_height(scene->tilemap);
-    if (pixel_width > 0 && pixel_height > 0)
-    {
-        Scene_SetWorldBounds(scene, 0.0f, 0.0f, (float)pixel_width, (float)pixel_height);
-    }
-}
-
-static void Scene_UpdateSpatialGridBounds(Scene* scene)
-{
-    Aabb bounds = { 0.0f, 0.0f, 0.0f, 0.0f };
-    bool has_bounds = false;
-
-    if (scene == NULL)
-    {
-        return;
-    }
-
-    if (scene->view.has_world_bounds)
-    {
-        bounds.min_x = scene->view.world_min_x;
-        bounds.min_y = scene->view.world_min_y;
-        bounds.max_x = scene->view.world_max_x;
-        bounds.max_y = scene->view.world_max_y;
-        has_bounds = true;
-    }
-
-    if (has_bounds)
-    {
-        SpatialGrid_SetBounds(&scene->spatial_grid, bounds);
-    }
-    else
-    {
-        SpatialGrid_ClearBounds(&scene->spatial_grid);
-    }
 }
 
 void Scene_Init(Scene* scene, const char* name, const PhysicsWorldConfig* physics_config)
@@ -309,280 +73,6 @@ Scene* Scene_Create(const char* name, const PhysicsWorldConfig* physics_config)
     return scene;
 }
 
-bool Scene_AddEntity(Scene* scene, struct Entity* entity)
-{
-    RigidBodyComponent* rigid_body = NULL;
-
-    if (scene == NULL || entity == NULL)
-    {
-        return false;
-    }
-
-    if (entity->id == 0)
-    {
-        entity->id = scene->next_entity_id++;
-    }
-    else if (entity->id >= scene->next_entity_id)
-    {
-        scene->next_entity_id = entity->id + 1u;
-    }
-
-    if (!Scene_ReserveEntitySlots(scene, scene->entity_count + 1))
-    {
-        return false;
-    }
-
-    entity->scene = scene;
-    Entity_MarkDirty(
-        entity,
-        ENTITY_DIRTY_APPEARED | ENTITY_DIRTY_VISIBILITY | ENTITY_DIRTY_LAYER_SORT
-    );
-    scene->entities[scene->entity_count++] = entity;
-    if (scene->camera_target_entity == NULL &&
-        Entity_GetComponent(entity, COMPONENT_CAMERA_TARGET) != NULL)
-    {
-        scene->camera_target_entity = entity;
-    }
-    rigid_body = (RigidBodyComponent*)Entity_GetComponent(entity, COMPONENT_RIGID_BODY);
-    if (rigid_body != NULL && rigid_body->body_type != RIGID_BODY_STATIC)
-    {
-        if (!Scene_ReserveDynamicEntitySlots(scene, scene->dynamic_entity_count + 1))
-        {
-            Scene_RemoveEntity(scene, entity);
-            return false;
-        }
-        scene->dynamic_entities[scene->dynamic_entity_count++] = entity;
-    }
-    if (Scene_IsSelectableEntity(entity) &&
-        !Scene_AppendEntityToList(&scene->selectable_entities, &scene->selectable_entity_count, &scene->selectable_entity_capacity, entity))
-    {
-        Scene_RemoveEntity(scene, entity);
-        return false;
-    }
-    if (Scene_IsDraggableEntity(entity) &&
-        !Scene_AppendEntityToList(&scene->draggable_entities, &scene->draggable_entity_count, &scene->draggable_entity_capacity, entity))
-    {
-        Scene_RemoveEntity(scene, entity);
-        return false;
-    }
-    if (Scene_IsRenderableEntity(entity) &&
-        !Scene_AppendEntityToList(&scene->renderable_entities, &scene->renderable_entity_count, &scene->renderable_entity_capacity, entity))
-    {
-        Scene_RemoveEntity(scene, entity);
-        return false;
-    }
-    if (Scene_IsDebugVisibleEntity(entity) &&
-        !Scene_AppendEntityToList(&scene->debug_visible_entities, &scene->debug_visible_entity_count, &scene->debug_visible_entity_capacity, entity))
-    {
-        Scene_RemoveEntity(scene, entity);
-        return false;
-    }
-    if (Scene_IsTriggerQueryEntity(entity) &&
-        !Scene_AppendEntityToList(&scene->trigger_query_entities, &scene->trigger_query_entity_count, &scene->trigger_query_entity_capacity, entity))
-    {
-        Scene_RemoveEntity(scene, entity);
-        return false;
-    }
-    if (Scene_IsProximityQueryEntity(entity) &&
-        !Scene_AppendEntityToList(&scene->proximity_query_entities, &scene->proximity_query_entity_count, &scene->proximity_query_entity_capacity, entity))
-    {
-        Scene_RemoveEntity(scene, entity);
-        return false;
-    }
-    if (Entity_GetComponent(entity, COMPONENT_RANDOM_FORCE) != NULL)
-    {
-        if (!Scene_AppendEntityToList(&scene->random_force_entities, &scene->random_force_entity_count, &scene->random_force_entity_capacity, entity))
-        {
-            Scene_RemoveEntity(scene, entity);
-            return false;
-        }
-    }
-    if (scene->physics_world != NULL)
-    {
-        PhysicsWorld_RegisterEntity(scene->physics_world, entity);
-    }
-    SpatialGrid_UpdateEntity(&scene->spatial_grid, entity);
-    return true;
-}
-
-struct Entity* Scene_RemoveEntity(Scene* scene, struct Entity* entity)
-{
-    size_t index = 0;
-    size_t dynamic_index = 0;
-
-    if (scene == NULL || entity == NULL)
-    {
-        return NULL;
-    }
-
-    (void)dynamic_index;
-    Scene_RemoveEntityFromList(scene->dynamic_entities, &scene->dynamic_entity_count, entity);
-    Scene_RemoveEntityFromList(scene->selectable_entities, &scene->selectable_entity_count, entity);
-    Scene_RemoveEntityFromList(scene->draggable_entities, &scene->draggable_entity_count, entity);
-    Scene_RemoveEntityFromList(scene->renderable_entities, &scene->renderable_entity_count, entity);
-    Scene_RemoveEntityFromList(scene->debug_visible_entities, &scene->debug_visible_entity_count, entity);
-    Scene_RemoveEntityFromList(scene->trigger_query_entities, &scene->trigger_query_entity_count, entity);
-    Scene_RemoveEntityFromList(scene->proximity_query_entities, &scene->proximity_query_entity_count, entity);
-    Scene_RemoveEntityFromList(scene->random_force_entities, &scene->random_force_entity_count, entity);
-    SpatialGrid_RemoveEntity(&scene->spatial_grid, entity);
-    if (scene->physics_world != NULL)
-    {
-        PhysicsWorld_UnregisterEntity(scene->physics_world, entity);
-    }
-
-    for (index = 0; index < scene->entity_count; ++index)
-    {
-        if (scene->entities[index] == entity)
-        {
-            PhysicsWorld_RemoveBodyForEntity(scene->physics_world, entity);
-            if (scene->camera_target_entity == entity)
-            {
-                scene->camera_target_entity = NULL;
-            }
-            Entity_MarkDirty(entity, ENTITY_DIRTY_REMOVED | ENTITY_DIRTY_VISIBILITY);
-            memmove(&scene->entities[index],
-                    &scene->entities[index + 1],
-                    sizeof(struct Entity*) * (scene->entity_count - index - 1));
-            scene->entity_count -= 1;
-            scene->entities[scene->entity_count] = NULL;
-            entity->scene = NULL;
-            return entity;
-        }
-    }
-
-    return NULL;
-}
-
-struct Entity* Scene_FindEntityById(Scene* scene, uint32_t entity_id)
-{
-    size_t index = 0U;
-
-    if (scene == NULL || entity_id == 0U)
-    {
-        return NULL;
-    }
-
-    for (index = 0U; index < scene->entity_count; ++index)
-    {
-        if (scene->entities[index] != NULL && Entity_GetId(scene->entities[index]) == entity_id)
-        {
-            return scene->entities[index];
-        }
-    }
-
-    return NULL;
-}
-
-const struct Entity* Scene_FindEntityByIdConst(const Scene* scene, uint32_t entity_id)
-{
-    return Scene_FindEntityById((Scene*)scene, entity_id);
-}
-
-struct Entity* Scene_CreateDynamicCircle(
-    Scene* scene,
-    float x,
-    float y,
-    float radius,
-    ResourceHandle visual_source_handle,
-    ResourceHandle material_handle,
-    ResourceHandle shader_handle
-)
-{
-    Entity* entity = NULL;
-    TransformComponent* transform = NULL;
-    RigidBodyComponent* rigid_body = NULL;
-    ColliderComponent* collider = NULL;
-    RenderableComponent* renderable = NULL;
-    SelectableComponent* selectable = NULL;
-    DraggableComponent* draggable = NULL;
-
-    if (scene == NULL || radius <= 0.0f)
-    {
-        return NULL;
-    }
-
-    entity = Entity_Create(0U);
-    transform = TransformComponent_Create(x, y, 0.0f);
-    rigid_body = RigidBodyComponent_Create();
-    collider = ColliderComponent_Create();
-    renderable = RenderableComponent_Create();
-    selectable = SelectableComponent_Create();
-    draggable = DraggableComponent_Create(radius);
-    if (entity == NULL || transform == NULL || rigid_body == NULL || collider == NULL ||
-        renderable == NULL || selectable == NULL || draggable == NULL)
-    {
-        Entity_Destroy(entity);
-        TransformComponent_Destroy(transform);
-        RigidBodyComponent_Destroy(rigid_body);
-        ColliderComponent_Destroy(collider);
-        RenderableComponent_Destroy(renderable);
-        SelectableComponent_Destroy(selectable);
-        DraggableComponent_Destroy(draggable);
-        return NULL;
-    }
-
-    rigid_body->body_type = RIGID_BODY_DYNAMIC;
-    RigidBodyComponent_MarkDefinitionDirty(rigid_body);
-    ColliderComponent_SetCircle(collider, radius);
-    renderable->visual_source_handle = visual_source_handle;
-    renderable->material_handle = material_handle;
-    renderable->shader_handle = shader_handle;
-
-    Entity_AddComponent(entity, &transform->base);
-    Entity_AddComponent(entity, &rigid_body->base);
-    Entity_AddComponent(entity, &collider->base);
-    Entity_AddComponent(entity, &renderable->base);
-    Entity_AddComponent(entity, &selectable->base);
-    Entity_AddComponent(entity, &draggable->base);
-    if (!Scene_AddEntity(scene, entity))
-    {
-        Entity_Destroy(entity);
-        return NULL;
-    }
-
-    return entity;
-}
-
-struct Entity* Scene_CreateStaticBox(Scene* scene, float x, float y, float width, float height)
-{
-    Entity* entity = NULL;
-    TransformComponent* transform = NULL;
-    RigidBodyComponent* rigid_body = NULL;
-    ColliderComponent* collider = NULL;
-
-    if (scene == NULL || width <= 0.0f || height <= 0.0f)
-    {
-        return NULL;
-    }
-
-    entity = Entity_Create(0U);
-    transform = TransformComponent_Create(x, y, 0.0f);
-    rigid_body = RigidBodyComponent_Create();
-    collider = ColliderComponent_Create();
-    if (entity == NULL || transform == NULL || rigid_body == NULL || collider == NULL)
-    {
-        Entity_Destroy(entity);
-        TransformComponent_Destroy(transform);
-        RigidBodyComponent_Destroy(rigid_body);
-        ColliderComponent_Destroy(collider);
-        return NULL;
-    }
-
-    rigid_body->body_type = RIGID_BODY_STATIC;
-    RigidBodyComponent_MarkDefinitionDirty(rigid_body);
-    ColliderComponent_SetRect(collider, width, height);
-    Entity_AddComponent(entity, &transform->base);
-    Entity_AddComponent(entity, &rigid_body->base);
-    Entity_AddComponent(entity, &collider->base);
-    if (!Scene_AddEntity(scene, entity))
-    {
-        Entity_Destroy(entity);
-        return NULL;
-    }
-
-    return entity;
-}
-
 bool Scene_AddRandomForce(Scene* scene, struct Entity* entity, float force_strength, float interval_seconds)
 {
     RandomForceComponent* random_force;
@@ -615,54 +105,32 @@ bool Scene_AddRandomForce(Scene* scene, struct Entity* entity, float force_stren
     return true;
 }
 
-bool Scene_AddBoundsColliders(Scene* scene, Rect bounds, float thickness)
+bool Scene_GetEntityLinearVelocity(Scene* scene, struct Entity* entity, Vec2* out_velocity)
 {
-    if (scene == NULL || bounds.w <= 0.0f || bounds.h <= 0.0f || thickness <= 0.0f)
-    {
-        return false;
-    }
-
-    return Scene_CreateStaticBox(scene, bounds.x + bounds.w * 0.5f, bounds.y - thickness * 0.5f, bounds.w, thickness) != NULL &&
-           Scene_CreateStaticBox(scene, bounds.x + bounds.w * 0.5f, bounds.y + bounds.h + thickness * 0.5f, bounds.w, thickness) != NULL &&
-           Scene_CreateStaticBox(scene, bounds.x - thickness * 0.5f, bounds.y + bounds.h * 0.5f, thickness, bounds.h) != NULL &&
-           Scene_CreateStaticBox(scene, bounds.x + bounds.w + thickness * 0.5f, bounds.y + bounds.h * 0.5f, thickness, bounds.h) != NULL;
+    return scene != NULL &&
+           scene->physics_world != NULL &&
+           PhysicsWorld_GetEntityLinearVelocity(scene->physics_world, entity, out_velocity);
 }
 
-void Scene_SetTilemap(Scene* scene,
-                        const SceneTilemapAdapter* adapter,
-                        const void* tilemap,
-                        const TileRule* tile_rules,
-                        size_t tile_rule_count)
+bool Scene_SetEntityLinearVelocity(Scene* scene, struct Entity* entity, Vec2 velocity)
 {
-    if (scene == NULL)
-    {
-        return;
-    }
-
-    scene->tilemap_adapter = adapter;
-    scene->tilemap = tilemap;
-    scene->tile_rules = tile_rules;
-    scene->tile_rule_count = tile_rule_count;
-    if (scene->physics_world != NULL)
-    {
-        PhysicsWorld_SetTilemap(scene->physics_world, adapter, tilemap, tile_rules, tile_rule_count);
-    }
-    Scene_UpdateBoundsFromTilemap(scene);
+    return scene != NULL &&
+           scene->physics_world != NULL &&
+           PhysicsWorld_SetEntityLinearVelocity(scene->physics_world, entity, velocity);
 }
 
-void Scene_SetWorldBounds(Scene* scene, float min_x, float min_y, float max_x, float max_y)
+bool Scene_ApplyEntityLinearImpulse(Scene* scene, struct Entity* entity, Vec2 impulse, bool wake)
 {
-    if (scene == NULL)
-    {
-        return;
-    }
+    return scene != NULL &&
+           scene->physics_world != NULL &&
+           PhysicsWorld_ApplyEntityLinearImpulse(scene->physics_world, entity, impulse, wake);
+}
 
-    scene->view.has_world_bounds = true;
-    scene->view.world_min_x = min_x;
-    scene->view.world_min_y = min_y;
-    scene->view.world_max_x = max_x;
-    scene->view.world_max_y = max_y;
-    Scene_UpdateSpatialGridBounds(scene);
+bool Scene_GetEntityContactCapacity(Scene* scene, struct Entity* entity, int* out_contact_capacity)
+{
+    return scene != NULL &&
+           scene->physics_world != NULL &&
+           PhysicsWorld_GetEntityContactCapacity(scene->physics_world, entity, out_contact_capacity);
 }
 
 bool Scene_GetSpatialGridCellSpanForAabb(const Scene* scene, Aabb bounds, SpatialGridCellSpan* out_span)
@@ -771,108 +239,6 @@ void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_s
         CameraFollowSystem_Update(scene, dt_seconds);
         scene->last_camera_follow_ms = Scene_NowMs() - phase_started_ms;
     }
-}
-
-struct Entity* Scene_PickEntityAtScreen(Scene* scene, float screen_x, float screen_y)
-{
-    PhysicsQueryResult hits[16];
-    size_t hit_count = 0;
-    size_t index = 0;
-    float world_x = 0.0f;
-    float world_y = 0.0f;
-
-    if (scene == NULL || scene->is_overlay)
-    {
-        return NULL;
-    }
-
-    world_x = scene->view.x + screen_x;
-    world_y = scene->view.y + screen_y;
-    hit_count = PhysicsWorld_QueryPoint(scene->physics_world, world_x, world_y, hits, 16);
-    while (hit_count > 0)
-    {
-        if (Entity_IsActive(hits[hit_count - 1].entity))
-        {
-            return hits[hit_count - 1].entity;
-        }
-        --hit_count;
-    }
-
-    {
-        Aabb query_bounds = { world_x - 0.5f, world_y - 0.5f, world_x + 0.5f, world_y + 0.5f };
-        struct Entity* query_entities[32];
-        size_t query_count = Scene_QueryEntitiesInAabb(scene, query_bounds, query_entities, 32U);
-        for (index = query_count; index > 0; --index)
-        {
-            struct Entity* entity = query_entities[index - 1];
-            TransformComponent* transform = NULL;
-            ColliderComponent* collider = NULL;
-
-            if (!Entity_IsActive(entity))
-            {
-                continue;
-            }
-
-            transform = (TransformComponent*)Entity_GetFixedComponent(entity, COMPONENT_TRANSFORM);
-            collider = (ColliderComponent*)Entity_GetFixedComponent(entity, COMPONENT_COLLIDER);
-            if (transform == NULL || collider == NULL)
-            {
-                continue;
-            }
-
-            if (collider->shape == COLLIDER_SHAPE_CIRCLE)
-            {
-                float dx = world_x - transform->x;
-                float dy = world_y - transform->y;
-                if ((dx * dx) + (dy * dy) <= collider->radius * collider->radius)
-                {
-                    return entity;
-                }
-            }
-            else
-            {
-                float half_w = collider->width * 0.5f;
-                float half_h = collider->height * 0.5f;
-                if (world_x >= transform->x - half_w && world_x <= transform->x + half_w && world_y >= transform->y - half_h &&
-                    world_y <= transform->y + half_h)
-                {
-                    return entity;
-                }
-            }
-        }
-    }
-
-    return NULL;
-}
-
-size_t Scene_QueryEntitiesInAabb(Scene* scene, Aabb bounds, struct Entity** results, size_t capacity)
-{
-    if (scene == NULL)
-    {
-        return 0U;
-    }
-
-    return SpatialGrid_QueryAabb(&scene->spatial_grid, bounds, results, capacity);
-}
-
-size_t Scene_QueryEntitiesInRadius(Scene* scene, Vec2 center, float radius, struct Entity** results, size_t capacity)
-{
-    if (scene == NULL)
-    {
-        return 0U;
-    }
-
-    return SpatialGrid_QueryCircle(&scene->spatial_grid, center, radius, results, capacity);
-}
-
-size_t Scene_QueryEntitiesAlongSegment(Scene* scene, Vec2 start, Vec2 end, struct Entity** results, size_t capacity)
-{
-    if (scene == NULL)
-    {
-        return 0U;
-    }
-
-    return SpatialGrid_QuerySegment(&scene->spatial_grid, start, end, results, capacity);
 }
 
 void Scene_Destroy(Scene* scene)

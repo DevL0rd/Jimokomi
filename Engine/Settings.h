@@ -1,7 +1,7 @@
 #ifndef JIMOKOMI_ENGINE_SETTINGS_H
 #define JIMOKOMI_ENGINE_SETTINGS_H
 
-#include "Rendering/RenderTypes.h"
+#include "Rendering/RenderCommon.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -26,13 +26,10 @@ typedef struct EngineSettings
 
     int renderer_view_width;
     int renderer_view_height;
-    size_t renderer_prebake_budget_per_frame;
+    float renderer_prebake_target_fps;
     size_t renderer_prebake_admission_total_hits;
     size_t renderer_prebake_admission_frame_hits;
 
-    size_t app_render_item_capacity;
-    size_t app_debug_entity_capacity;
-    size_t app_debug_collision_capacity;
     float app_snapshot_preload_screens;
     uint64_t app_snapshot_publish_interval_ms;
     uint32_t app_idle_sleep_ms;

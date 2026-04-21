@@ -32,6 +32,20 @@ DraggableComponent* DraggableComponent_Create(float pick_radius)
     return component;
 }
 
+DraggableComponent* DraggableComponent_CreateWithDesc(const DraggableComponentDesc* desc)
+{
+    DraggableComponent* component = DraggableComponent_Create(desc != NULL ? desc->pick_radius : 1.0f);
+    if (component == NULL || desc == NULL)
+    {
+        return component;
+    }
+
+    component->enabled = desc->enabled;
+    component->release_velocity_scale =
+        desc->release_velocity_scale > 0.0f ? desc->release_velocity_scale : component->release_velocity_scale;
+    return component;
+}
+
 void DraggableComponent_Destroy(DraggableComponent* component)
 {
     if (component == NULL)

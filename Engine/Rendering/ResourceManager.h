@@ -105,8 +105,9 @@ typedef struct ResourceManagerStatsSnapshot {
     size_t dirty_shader_count;
     size_t dirty_baked_surface_count;
     size_t bake_interest_count;
-    size_t bake_budget_per_frame;
     size_t bake_requests_this_frame;
+    double bake_time_budget_ms;
+    double bake_process_ms;
     size_t baked_surface_memory_bytes;
     uint64_t bake_cache_hits;
     uint64_t bake_cache_misses;
@@ -121,7 +122,7 @@ typedef struct ResourceManagerStatsSnapshot {
 bool resource_manager_init(ResourceManager* manager, RenderBackend* backend);
 void resource_manager_dispose(ResourceManager* manager);
 void resource_manager_begin_frame(ResourceManager* manager);
-void resource_manager_set_bake_budget(ResourceManager* manager, size_t bake_budget_per_frame);
+void resource_manager_set_bake_time_budget(ResourceManager* manager, double bake_time_budget_ms);
 void resource_manager_set_bake_admission_thresholds(
     ResourceManager* manager,
     size_t total_hits,
@@ -190,7 +191,7 @@ void resource_manager_request_baked_surface_for_time(
     uint64_t now_ms,
     BakedSurfacePass pass
 );
-void resource_manager_process_pending_bakes(ResourceManager* manager);
+void resource_manager_process_pending_bakes(ResourceManager* manager, double time_budget_ms);
 void resource_manager_get_stats_snapshot(const ResourceManager* manager, ResourceManagerStatsSnapshot* snapshot);
 bool resource_manager_prewarm_procedural_source(
     ResourceManager* manager,
