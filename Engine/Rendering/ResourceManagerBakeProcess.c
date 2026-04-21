@@ -1,14 +1,12 @@
 #include "ResourceManagerBakeCacheInternal.h"
 #include "ResourceManagerBakeProcessInternal.h"
 #include "ResourceManagerBakeQueueInternal.h"
+#include "../Core/PlatformRuntimeInternal.h"
 
 #include <string.h>
-#include <time.h>
 
 static double resource_manager_now_ms(void) {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
+    return engine_platform_now_ms();
 }
 
 const Surface* resource_manager_execute_baked_surface(

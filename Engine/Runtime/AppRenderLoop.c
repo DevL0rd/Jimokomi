@@ -3,20 +3,15 @@
 #include "InteractionSystem.h"
 #include "../AppInternal.h"
 #include "../Core/InputPacketStream.h"
+#include "../Core/PlatformRuntimeInternal.h"
 #include "../Rendering/RaylibBackend.h"
 #include "../Rendering/Renderer.h"
 #include "../Rendering/RenderSnapshotExchange.h"
 #include "../Settings.h"
 
-#include <time.h>
-
 static void engine_app_render_sleep_ms(uint32_t milliseconds)
 {
-    struct timespec request;
-
-    request.tv_sec = (time_t)(milliseconds / 1000U);
-    request.tv_nsec = (long)(milliseconds % 1000U) * 1000000L;
-    nanosleep(&request, NULL);
+    engine_platform_sleep_ms(milliseconds);
 }
 
 static const RenderSnapshotBuffer* engine_app_acquire_render_snapshot(
@@ -86,6 +81,13 @@ void engine_app_run_render_loop(
 
         raylib_backend_pump_events(app->backend);
         raylib_backend_get_window_size(app->backend, &window_width, &window_height);
+        renderer_set_viewport_size(
+            app->renderer,
+            window_width,
+            window_height,
+            settings->camera_min_view_width,
+            settings->camera_min_view_height
+        );
         input_snapshot = raylib_backend_snapshot_input(app->backend);
         Engine_update(&app->engine, 0.0, &input_snapshot);
         if (EngineInput_was_pressed(&app->engine.input, ENGINE_INPUT_ACTION_DEBUG_TOGGLE))

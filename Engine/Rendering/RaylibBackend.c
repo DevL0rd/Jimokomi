@@ -429,14 +429,20 @@ bool raylib_backend_init(
     RaylibBackend *backend,
     int width,
     int height,
-    const char *title
+    const char *title,
+    bool vsync_enabled
 ) {
+    unsigned int config_flags = FLAG_WINDOW_RESIZABLE;
+
     if (backend == NULL) {
         return false;
     }
 
     memset(backend, 0, sizeof(*backend));
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    if (vsync_enabled) {
+        config_flags |= FLAG_VSYNC_HINT;
+    }
+    SetConfigFlags(config_flags);
     InitWindow(width, height, title != NULL ? title : EngineSettings_GetDefaults()->window_title);
     if (!IsWindowReady()) {
         return false;
@@ -473,13 +479,13 @@ bool raylib_backend_init(
     return true;
 }
 
-RaylibBackend* raylib_backend_create(int width, int height, const char* title) {
+RaylibBackend* raylib_backend_create(int width, int height, const char* title, bool vsync_enabled) {
     RaylibBackend* backend = (RaylibBackend*)calloc(1U, sizeof(*backend));
 
     if (backend == NULL) {
         return NULL;
     }
-    if (!raylib_backend_init(backend, width, height, title)) {
+    if (!raylib_backend_init(backend, width, height, title, vsync_enabled)) {
         free(backend);
         return NULL;
     }

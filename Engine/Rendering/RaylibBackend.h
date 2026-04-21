@@ -10,9 +10,10 @@ bool raylib_backend_init(
     RaylibBackend *backend,
     int width,
     int height,
-    const char *title
+    const char *title,
+    bool vsync_enabled
 );
-RaylibBackend* raylib_backend_create(int width, int height, const char* title);
+RaylibBackend* raylib_backend_create(int width, int height, const char* title, bool vsync_enabled);
 void raylib_backend_dispose(RaylibBackend *backend);
 void raylib_backend_destroy(RaylibBackend* backend);
 void raylib_backend_pump_events(RaylibBackend *backend);

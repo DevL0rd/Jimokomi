@@ -6,6 +6,7 @@ const EngineSettings* EngineSettings_GetDefaults(void)
         .window_width = 960,
         .window_height = 540,
         .window_title = "Jimokomi",
+        .vsync_enabled = true,
 
         .app_snapshot_preload_screens = 1.0f,
         .app_snapshot_publish_interval_ms = 16ULL,

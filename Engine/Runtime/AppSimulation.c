@@ -1,6 +1,7 @@
 #include "AppSimulationInternal.h"
 
 #include "InteractionSystem.h"
+#include "../Core/PlatformRuntimeInternal.h"
 #include "../Rendering/Renderer.h"
 #include "../Rendering/RenderSnapshotExchange.h"
 #include "../Rendering/SceneRenderSnapshot.h"
@@ -10,22 +11,15 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 static double engine_app_sim_now_ms(void)
 {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
+    return engine_platform_now_ms();
 }
 
 static void engine_app_sim_sleep_ms(uint32_t milliseconds)
 {
-    struct timespec request;
-
-    request.tv_sec = (time_t)(milliseconds / 1000U);
-    request.tv_nsec = (long)(milliseconds % 1000U) * 1000000L;
-    nanosleep(&request, NULL);
+    engine_platform_sleep_ms(milliseconds);
 }
 
 static void engine_app_sim_get_scene_step_config(EngineAppSimThreadContext* context)
@@ -67,6 +61,7 @@ static uint32_t engine_app_sim_step_scene(
 )
 {
     SceneInputState scene_input = { 0 };
+    PhysicsWorld* physics_world;
     double fixed_dt;
     uint32_t max_substeps;
 
@@ -75,12 +70,25 @@ static uint32_t engine_app_sim_step_scene(
         return 0U;
     }
 
-    fixed_dt = context->fixed_dt_seconds > 0.0 ? context->fixed_dt_seconds : 1.0 / 60.0;
-    max_substeps = context->max_substeps > 0U ? context->max_substeps : 4U;
+    physics_world = Scene_GetPhysicsWorld(context->app->scene);
     context->accumulator_seconds = fmin(
         context->accumulator_seconds + dt_seconds,
-        fixed_dt * (double)max_substeps
+        (context->fixed_dt_seconds > 0.0 ? context->fixed_dt_seconds : 1.0 / 60.0) *
+            (double)(context->max_substeps > 0U ? context->max_substeps : 4U)
     );
+    if (physics_world != NULL)
+    {
+        float adaptive_fixed_dt = 0.0f;
+        uint32_t adaptive_max_substeps = 0U;
+        PhysicsWorld_UpdateAdaptiveStepRate(physics_world, (float)context->accumulator_seconds);
+        PhysicsWorld_GetStepConfig(physics_world, &adaptive_fixed_dt, &adaptive_max_substeps);
+        context->fixed_dt_seconds = adaptive_fixed_dt > 0.0f ? (double)adaptive_fixed_dt : context->fixed_dt_seconds;
+        context->max_substeps = adaptive_max_substeps > 0U ? adaptive_max_substeps : context->max_substeps;
+    }
+
+    fixed_dt = context->fixed_dt_seconds > 0.0 ? context->fixed_dt_seconds : 1.0 / 60.0;
+    max_substeps = context->max_substeps > 0U ? context->max_substeps : 4U;
+    context->accumulator_seconds = fmin(context->accumulator_seconds, fixed_dt * (double)max_substeps);
     if (context->accumulator_seconds < fixed_dt)
     {
         return 0U;

@@ -162,8 +162,11 @@ Scene* jimokomi_game_create_scene(EngineAppContext* app, JimokomiGameState* game
     }
 
     physics_config.gravity_y = PHYSICS_EARTH_GRAVITY_MPS2 * PHYSICS_PIXELS_PER_METER;
-    physics_config.target_hz = 30.0f;
-    physics_config.max_substeps = 8U;
+    physics_config.target_hz = PHYSICS_MAX_HZ;
+    physics_config.min_hz = PHYSICS_MIN_HZ;
+    physics_config.max_hz = PHYSICS_MAX_HZ;
+    physics_config.frame_budget_hz = PHYSICS_FRAME_BUDGET_HZ;
+    physics_config.max_substeps = PHYSICS_MAX_SUBSTEPS;
     physics_config.step_substep_count = 4U;
     physics_config.task_system = EngineApp_GetTaskSystem(app);
 
@@ -201,14 +204,14 @@ void jimokomi_game_update_sim(EngineAppContext* app, double dt_seconds, const En
     }
 
     game->spawn_accumulator_seconds += dt_seconds;
-    if (game->spawn_accumulator_seconds < BALL_SPAWN_INTERVAL_SECONDS)
+    while (game->spawn_accumulator_seconds >= BALL_SPAWN_INTERVAL_SECONDS &&
+           game->spawn_cursor < BALL_COUNT)
     {
-        return;
-    }
-
-    game->spawn_accumulator_seconds -= BALL_SPAWN_INTERVAL_SECONDS;
-    if (jimokomi_spawn_ball(game, game->spawn_cursor) != NULL)
-    {
+        game->spawn_accumulator_seconds -= BALL_SPAWN_INTERVAL_SECONDS;
+        if (jimokomi_spawn_ball(game, game->spawn_cursor) == NULL)
+        {
+            return;
+        }
         game->spawn_cursor += 1U;
     }
 }

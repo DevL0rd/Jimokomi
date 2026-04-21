@@ -18,8 +18,11 @@ set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
 set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 set(USE_EXTERNAL_GLFW OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_WAYLAND ON CACHE BOOL "" FORCE)
 set(OPENGL_VERSION "2.1" CACHE STRING "" FORCE)
+
+if(UNIX AND NOT APPLE)
+	set(GLFW_BUILD_WAYLAND ON CACHE BOOL "" FORCE)
+endif()
 
 add_subdirectory(third_party/box2d)
 add_subdirectory(third_party/raylib)
@@ -30,6 +33,7 @@ set(SOURCES
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/Input.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/InputPacketStream.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/PathResolver.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/PlatformRuntime.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/Stats.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/TaskSystem.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Engine.c"

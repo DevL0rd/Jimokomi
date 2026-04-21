@@ -25,7 +25,7 @@ void PhysicsWorld_GetSnapshot(const PhysicsWorld* world, PhysicsWorldSnapshot* s
     snapshot->collision_pair_count = world->lifecycle->has_world ? (uint32_t)b2World_GetContactEvents(world->lifecycle->world_id).beginCount : 0u;
     snapshot->physics_hz = world->lifecycle->target_hz;
     snapshot->physics_fixed_dt = world->lifecycle->fixed_dt;
-    snapshot->physics_accumulator = 0.0f;
+    snapshot->physics_accumulator = (float)world->stats->last_accumulator_seconds;
     snapshot->physics_max_substeps = world->lifecycle->max_substeps;
     snapshot->physics_step_substeps = world->lifecycle->step_substep_count;
     snapshot->box2d_step_wall_ms = (float)world->stats->last_box2d_step_wall_ms;

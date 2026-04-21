@@ -3,6 +3,7 @@
 
 #include "Rendering/RenderCommon.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 
 typedef struct EngineSettings
@@ -10,6 +11,7 @@ typedef struct EngineSettings
     int window_width;
     int window_height;
     const char* window_title;
+    bool vsync_enabled;
 
     float app_snapshot_preload_screens;
     uint64_t app_snapshot_publish_interval_ms;

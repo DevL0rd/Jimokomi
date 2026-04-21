@@ -7,10 +7,10 @@
 #include <math.h>
 #include <string.h>
 
-#define BALL_RENDER_SIZE 28.0f
-#define BALL_RENDER_CENTER 14.0f
-#define BALL_RENDER_SCALE 2.0f
-#define BALL_BODY_RADIUS 13.0f
+#define BALL_RENDER_SIZE 9.0f
+#define BALL_RENDER_CENTER 4.5f
+#define BALL_RENDER_SCALE (2.0f / 3.0f)
+#define BALL_BODY_RADIUS (13.0f / 3.0f)
 
 static void game_fill_ball_material(Material* material, size_t index) {
     float hue = fmodf((float)index * 37.0f, 360.0f);

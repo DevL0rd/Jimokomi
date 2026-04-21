@@ -3,12 +3,15 @@
 
 #include "Core/EngineConfig.h"
 
+#include <stdbool.h>
+
 typedef struct EngineSettings EngineSettings;
 
 typedef struct RuntimeConfig {
     int window_width;
     int window_height;
     const char* window_title;
+    bool vsync_enabled;
     EngineConfig engine;
 } RuntimeConfig;
 

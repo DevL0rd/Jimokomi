@@ -1,12 +1,11 @@
 #include "Stats.h"
 
+#include "PlatformRuntimeInternal.h"
+
 #include <string.h>
-#include <time.h>
 
 static double engine_stats_now_ms(void) {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
+    return engine_platform_now_ms();
 }
 
 void EngineStats_init(EngineStats* stats) {

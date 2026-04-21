@@ -14,6 +14,7 @@ struct PhysicsWorldStatsState {
     size_t sleeping_body_count;
     size_t moved_body_count;
     double last_box2d_step_wall_ms;
+    double last_accumulator_seconds;
 };
 
 #endif

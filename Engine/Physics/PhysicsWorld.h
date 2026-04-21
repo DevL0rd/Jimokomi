@@ -19,6 +19,9 @@ typedef struct PhysicsWorldConfig
     float gravity_x;
     float gravity_y;
     float target_hz;
+    float min_hz;
+    float max_hz;
+    float frame_budget_hz;
     uint32_t max_substeps;
     uint32_t step_substep_count;
     const struct TaskSystem* task_system;
@@ -69,6 +72,7 @@ PhysicsWorld* PhysicsWorld_Create(const PhysicsWorldConfig* config);
 void PhysicsWorld_Destroy(PhysicsWorld* world);
 
 void PhysicsWorld_GetStepConfig(const PhysicsWorld* world, float* out_fixed_dt, uint32_t* out_max_substeps);
+void PhysicsWorld_UpdateAdaptiveStepRate(PhysicsWorld* world, float accumulator_seconds);
 void PhysicsWorld_RegisterEntity(PhysicsWorld* world, struct Entity* entity);
 void PhysicsWorld_UnregisterEntity(PhysicsWorld* world, struct Entity* entity);
 

@@ -2,6 +2,7 @@
 
 #include "AppInternal.h"
 #include "Core/InputPacketStreamInternal.h"
+#include "Core/PlatformRuntimeInternal.h"
 #include "Core/TaskSystem.h"
 #include "Runtime/AppRenderLoop.h"
 #include "Runtime/AppSimulationInternal.h"
@@ -15,7 +16,6 @@
 #include "Scene/Scene.h"
 #include "Scene/SceneView.h"
 
-#include <pthread.h>
 #include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
@@ -60,7 +60,7 @@ int EngineApp_Run(const EngineAppDesc* desc)
     const EngineSettings* settings = EngineSettings_GetDefaults();
     RendererConfig renderer_config;
     TaskSystemConfig task_system_config;
-    pthread_t sim_thread;
+    EnginePlatformThread sim_thread;
     bool sim_thread_started = false;
     int exit_code = 1;
 
@@ -85,7 +85,12 @@ int EngineApp_Run(const EngineAppDesc* desc)
     {
         goto cleanup;
     }
-    app.backend = raylib_backend_create(runtime_config.window_width, runtime_config.window_height, runtime_config.window_title);
+    app.backend = raylib_backend_create(
+        runtime_config.window_width,
+        runtime_config.window_height,
+        runtime_config.window_title,
+        runtime_config.vsync_enabled
+    );
     if (app.backend == NULL)
     {
         goto cleanup;
@@ -123,13 +128,11 @@ int EngineApp_Run(const EngineAppDesc* desc)
         {
             int viewport_width = 0;
             int viewport_height = 0;
-            renderer_get_viewport_size(app.renderer, &viewport_width, &viewport_height);
+            raylib_backend_get_window_size(app.backend, &viewport_width, &viewport_height);
             render_camera->x = scene_view.x;
             render_camera->y = scene_view.y;
             render_camera->view_width = scene_view.view_width;
             render_camera->view_height = scene_view.view_height;
-            render_camera->viewport_width = (float)viewport_width;
-            render_camera->viewport_height = (float)viewport_height;
             if (scene_view.has_world_bounds)
             {
                 camera_set_world_bounds(
@@ -142,6 +145,13 @@ int EngineApp_Run(const EngineAppDesc* desc)
                     }
                 );
             }
+            renderer_set_viewport_size(
+                app.renderer,
+                viewport_width,
+                viewport_height,
+                settings->camera_min_view_width,
+                settings->camera_min_view_height
+            );
         }
     }
 
@@ -151,7 +161,7 @@ int EngineApp_Run(const EngineAppDesc* desc)
     sim_context.render_snapshot_exchange = render_snapshot_exchange;
     sim_context.input_stream = &input_stream;
     atomic_init(&sim_context.shutdown_requested, false);
-    if (pthread_create(&sim_thread, NULL, engine_app_simulation_thread_main, &sim_context) != 0)
+    if (!engine_platform_thread_start(&sim_thread, engine_app_simulation_thread_main, &sim_context))
     {
         goto cleanup;
     }
@@ -164,7 +174,7 @@ cleanup:
     if (sim_thread_started)
     {
         atomic_store_explicit(&sim_context.shutdown_requested, true, memory_order_release);
-        pthread_join(sim_thread, NULL);
+        engine_platform_thread_join(&sim_thread);
     }
     if (app.scene != NULL)
     {

@@ -1,12 +1,11 @@
 #include "DebugOverlayInternal.h"
 
+#include "../Core/PlatformRuntimeInternal.h"
+
 #include <math.h>
-#include <time.h>
 
 double debug_overlay_now_ms(void) {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
+    return engine_platform_now_ms();
 }
 
 uint64_t debug_hash_u64(uint64_t hash, uint64_t value) {

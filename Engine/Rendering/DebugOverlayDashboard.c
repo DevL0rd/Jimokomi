@@ -184,8 +184,8 @@ void debug_overlay_draw_dashboard_contents(
     metrics[2] = (DebugMetricVisual){ "1% Low", overlay->history->display_one_percent_low_fps, 120.0f, (Color32){ 0xffd07aU }, overlay->history->fps_history };
     metrics[3] = (DebugMetricVisual){ "Sim", overlay->history->display_sim_ms, 16.67f, (Color32){ 0x8aa8bcU }, overlay->history->sim_ms_history };
     metrics[4] = (DebugMetricVisual){ "Update", overlay->history->display_update_ms, 16.67f, (Color32){ 0x8fe8c4U }, overlay->history->update_ms_history };
-    metrics[5] = (DebugMetricVisual){ "Physics", overlay->history->display_physics_ms, 16.67f, (Color32){ 0xff8d7aU }, overlay->history->physics_ms_history };
-    metrics[6] = (DebugMetricVisual){ "Entities", overlay->history->display_visible_count, 20000.0f, (Color32){ 0xb896ffU }, overlay->history->visible_count_history };
+    metrics[5] = (DebugMetricVisual){ "Physics", overlay->history->display_physics_ms, 33.33f, (Color32){ 0xff8d7aU }, overlay->history->physics_ms_history };
+    metrics[6] = (DebugMetricVisual){ "Entities", overlay->history->display_visible_count, 100000.0f, (Color32){ 0xb896ffU }, overlay->history->visible_count_history };
 
     debug_draw_panel_frame(target, &overlay->ui->dashboard_panel, "Performance", overlay->ui->hovered_ui_region == DEBUG_UI_HOVER_DASHBOARD);
     left = overlay->ui->dashboard_panel.x + 12.0f;
@@ -218,12 +218,12 @@ void debug_overlay_draw_dashboard_contents(
     snprintf(stat_text[3], sizeof(stat_text[3]), "%.0f", overlay->history->display_sleeping_body_count);
     snprintf(stat_text[4], sizeof(stat_text[4]), "%.0f", overlay->history->display_moved_body_count);
     snprintf(stat_text[5], sizeof(stat_text[5]), "%.1f ms", overlay->history->display_snapshot_age_ms);
-    stat_chips[0] = (DebugStatChip){ "Hz", stat_text[0], clamp_f(overlay->history->display_physics_hz / 120.0f, 0.0f, 1.0f), (Color32){ 0xb896ffU } };
-    stat_chips[1] = (DebugStatChip){ "Awake", stat_text[1], clamp_f(overlay->history->display_awake_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0xffd07aU } };
-    stat_chips[2] = (DebugStatChip){ "Bodies", stat_text[2], clamp_f(overlay->history->display_total_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x8fe8c4U } };
-    stat_chips[3] = (DebugStatChip){ "Sleep", stat_text[3], clamp_f(overlay->history->display_sleeping_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x7f99adU } };
-    stat_chips[4] = (DebugStatChip){ "Moved", stat_text[4], clamp_f(overlay->history->display_moved_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x7ce2ffU } };
-    stat_chips[5] = (DebugStatChip){ "Age", stat_text[5], clamp_f(overlay->history->display_snapshot_age_ms / 16.67f, 0.0f, 1.0f), (Color32){ 0xd8d08fU } };
+    stat_chips[0] = (DebugStatChip){ "Hz", stat_text[0], clamp_f(overlay->history->display_physics_hz / 300.0f, 0.0f, 1.0f), (Color32){ 0xb896ffU } };
+    stat_chips[1] = (DebugStatChip){ "Awake", stat_text[1], clamp_f(overlay->history->display_awake_body_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0xffd07aU } };
+    stat_chips[2] = (DebugStatChip){ "Bodies", stat_text[2], clamp_f(overlay->history->display_total_body_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0x8fe8c4U } };
+    stat_chips[3] = (DebugStatChip){ "Sleep", stat_text[3], clamp_f(overlay->history->display_sleeping_body_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0x7f99adU } };
+    stat_chips[4] = (DebugStatChip){ "Moved", stat_text[4], clamp_f(overlay->history->display_moved_body_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0x7ce2ffU } };
+    stat_chips[5] = (DebugStatChip){ "Age", stat_text[5], clamp_f(overlay->history->display_snapshot_age_ms / 33.33f, 0.0f, 1.0f), (Color32){ 0xd8d08fU } };
 
     stat_width = (overlay->ui->dashboard_panel.width - 24.0f - 10.0f) / 3.0f;
     stats_top = card_rect.y + row_height + 12.0f;

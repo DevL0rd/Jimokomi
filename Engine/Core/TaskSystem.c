@@ -2,12 +2,12 @@
 
 #include <box2d/box2d.h>
 
-#include <pthread.h>
+#include "PlatformRuntimeInternal.h"
+
 #include <stdatomic.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 typedef struct TaskSystemTask {
     b2TaskCallback* callback;
@@ -17,8 +17,8 @@ typedef struct TaskSystemTask {
     atomic_int next_index;
     atomic_int remaining_chunks;
     bool completed;
-    pthread_mutex_t mutex;
-    pthread_cond_t completed_cond;
+    EnginePlatformMutex mutex;
+    EnginePlatformConditionVariable completed_cond;
     struct TaskSystemTask* next;
 } TaskSystemTask;
 
@@ -33,22 +33,15 @@ struct TaskSystemImpl {
     int worker_count;
     int background_thread_count;
     bool shutting_down;
-    pthread_t* threads;
+    EnginePlatformThread* threads;
     TaskSystemWorkerContext* worker_contexts;
-    pthread_mutex_t mutex;
-    pthread_cond_t work_available_cond;
+    EnginePlatformMutex mutex;
+    EnginePlatformConditionVariable work_available_cond;
     TaskSystemTask* tasks_head;
 };
 
 static int task_system_detect_online_cores(void) {
-    long cores = sysconf(_SC_NPROCESSORS_ONLN);
-    if (cores < 1) {
-        return 1;
-    }
-    if (cores > 1024) {
-        return 1024;
-    }
-    return (int)cores;
+    return engine_platform_get_online_core_count();
 }
 
 static int task_system_default_worker_count(int online_cores) {
@@ -121,18 +114,18 @@ static void* task_system_worker_main(void* user_data) {
         int start_index;
         int end_index;
 
-        pthread_mutex_lock(&system->mutex);
+        engine_platform_mutex_lock(&system->mutex);
         while (!system->shutting_down && !task_system_has_claimable_work_locked(system)) {
-            pthread_cond_wait(&system->work_available_cond, &system->mutex);
+            engine_platform_condition_variable_wait(&system->work_available_cond, &system->mutex);
         }
 
         if (system->shutting_down) {
-            pthread_mutex_unlock(&system->mutex);
+            engine_platform_mutex_unlock(&system->mutex);
             break;
         }
 
         task = task_system_pick_task_locked(system);
-        pthread_mutex_unlock(&system->mutex);
+        engine_platform_mutex_unlock(&system->mutex);
 
         if (task == NULL) {
             continue;
@@ -151,10 +144,10 @@ static void* task_system_worker_main(void* user_data) {
         task->callback(start_index, end_index, worker->worker_index, task->task_context);
 
         if (atomic_fetch_sub(&task->remaining_chunks, 1) == 1) {
-            pthread_mutex_lock(&task->mutex);
+            engine_platform_mutex_lock(&task->mutex);
             task->completed = true;
-            pthread_cond_broadcast(&task->completed_cond);
-            pthread_mutex_unlock(&task->mutex);
+            engine_platform_condition_variable_broadcast(&task->completed_cond);
+            engine_platform_mutex_unlock(&task->mutex);
         }
     }
 
@@ -172,6 +165,8 @@ static void* task_system_enqueue_task(
     TaskSystemTask* user_task;
     int chunk_size;
     int chunk_count;
+    bool mutex_initialized;
+    bool condition_variable_initialized;
 
     if (system == NULL || task == NULL || item_count <= 0) {
         return NULL;
@@ -197,14 +192,26 @@ static void* task_system_enqueue_task(
     user_task->chunk_size = chunk_size;
     atomic_init(&user_task->next_index, 0);
     atomic_init(&user_task->remaining_chunks, chunk_count);
-    pthread_mutex_init(&user_task->mutex, NULL);
-    pthread_cond_init(&user_task->completed_cond, NULL);
+    mutex_initialized = engine_platform_mutex_init(&user_task->mutex);
+    condition_variable_initialized =
+        mutex_initialized && engine_platform_condition_variable_init(&user_task->completed_cond);
+    if (!mutex_initialized || !condition_variable_initialized) {
+        if (condition_variable_initialized) {
+            engine_platform_condition_variable_dispose(&user_task->completed_cond);
+        }
+        if (mutex_initialized) {
+            engine_platform_mutex_dispose(&user_task->mutex);
+        }
+        free(user_task);
+        task(0, item_count, 0U, task_context);
+        return NULL;
+    }
 
-    pthread_mutex_lock(&system->mutex);
+    engine_platform_mutex_lock(&system->mutex);
     user_task->next = system->tasks_head;
     system->tasks_head = user_task;
-    pthread_cond_broadcast(&system->work_available_cond);
-    pthread_mutex_unlock(&system->mutex);
+    engine_platform_condition_variable_broadcast(&system->work_available_cond);
+    engine_platform_mutex_unlock(&system->mutex);
 
     return user_task;
 }
@@ -234,21 +241,21 @@ static void task_system_finish_task(void* user_task, void* user_context) {
         task->callback(start_index, end_index, 0U, task->task_context);
 
         if (atomic_fetch_sub(&task->remaining_chunks, 1) == 1) {
-            pthread_mutex_lock(&task->mutex);
+            engine_platform_mutex_lock(&task->mutex);
             task->completed = true;
-            pthread_cond_broadcast(&task->completed_cond);
-            pthread_mutex_unlock(&task->mutex);
+            engine_platform_condition_variable_broadcast(&task->completed_cond);
+            engine_platform_mutex_unlock(&task->mutex);
             break;
         }
     }
 
-    pthread_mutex_lock(&task->mutex);
+    engine_platform_mutex_lock(&task->mutex);
     while (!task->completed) {
-        pthread_cond_wait(&task->completed_cond, &task->mutex);
+        engine_platform_condition_variable_wait(&task->completed_cond, &task->mutex);
     }
-    pthread_mutex_unlock(&task->mutex);
+    engine_platform_mutex_unlock(&task->mutex);
 
-    pthread_mutex_lock(&system->mutex);
+    engine_platform_mutex_lock(&system->mutex);
     cursor = &system->tasks_head;
     while (*cursor != NULL) {
         if (*cursor == task) {
@@ -257,10 +264,10 @@ static void task_system_finish_task(void* user_task, void* user_context) {
         }
         cursor = &(*cursor)->next;
     }
-    pthread_mutex_unlock(&system->mutex);
+    engine_platform_mutex_unlock(&system->mutex);
 
-    pthread_cond_destroy(&task->completed_cond);
-    pthread_mutex_destroy(&task->mutex);
+    engine_platform_condition_variable_dispose(&task->completed_cond);
+    engine_platform_mutex_dispose(&task->mutex);
     free(task);
 }
 
@@ -273,6 +280,8 @@ bool task_system_init(TaskSystem* system, const TaskSystemConfig* config) {
     int online_cores;
     int requested_workers;
     int index;
+    bool mutex_initialized;
+    bool condition_variable_initialized;
 
     if (system == NULL) {
         return false;
@@ -296,7 +305,7 @@ bool task_system_init(TaskSystem* system, const TaskSystemConfig* config) {
     implementation->worker_count = requested_workers;
     implementation->background_thread_count = requested_workers > 1 ? requested_workers - 1 : 0;
     if (implementation->background_thread_count > 0) {
-        implementation->threads = (pthread_t*)calloc((size_t)implementation->background_thread_count, sizeof(*implementation->threads));
+        implementation->threads = (EnginePlatformThread*)calloc((size_t)implementation->background_thread_count, sizeof(*implementation->threads));
         implementation->worker_contexts = (TaskSystemWorkerContext*)calloc((size_t)implementation->background_thread_count, sizeof(*implementation->worker_contexts));
     }
     if ((implementation->background_thread_count > 0) &&
@@ -307,26 +316,38 @@ bool task_system_init(TaskSystem* system, const TaskSystemConfig* config) {
         return false;
     }
 
-    pthread_mutex_init(&implementation->mutex, NULL);
-    pthread_cond_init(&implementation->work_available_cond, NULL);
+    mutex_initialized = engine_platform_mutex_init(&implementation->mutex);
+    condition_variable_initialized =
+        mutex_initialized && engine_platform_condition_variable_init(&implementation->work_available_cond);
+    if (!mutex_initialized || !condition_variable_initialized) {
+        if (condition_variable_initialized) {
+            engine_platform_condition_variable_dispose(&implementation->work_available_cond);
+        }
+        if (mutex_initialized) {
+            engine_platform_mutex_dispose(&implementation->mutex);
+        }
+        free(implementation->worker_contexts);
+        free(implementation->threads);
+        free(implementation);
+        return false;
+    }
 
     for (index = 0; index < implementation->background_thread_count; ++index) {
         implementation->worker_contexts[index].system = implementation;
         implementation->worker_contexts[index].worker_index = (uint32_t)(index + 1);
-        if (pthread_create(
+        if (!engine_platform_thread_start(
             &implementation->threads[index],
-            NULL,
             task_system_worker_main,
             &implementation->worker_contexts[index]
-        ) != 0) {
+        )) {
             implementation->background_thread_count = index;
             implementation->shutting_down = true;
-            pthread_cond_broadcast(&implementation->work_available_cond);
+            engine_platform_condition_variable_broadcast(&implementation->work_available_cond);
             while (--index >= 0) {
-                pthread_join(implementation->threads[index], NULL);
+                engine_platform_thread_join(&implementation->threads[index]);
             }
-            pthread_cond_destroy(&implementation->work_available_cond);
-            pthread_mutex_destroy(&implementation->mutex);
+            engine_platform_condition_variable_dispose(&implementation->work_available_cond);
+            engine_platform_mutex_dispose(&implementation->mutex);
             free(implementation->worker_contexts);
             free(implementation->threads);
             free(implementation);
@@ -364,26 +385,26 @@ void task_system_dispose(TaskSystem* system) {
 
     implementation = (TaskSystemImpl*)system->implementation;
 
-    pthread_mutex_lock(&implementation->mutex);
+    engine_platform_mutex_lock(&implementation->mutex);
     implementation->shutting_down = true;
-    pthread_cond_broadcast(&implementation->work_available_cond);
-    pthread_mutex_unlock(&implementation->mutex);
+    engine_platform_condition_variable_broadcast(&implementation->work_available_cond);
+    engine_platform_mutex_unlock(&implementation->mutex);
 
     for (index = 0; index < implementation->background_thread_count; ++index) {
-        pthread_join(implementation->threads[index], NULL);
+        engine_platform_thread_join(&implementation->threads[index]);
     }
 
     task = implementation->tasks_head;
     while (task != NULL) {
         TaskSystemTask* next = task->next;
-        pthread_cond_destroy(&task->completed_cond);
-        pthread_mutex_destroy(&task->mutex);
+        engine_platform_condition_variable_dispose(&task->completed_cond);
+        engine_platform_mutex_dispose(&task->mutex);
         free(task);
         task = next;
     }
 
-    pthread_cond_destroy(&implementation->work_available_cond);
-    pthread_mutex_destroy(&implementation->mutex);
+    engine_platform_condition_variable_dispose(&implementation->work_available_cond);
+    engine_platform_mutex_dispose(&implementation->mutex);
     free(implementation->worker_contexts);
     free(implementation->threads);
     free(implementation);

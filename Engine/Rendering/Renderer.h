@@ -46,6 +46,7 @@ void renderer_get_stats_snapshot(const Renderer* renderer, RendererStatsSnapshot
 Camera* renderer_get_camera(Renderer* renderer);
 const Camera* renderer_get_camera_const(const Renderer* renderer);
 void renderer_get_viewport_size(const Renderer* renderer, int* out_width, int* out_height);
+void renderer_set_viewport_size(Renderer* renderer, int width, int height, float min_view_width, float min_view_height);
 void renderer_toggle_debug_overlay(Renderer* renderer);
 void renderer_toggle_debug_world_gizmos(Renderer* renderer);
 bool renderer_debug_overlay_is_ui_visible(const Renderer* renderer);

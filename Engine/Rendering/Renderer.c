@@ -8,15 +8,14 @@
 #include "ResourceManagerBake.h"
 #include "ResourceManagerRegistry.h"
 #include "ResourceManagerStats.h"
+#include "../Core/PlatformRuntimeInternal.h"
 
-#include <time.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
 double renderer_now_ms(void) {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
+    return engine_platform_now_ms();
 }
 
 static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend, const SpriteRenderable *item, uint64_t now_ms);
@@ -312,6 +311,70 @@ void renderer_get_viewport_size(const Renderer* renderer, int* out_width, int* o
     if (out_height != NULL) {
         *out_height = renderer != NULL ? renderer->lifecycle->view_height : 0;
     }
+}
+
+void renderer_set_viewport_size(Renderer* renderer, int width, int height, float min_view_width, float min_view_height) {
+    Camera* camera;
+    float center_x;
+    float center_y;
+    float aspect;
+    float next_view_width;
+    float next_view_height;
+
+    if (renderer == NULL || renderer->lifecycle == NULL || width <= 0 || height <= 0) {
+        return;
+    }
+
+    camera = &renderer->lifecycle->camera;
+    renderer->lifecycle->view_width = width;
+    renderer->lifecycle->view_height = height;
+    camera->viewport_width = (float)width;
+    camera->viewport_height = (float)height;
+
+    if (camera->view_width <= 0.0f || camera->view_height <= 0.0f) {
+        return;
+    }
+
+    aspect = (float)width / (float)height;
+    next_view_height = camera->view_height;
+    next_view_width = next_view_height * aspect;
+    if (next_view_width < min_view_width) {
+        next_view_width = min_view_width;
+        next_view_height = next_view_width / aspect;
+    }
+    if (next_view_height < min_view_height) {
+        next_view_height = min_view_height;
+        next_view_width = next_view_height * aspect;
+    }
+    if (camera->world_bounds.w > 0.0f && next_view_width > camera->world_bounds.w) {
+        next_view_width = camera->world_bounds.w;
+        next_view_height = next_view_width / aspect;
+    }
+    if (camera->world_bounds.h > 0.0f && next_view_height > camera->world_bounds.h) {
+        next_view_height = camera->world_bounds.h;
+        next_view_width = next_view_height * aspect;
+    }
+    if (next_view_width < min_view_width) {
+        next_view_width = min_view_width;
+        next_view_height = next_view_width / aspect;
+    }
+    if (next_view_height < min_view_height) {
+        next_view_height = min_view_height;
+        next_view_width = next_view_height * aspect;
+    }
+
+    if (fabsf(next_view_width - camera->view_width) <= 0.0001f &&
+        fabsf(next_view_height - camera->view_height) <= 0.0001f) {
+        return;
+    }
+
+    center_x = camera->x + camera->view_width * 0.5f;
+    center_y = camera->y + camera->view_height * 0.5f;
+    camera->view_width = next_view_width;
+    camera->view_height = next_view_height;
+    camera->x = center_x - camera->view_width * 0.5f;
+    camera->y = center_y - camera->view_height * 0.5f;
+    camera_clamp_to_bounds(camera, min_view_width, min_view_height);
 }
 
 void renderer_toggle_debug_overlay(Renderer* renderer) {

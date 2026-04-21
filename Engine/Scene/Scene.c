@@ -18,18 +18,16 @@
 #include "Components/ColliderComponent.h"
 #include "Components/RigidBodyComponent.h"
 #include "Components/TransformComponent.h"
+#include "../Core/PlatformRuntimeInternal.h"
 #include "../Physics/PhysicsBodyControl.h"
 #include "../Settings.h"
 
-#include <time.h>
 #include <stdlib.h>
 #include <string.h>
 
 static double Scene_NowMs(void)
 {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
+    return engine_platform_now_ms();
 }
 
 void Scene_Init(Scene* scene, const char* name, const PhysicsWorldConfig* physics_config)

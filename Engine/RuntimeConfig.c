@@ -15,4 +15,5 @@ void runtime_config_from_engine_settings(RuntimeConfig* config, const EngineSett
     config->window_width = settings->window_width;
     config->window_height = settings->window_height;
     config->window_title = settings->window_title;
+    config->vsync_enabled = settings->vsync_enabled;
 }

@@ -5,6 +5,7 @@
 
 #include "PhysicsBodyControl.h"
 
+#include "../Core/PlatformRuntimeInternal.h"
 #include "../Core/TaskSystem.h"
 #include "../Scene/SceneInternal.h"
 #include "../Scene/SceneStatsInternal.h"
@@ -16,15 +17,42 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 void task_system_configure_box2d_world_def(const struct TaskSystem* system, b2WorldDef* world_def);
 
+#define PHYSICS_DEFAULT_MIN_HZ 15.0f
+#define PHYSICS_DEFAULT_MAX_HZ 300.0f
+#define PHYSICS_DEFAULT_FRAME_BUDGET_HZ 30.0f
+#define PHYSICS_ADAPTIVE_RECOVERY_RATE 0.12f
+
 static double PhysicsWorld_NowMs(void)
 {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
+    return engine_platform_now_ms();
+}
+
+static float PhysicsWorld_ClampHz(float value, float min_hz, float max_hz)
+{
+    if (min_hz <= 0.0f)
+    {
+        min_hz = PHYSICS_DEFAULT_MIN_HZ;
+    }
+    if (max_hz < min_hz)
+    {
+        max_hz = min_hz;
+    }
+    return clamp_f(value, min_hz, max_hz);
+}
+
+static void PhysicsWorld_SetTargetHz(PhysicsWorld* world, float target_hz)
+{
+    if (world == NULL || world->lifecycle == NULL)
+    {
+        return;
+    }
+
+    target_hz = PhysicsWorld_ClampHz(target_hz, world->lifecycle->min_hz, world->lifecycle->max_hz);
+    world->lifecycle->target_hz = target_hz;
+    world->lifecycle->fixed_dt = 1.0f / target_hz;
 }
 
 static bool PhysicsWorld_ReserveEntityPointerArray(struct Entity*** entities, size_t* capacity, size_t required_capacity)
@@ -233,6 +261,58 @@ static void PhysicsWorld_SyncBodiesToTransforms(PhysicsWorld* world, struct Scen
         : 0U;
 }
 
+void PhysicsWorld_UpdateAdaptiveStepRate(PhysicsWorld* world, float accumulator_seconds)
+{
+    float min_hz;
+    float max_hz;
+    float frame_budget_hz;
+    float frame_budget_seconds;
+    float measured_step_seconds;
+    float delay_excess_seconds;
+    float required_fixed_dt;
+    float desired_hz;
+    float current_hz;
+
+    if (world == NULL || world->lifecycle == NULL || world->stats == NULL)
+    {
+        return;
+    }
+
+    world->stats->last_accumulator_seconds = accumulator_seconds > 0.0f ? accumulator_seconds : 0.0f;
+    measured_step_seconds = (float)world->stats->last_box2d_step_wall_ms / 1000.0f;
+    if (measured_step_seconds <= 0.0f)
+    {
+        return;
+    }
+
+    min_hz = world->lifecycle->min_hz > 0.0f ? world->lifecycle->min_hz : PHYSICS_DEFAULT_MIN_HZ;
+    max_hz = world->lifecycle->max_hz >= min_hz ? world->lifecycle->max_hz : min_hz;
+    frame_budget_hz = world->lifecycle->frame_budget_hz > 0.0f
+        ? world->lifecycle->frame_budget_hz
+        : PHYSICS_DEFAULT_FRAME_BUDGET_HZ;
+    frame_budget_seconds = 1.0f / frame_budget_hz;
+    delay_excess_seconds = fmaxf(accumulator_seconds - frame_budget_seconds, 0.0f);
+    required_fixed_dt = fmaxf(measured_step_seconds, delay_excess_seconds);
+    if (required_fixed_dt <= 0.0f)
+    {
+        return;
+    }
+
+    desired_hz = PhysicsWorld_ClampHz(1.0f / required_fixed_dt, min_hz, max_hz);
+    current_hz = PhysicsWorld_ClampHz(world->lifecycle->target_hz, min_hz, max_hz);
+    if (desired_hz < current_hz)
+    {
+        PhysicsWorld_SetTargetHz(world, desired_hz);
+    }
+    else if (desired_hz > current_hz && accumulator_seconds <= frame_budget_seconds)
+    {
+        PhysicsWorld_SetTargetHz(
+            world,
+            current_hz + ((desired_hz - current_hz) * PHYSICS_ADAPTIVE_RECOVERY_RATE)
+        );
+    }
+}
+
 void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
 {
     b2WorldDef world_def;
@@ -258,8 +338,17 @@ void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
     world_def = b2DefaultWorldDef();
     world->lifecycle->gravity_x = config != NULL ? config->gravity_x : 0.0f;
     world->lifecycle->gravity_y = config != NULL ? config->gravity_y : 1.0f;
-    world->lifecycle->target_hz = config != NULL && config->target_hz > 0.0f ? config->target_hz : 30.0f;
-    world->lifecycle->fixed_dt = 1.0f / world->lifecycle->target_hz;
+    world->lifecycle->min_hz = config != NULL && config->min_hz > 0.0f ? config->min_hz : PHYSICS_DEFAULT_MIN_HZ;
+    world->lifecycle->max_hz = config != NULL && config->max_hz >= world->lifecycle->min_hz
+        ? config->max_hz
+        : PHYSICS_DEFAULT_MAX_HZ;
+    world->lifecycle->frame_budget_hz = config != NULL && config->frame_budget_hz > 0.0f
+        ? config->frame_budget_hz
+        : PHYSICS_DEFAULT_FRAME_BUDGET_HZ;
+    PhysicsWorld_SetTargetHz(
+        world,
+        config != NULL && config->target_hz > 0.0f ? config->target_hz : world->lifecycle->max_hz
+    );
     world->lifecycle->max_substeps = config != NULL && config->max_substeps > 0 ? config->max_substeps : 4u;
     world->lifecycle->base_step_substep_count = config != NULL && config->step_substep_count > 0 ? config->step_substep_count : 4u;
     world->lifecycle->step_substep_count = world->lifecycle->base_step_substep_count;
