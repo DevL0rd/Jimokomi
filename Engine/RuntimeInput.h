@@ -1,20 +1,20 @@
-#ifndef JIMOKOMI_GAME_INPUTPACKET_H
-#define JIMOKOMI_GAME_INPUTPACKET_H
+#ifndef JIMOKOMI_ENGINE_RUNTIMEINPUT_H
+#define JIMOKOMI_ENGINE_RUNTIMEINPUT_H
 
-#include "../Engine/Core/Input.h"
+#include "Core/Input.h"
 
-#include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef struct GameInputPacket {
+typedef struct EngineRuntimeInputPacket
+{
     EngineInputSnapshot snapshot;
     bool pointer_over_ui;
     bool debug_overlay_enabled;
     bool draw_debug_world;
     bool drag_entity_active;
     bool drag_entity_release;
-    size_t drag_ball_index;
+    uint32_t drag_entity_id;
     float drag_world_x;
     float drag_world_y;
     float drag_linear_velocity_x;
@@ -25,7 +25,9 @@ typedef struct GameInputPacket {
     float camera_view_height;
     int window_width;
     int window_height;
+    uint64_t selected_entity_id;
+    uint64_t hovered_entity_id;
     uint64_t frame_id;
-} GameInputPacket;
+} EngineRuntimeInputPacket;
 
 #endif

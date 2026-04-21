@@ -1,30 +1,17 @@
 #include "DebugOverlayInternal.h"
 
+#include "../Settings.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
 enum {
-    DEBUG_TITLE_BAR_HEIGHT = 22
-};
-
-enum {
-    DEBUG_HISTORY_PUSH_INTERVAL_MS = 100
-};
-
-enum {
-    DEBUG_DASHBOARD_REDRAW_INTERVAL_MS = 100,
-    DEBUG_INSPECTOR_REDRAW_INTERVAL_MS = 100
-};
-
-enum {
     DEBUG_UI_HOVER_NONE = 0,
     DEBUG_UI_HOVER_DASHBOARD = 1,
     DEBUG_UI_HOVER_INSPECTOR = 2
 };
-
-#define DEBUG_INSPECTOR_COLLAPSED_WIDTH 26.0f
 
 typedef struct DebugMetricVisual {
     const char* label;
@@ -57,6 +44,26 @@ static double debug_overlay_now_ms(void) {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
+}
+
+static float debug_title_bar_height(void) {
+    return EngineSettings_GetDefaults()->debug_overlay_title_bar_height;
+}
+
+static float debug_inspector_collapsed_width(void) {
+    return EngineSettings_GetDefaults()->debug_overlay_inspector_collapsed_width;
+}
+
+static uint64_t debug_history_push_interval_ms(void) {
+    return EngineSettings_GetDefaults()->debug_overlay_history_push_interval_ms;
+}
+
+static uint64_t debug_dashboard_redraw_interval_ms(void) {
+    return EngineSettings_GetDefaults()->debug_overlay_dashboard_redraw_interval_ms;
+}
+
+static uint64_t debug_inspector_redraw_interval_ms(void) {
+    return EngineSettings_GetDefaults()->debug_overlay_inspector_redraw_interval_ms;
 }
 
 static uint64_t debug_hash_u64(uint64_t hash, uint64_t value) {
@@ -98,7 +105,7 @@ static Rect debug_panel_rect(const DebugPanelState *panel) {
 
 static Rect debug_title_rect(const DebugPanelState *panel) {
     Rect rect = debug_panel_rect(panel);
-    rect.h = (float)DEBUG_TITLE_BAR_HEIGHT;
+    rect.h = debug_title_bar_height();
     return rect;
 }
 
@@ -107,7 +114,7 @@ static Rect debug_inspector_collapse_rect(const DebugPanelState* panel) {
     if (panel != NULL) {
         rect.x = panel->x;
         rect.y = panel->y;
-        rect.w = DEBUG_INSPECTOR_COLLAPSED_WIDTH;
+        rect.w = debug_inspector_collapsed_width();
         rect.h = panel->height;
     }
     return rect;
@@ -140,8 +147,8 @@ static void debug_draw_inspector_rail(Target* target, const DebugPanelState* pan
 
     target_rect_filled(target, rail_rect, (Color32){ 0x08111aU });
     target_rect(target, rail_rect, (Color32){ 0x22364aU });
-    target_rect_filled(target, (Rect){ rail_rect.x, rail_rect.y, rail_rect.w, (float)DEBUG_TITLE_BAR_HEIGHT }, title_fill);
-    target_line(target, rail_rect.x, rail_rect.y + DEBUG_TITLE_BAR_HEIGHT, rail_rect.x + rail_rect.w, rail_rect.y + DEBUG_TITLE_BAR_HEIGHT, (Color32){ 0x1a2b3aU });
+    target_rect_filled(target, (Rect){ rail_rect.x, rail_rect.y, rail_rect.w, debug_title_bar_height() }, title_fill);
+    target_line(target, rail_rect.x, rail_rect.y + debug_title_bar_height(), rail_rect.x + rail_rect.w, rail_rect.y + debug_title_bar_height(), (Color32){ 0x1a2b3aU });
     target_text(target, rail_rect.x + 7.0f, rail_rect.y + 32.0f, "I", (Color32){ 0xf1f7fbU });
     target_text(target, rail_rect.x + 7.0f, rail_rect.y + 52.0f, "N", (Color32){ 0x9ab0c1U });
     target_text(target, rail_rect.x + 7.0f, rail_rect.y + 72.0f, "F", (Color32){ 0x9ab0c1U });
@@ -453,7 +460,7 @@ static void debug_overlay_ensure_layout(
 
         overlay->inspector_panel.width = 336.0f;
         overlay->inspector_panel.height = 166.0f;
-        overlay->inspector_panel.x = (float)viewport_width - DEBUG_INSPECTOR_COLLAPSED_WIDTH - 12.0f;
+        overlay->inspector_panel.x = (float)viewport_width - debug_inspector_collapsed_width() - 12.0f;
         overlay->inspector_panel.y = 12.0f;
         overlay->inspector_collapsed = true;
         overlay->layout_initialized = true;
@@ -464,7 +471,7 @@ static void debug_overlay_ensure_layout(
     overlay->inspector_panel.x = clamp_f(
         overlay->inspector_panel.x,
         0.0f,
-        (float)viewport_width - (overlay->inspector_collapsed ? DEBUG_INSPECTOR_COLLAPSED_WIDTH : overlay->inspector_panel.width)
+        (float)viewport_width - (overlay->inspector_collapsed ? debug_inspector_collapsed_width() : overlay->inspector_panel.width)
     );
     overlay->inspector_panel.y = clamp_f(overlay->inspector_panel.y, 0.0f, (float)viewport_height - overlay->inspector_panel.height);
 
@@ -734,7 +741,7 @@ void debug_overlay_handle_input(
                 : debug_title_rect(&overlay->inspector_panel))) {
             overlay->inspector_collapsed = !overlay->inspector_collapsed;
             if (overlay->inspector_collapsed) {
-                overlay->inspector_panel.x = (float)viewport_width - DEBUG_INSPECTOR_COLLAPSED_WIDTH - 12.0f;
+                overlay->inspector_panel.x = (float)viewport_width - debug_inspector_collapsed_width() - 12.0f;
             } else {
                 overlay->inspector_panel.x = (float)viewport_width - overlay->inspector_panel.width - 12.0f;
             }
@@ -912,7 +919,7 @@ static void debug_overlay_tick_dashboard_state(
 
     now_ms = (uint64_t)debug_overlay_now_ms();
     if (overlay->last_history_push_ms == 0U || stats->frame_ms <= 0.0 ||
-        overlay->last_history_push_ms + DEBUG_HISTORY_PUSH_INTERVAL_MS <= now_ms) {
+        overlay->last_history_push_ms + debug_history_push_interval_ms() <= now_ms) {
         debug_history_push(overlay, snapshot, stats);
         overlay->last_history_push_ms = now_ms;
         pushed_history = true;
@@ -1315,18 +1322,18 @@ void debug_overlay_draw_ui(
         }
 
         if (overlay->inspector_surface == NULL ||
-            overlay->inspector_surface_width != (int)(overlay->inspector_collapsed ? DEBUG_INSPECTOR_COLLAPSED_WIDTH : overlay->inspector_panel.width) ||
+            overlay->inspector_surface_width != (int)(overlay->inspector_collapsed ? debug_inspector_collapsed_width() : overlay->inspector_panel.width) ||
             overlay->inspector_surface_height != (int)overlay->inspector_panel.height) {
             if (overlay->inspector_surface != NULL) {
                 overlay->inspector_surface_backend->destroy_surface(overlay->inspector_surface_backend->userdata, overlay->inspector_surface);
             }
             overlay->inspector_surface = backend->create_surface(
                 backend->userdata,
-                (int)(overlay->inspector_collapsed ? DEBUG_INSPECTOR_COLLAPSED_WIDTH : overlay->inspector_panel.width),
+                (int)(overlay->inspector_collapsed ? debug_inspector_collapsed_width() : overlay->inspector_panel.width),
                 (int)overlay->inspector_panel.height
             );
             overlay->inspector_surface_backend = backend;
-            overlay->inspector_surface_width = (int)(overlay->inspector_collapsed ? DEBUG_INSPECTOR_COLLAPSED_WIDTH : overlay->inspector_panel.width);
+            overlay->inspector_surface_width = (int)(overlay->inspector_collapsed ? debug_inspector_collapsed_width() : overlay->inspector_panel.width);
             overlay->inspector_surface_height = (int)overlay->inspector_panel.height;
             overlay->last_inspector_signature = 0ULL;
         }
@@ -1337,7 +1344,7 @@ void debug_overlay_draw_ui(
                 dashboard_signature,
                 overlay->last_dashboard_redraw_at_ms,
                 now_ms,
-                DEBUG_DASHBOARD_REDRAW_INTERVAL_MS,
+                debug_dashboard_redraw_interval_ms(),
                 overlay->dashboard_panel.dragging)) {
             double redraw_started_ms = debug_overlay_now_ms();
             backend->set_target(backend->userdata, overlay->dashboard_surface);
@@ -1359,7 +1366,7 @@ void debug_overlay_draw_ui(
                 inspector_signature,
                 overlay->last_inspector_redraw_at_ms,
                 now_ms,
-                DEBUG_INSPECTOR_REDRAW_INTERVAL_MS,
+                debug_inspector_redraw_interval_ms(),
                 overlay->inspector_panel.dragging)) {
             double redraw_started_ms = debug_overlay_now_ms();
             backend->set_target(backend->userdata, overlay->inspector_surface);

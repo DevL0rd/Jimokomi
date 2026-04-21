@@ -1,7 +1,6 @@
-#include "BallVisuals.h"
+#include "BallVisualResources.h"
 
 #include "../Engine/RuntimeConfig.h"
-#include "../Engine/Rendering/Camera.h"
 #include "../Engine/Rendering/Renderer.h"
 #include "../Engine/Rendering/ResourceManager.h"
 #include "../Engine/Rendering/Target.h"
@@ -233,53 +232,4 @@ bool game_register_ball_visuals(
     }
 
     return true;
-}
-
-void game_draw_world_backdrop(Target* target, const Camera* camera, void* user_data) {
-    const WorldBackdropConfig* config = (const WorldBackdropConfig*)user_data;
-    const float tile_size = config != NULL && config->cell_size > 0.0f ? config->cell_size : 64.0f;
-    const float world_width = config != NULL ? config->world_width : 1920.0f;
-    const float world_height = config != NULL ? config->world_height : 1080.0f;
-    int start_x;
-    int end_x;
-    int start_y;
-    int end_y;
-    int x;
-    int y;
-
-    if (target == NULL || camera == NULL) {
-        return;
-    }
-
-    start_x = (int)floorf(camera->x / tile_size) - 1;
-    end_x = (int)ceilf((camera->x + camera->view_width) / tile_size) + 1;
-    start_y = (int)floorf(camera->y / tile_size) - 1;
-    end_y = (int)ceilf((camera->y + camera->view_height) / tile_size) + 1;
-
-    for (y = start_y; y <= end_y; ++y) {
-        for (x = start_x; x <= end_x; ++x) {
-            Rect cell = {
-                (float)x * tile_size,
-                (float)y * tile_size,
-                tile_size,
-                tile_size
-            };
-            Vec2 top_left = camera_world_to_screen(camera, (Vec2){ cell.x, cell.y });
-            Vec2 screen_size = camera_world_size_to_screen(camera, (Vec2){ cell.w, cell.h });
-            Rect screen_cell = {
-                top_left.x,
-                top_left.y,
-                screen_size.x,
-                screen_size.y
-            };
-            bool even = ((x + y) & 1) == 0;
-            target_rect_filled(target, screen_cell, (Color32){ even ? 0x111827U : 0x0f172aU });
-        }
-    }
-
-    {
-        Vec2 top_left = camera_world_to_screen(camera, (Vec2){ 0.0f, 0.0f });
-        Vec2 screen_size = camera_world_size_to_screen(camera, (Vec2){ world_width, world_height });
-        target_rect(target, (Rect){ top_left.x, top_left.y, screen_size.x, screen_size.y }, (Color32){ 0xff4d5aU });
-    }
 }

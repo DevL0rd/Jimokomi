@@ -1,5 +1,6 @@
 #include "Profiler.h"
 #include "PathResolver.h"
+#include "../Settings.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -198,21 +199,22 @@ static void engine_profiler_write_text_report(const EngineProfiler* profiler) {
 }
 
 bool EngineProfiler_init(EngineProfiler* profiler, const EngineProfilerConfig* config) {
-    size_t frame_capacity = 180;
+    const EngineSettings* settings = EngineSettings_GetDefaults();
+    size_t frame_capacity = settings->profiler_max_frames;
 
     if (profiler == 0) {
         return false;
     }
 
     memset(profiler, 0, sizeof(*profiler));
-    profiler->enabled = config != 0 ? config->enabled : false;
+    profiler->enabled = config != 0 ? config->enabled : settings->profiler_enabled;
     if (!profiler->enabled) {
         return true;
     }
-    frame_capacity = (config != 0 && config->max_frames > 0) ? config->max_frames : 180;
-    profiler->path = EnginePathResolver_resolve_relative_to_executable((config != 0 && config->path != 0) ? config->path : "logs/performance_profile.bin");
-    profiler->text_path = EnginePathResolver_resolve_relative_to_executable((config != 0 && config->text_path != 0) ? config->text_path : "logs/performance_profile.txt");
-    profiler->flush_every = (config != 0 && config->flush_every > 0) ? config->flush_every : 15;
+    frame_capacity = (config != 0 && config->max_frames > 0) ? config->max_frames : settings->profiler_max_frames;
+    profiler->path = EnginePathResolver_resolve_relative_to_executable((config != 0 && config->path != 0) ? config->path : settings->profiler_path);
+    profiler->text_path = EnginePathResolver_resolve_relative_to_executable((config != 0 && config->text_path != 0) ? config->text_path : settings->profiler_text_path);
+    profiler->flush_every = (config != 0 && config->flush_every > 0) ? config->flush_every : settings->profiler_flush_every;
     profiler->max_frames = frame_capacity;
     profiler->frame_capacity = frame_capacity;
     profiler->frame_history = (EngineProfilerFrame*)calloc(frame_capacity, sizeof(EngineProfilerFrame));

@@ -1,22 +1,24 @@
 #include "Engine.h"
+#include "Settings.h"
 
 #include <string.h>
 
 static EngineConfig Engine_default_config(void) {
     EngineConfig config;
+    const EngineSettings* settings = EngineSettings_GetDefaults();
 
     memset(&config, 0, sizeof(config));
     config.debug_stats = false;
-    config.logger.path = "logs/runtime.log";
-    config.logger.max_lines = 800;
-    config.logger.flush_every = 1;
-    config.logger.echo_to_console = true;
+    config.logger.path = settings->logger_path;
+    config.logger.max_lines = settings->logger_max_lines;
+    config.logger.flush_every = settings->logger_flush_every;
+    config.logger.echo_to_console = settings->logger_echo_to_console;
     config.logger.minimum_level = ENGINE_LOG_LEVEL_TRACE;
-    config.profiler.enabled = false;
-    config.profiler.path = "logs/performance_profile.bin";
-    config.profiler.text_path = "logs/performance_profile.txt";
-    config.profiler.max_frames = 180;
-    config.profiler.flush_every = 120;
+    config.profiler.enabled = settings->profiler_enabled;
+    config.profiler.path = settings->profiler_path;
+    config.profiler.text_path = settings->profiler_text_path;
+    config.profiler.max_frames = settings->profiler_max_frames;
+    config.profiler.flush_every = settings->profiler_flush_every;
     return config;
 }
 

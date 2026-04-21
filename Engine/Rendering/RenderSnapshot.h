@@ -38,13 +38,6 @@ typedef struct RenderStatsSnapshot {
     size_t pending_bakes;
     uint64_t resource_commands_enqueued;
     uint64_t resource_commands_dropped;
-    size_t tracked_ball_index;
-    size_t selected_ball_index;
-    bool drag_active;
-    float player_x;
-    float player_y;
-    float player_vx;
-    float player_vy;
     float camera_x;
     float camera_y;
 } RenderStatsSnapshot;

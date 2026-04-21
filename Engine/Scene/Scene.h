@@ -5,6 +5,7 @@
 #include "SceneTypes.h"
 #include "SpatialGrid.h"
 #include "../Physics/PhysicsWorld.h"
+#include "../Rendering/ResourceTypes.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -47,6 +48,20 @@ void Scene_GetSpatialGridStatsSnapshot(const Scene* scene, SpatialGridStatsSnaps
 
 bool Scene_AddEntity(Scene* scene, struct Entity* entity);
 struct Entity* Scene_RemoveEntity(Scene* scene, struct Entity* entity);
+struct Entity* Scene_FindEntityById(Scene* scene, uint32_t entity_id);
+const struct Entity* Scene_FindEntityByIdConst(const Scene* scene, uint32_t entity_id);
+struct Entity* Scene_CreateDynamicCircle(
+    Scene* scene,
+    float x,
+    float y,
+    float radius,
+    ResourceHandle visual_source_handle,
+    ResourceHandle material_handle,
+    ResourceHandle shader_handle
+);
+struct Entity* Scene_CreateStaticBox(Scene* scene, float x, float y, float width, float height);
+bool Scene_AddRandomForce(Scene* scene, struct Entity* entity, float force_strength, float interval_seconds);
+bool Scene_AddBoundsColliders(Scene* scene, Rect bounds, float thickness);
 
 void Scene_SetTilemap(Scene* scene,
                         const SceneTilemapAdapter* adapter,

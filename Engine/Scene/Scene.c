@@ -7,14 +7,17 @@
 #include "Systems/InputRoutingSystem.h"
 #include "Systems/PhysicsSyncSystem.h"
 #include "Components/ColliderComponent.h"
+#include "Components/DraggableComponent.h"
+#include "Components/RandomForceComponent.h"
+#include "Components/RenderableComponent.h"
 #include "Components/RigidBodyComponent.h"
+#include "Components/SelectableComponent.h"
 #include "Components/TransformComponent.h"
+#include "../Settings.h"
 
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define SCENE_SPATIAL_GRID_CELL_SIZE 64.0f
 
 static void Scene_UpdateSpatialGridBounds(Scene* scene);
 
@@ -129,13 +132,15 @@ static bool Scene_IsSelectableEntity(const Entity* entity)
 {
     return entity != NULL &&
            Entity_IsActive(entity) &&
+           Entity_GetFixedComponent(entity, COMPONENT_SELECTABLE) != NULL &&
            Entity_GetFixedComponent(entity, COMPONENT_TRANSFORM) != NULL &&
            Entity_GetFixedComponent(entity, COMPONENT_COLLIDER) != NULL;
 }
 
 static bool Scene_IsDraggableEntity(const Entity* entity)
 {
-    return Scene_IsSelectableEntity(entity);
+    return Scene_IsSelectableEntity(entity) &&
+           Entity_GetFixedComponent(entity, COMPONENT_DRAGGABLE) != NULL;
 }
 
 static bool Scene_IsRenderableEntity(const Entity* entity)
@@ -272,7 +277,7 @@ void Scene_Init(Scene* scene, const char* name, const PhysicsWorldConfig* physic
     scene->active = true;
     scene->next_entity_id = 1u;
     scene->physics_world = PhysicsWorld_Create(physics_config);
-    SpatialGrid_Init(&scene->spatial_grid, SCENE_SPATIAL_GRID_CELL_SIZE);
+    SpatialGrid_Init(&scene->spatial_grid, EngineSettings_GetDefaults()->scene_spatial_grid_cell_size);
     scene->view = (SceneView){
         .previous_x = 0.0f,
         .previous_y = 0.0f,
@@ -446,6 +451,181 @@ struct Entity* Scene_RemoveEntity(Scene* scene, struct Entity* entity)
     }
 
     return NULL;
+}
+
+struct Entity* Scene_FindEntityById(Scene* scene, uint32_t entity_id)
+{
+    size_t index = 0U;
+
+    if (scene == NULL || entity_id == 0U)
+    {
+        return NULL;
+    }
+
+    for (index = 0U; index < scene->entity_count; ++index)
+    {
+        if (scene->entities[index] != NULL && Entity_GetId(scene->entities[index]) == entity_id)
+        {
+            return scene->entities[index];
+        }
+    }
+
+    return NULL;
+}
+
+const struct Entity* Scene_FindEntityByIdConst(const Scene* scene, uint32_t entity_id)
+{
+    return Scene_FindEntityById((Scene*)scene, entity_id);
+}
+
+struct Entity* Scene_CreateDynamicCircle(
+    Scene* scene,
+    float x,
+    float y,
+    float radius,
+    ResourceHandle visual_source_handle,
+    ResourceHandle material_handle,
+    ResourceHandle shader_handle
+)
+{
+    Entity* entity = NULL;
+    TransformComponent* transform = NULL;
+    RigidBodyComponent* rigid_body = NULL;
+    ColliderComponent* collider = NULL;
+    RenderableComponent* renderable = NULL;
+    SelectableComponent* selectable = NULL;
+    DraggableComponent* draggable = NULL;
+
+    if (scene == NULL || radius <= 0.0f)
+    {
+        return NULL;
+    }
+
+    entity = Entity_Create(0U);
+    transform = TransformComponent_Create(x, y, 0.0f);
+    rigid_body = RigidBodyComponent_Create();
+    collider = ColliderComponent_Create();
+    renderable = RenderableComponent_Create();
+    selectable = SelectableComponent_Create();
+    draggable = DraggableComponent_Create(radius);
+    if (entity == NULL || transform == NULL || rigid_body == NULL || collider == NULL ||
+        renderable == NULL || selectable == NULL || draggable == NULL)
+    {
+        Entity_Destroy(entity);
+        TransformComponent_Destroy(transform);
+        RigidBodyComponent_Destroy(rigid_body);
+        ColliderComponent_Destroy(collider);
+        RenderableComponent_Destroy(renderable);
+        SelectableComponent_Destroy(selectable);
+        DraggableComponent_Destroy(draggable);
+        return NULL;
+    }
+
+    rigid_body->body_type = RIGID_BODY_DYNAMIC;
+    RigidBodyComponent_MarkDefinitionDirty(rigid_body);
+    ColliderComponent_SetCircle(collider, radius);
+    renderable->visual_source_handle = visual_source_handle;
+    renderable->material_handle = material_handle;
+    renderable->shader_handle = shader_handle;
+
+    Entity_AddComponent(entity, &transform->base);
+    Entity_AddComponent(entity, &rigid_body->base);
+    Entity_AddComponent(entity, &collider->base);
+    Entity_AddComponent(entity, &renderable->base);
+    Entity_AddComponent(entity, &selectable->base);
+    Entity_AddComponent(entity, &draggable->base);
+    if (!Scene_AddEntity(scene, entity))
+    {
+        Entity_Destroy(entity);
+        return NULL;
+    }
+
+    return entity;
+}
+
+struct Entity* Scene_CreateStaticBox(Scene* scene, float x, float y, float width, float height)
+{
+    Entity* entity = NULL;
+    TransformComponent* transform = NULL;
+    RigidBodyComponent* rigid_body = NULL;
+    ColliderComponent* collider = NULL;
+
+    if (scene == NULL || width <= 0.0f || height <= 0.0f)
+    {
+        return NULL;
+    }
+
+    entity = Entity_Create(0U);
+    transform = TransformComponent_Create(x, y, 0.0f);
+    rigid_body = RigidBodyComponent_Create();
+    collider = ColliderComponent_Create();
+    if (entity == NULL || transform == NULL || rigid_body == NULL || collider == NULL)
+    {
+        Entity_Destroy(entity);
+        TransformComponent_Destroy(transform);
+        RigidBodyComponent_Destroy(rigid_body);
+        ColliderComponent_Destroy(collider);
+        return NULL;
+    }
+
+    rigid_body->body_type = RIGID_BODY_STATIC;
+    RigidBodyComponent_MarkDefinitionDirty(rigid_body);
+    ColliderComponent_SetRect(collider, width, height);
+    Entity_AddComponent(entity, &transform->base);
+    Entity_AddComponent(entity, &rigid_body->base);
+    Entity_AddComponent(entity, &collider->base);
+    if (!Scene_AddEntity(scene, entity))
+    {
+        Entity_Destroy(entity);
+        return NULL;
+    }
+
+    return entity;
+}
+
+bool Scene_AddRandomForce(Scene* scene, struct Entity* entity, float force_strength, float interval_seconds)
+{
+    RandomForceComponent* random_force;
+
+    if (scene == NULL || entity == NULL || Entity_GetComponent(entity, COMPONENT_RANDOM_FORCE) != NULL)
+    {
+        return false;
+    }
+
+    random_force = RandomForceComponent_Create();
+    if (random_force == NULL)
+    {
+        return false;
+    }
+
+    random_force->force_strength = force_strength;
+    random_force->interval_seconds = interval_seconds;
+    if (!Entity_AddComponent(entity, &random_force->base))
+    {
+        RandomForceComponent_Destroy(random_force);
+        return false;
+    }
+    if (!Scene_AppendEntityToList(&scene->random_force_entities, &scene->random_force_entity_count, &scene->random_force_entity_capacity, entity))
+    {
+        Entity_RemoveComponent(entity, COMPONENT_RANDOM_FORCE);
+        RandomForceComponent_Destroy(random_force);
+        return false;
+    }
+
+    return true;
+}
+
+bool Scene_AddBoundsColliders(Scene* scene, Rect bounds, float thickness)
+{
+    if (scene == NULL || bounds.w <= 0.0f || bounds.h <= 0.0f || thickness <= 0.0f)
+    {
+        return false;
+    }
+
+    return Scene_CreateStaticBox(scene, bounds.x + bounds.w * 0.5f, bounds.y - thickness * 0.5f, bounds.w, thickness) != NULL &&
+           Scene_CreateStaticBox(scene, bounds.x + bounds.w * 0.5f, bounds.y + bounds.h + thickness * 0.5f, bounds.w, thickness) != NULL &&
+           Scene_CreateStaticBox(scene, bounds.x - thickness * 0.5f, bounds.y + bounds.h * 0.5f, thickness, bounds.h) != NULL &&
+           Scene_CreateStaticBox(scene, bounds.x + bounds.w + thickness * 0.5f, bounds.y + bounds.h * 0.5f, thickness, bounds.h) != NULL;
 }
 
 void Scene_SetTilemap(Scene* scene,

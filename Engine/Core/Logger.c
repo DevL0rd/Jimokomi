@@ -1,5 +1,6 @@
 #include "Logger.h"
 #include "PathResolver.h"
+#include "../Settings.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -114,15 +115,16 @@ static void engine_logger_append_line(EngineLogger* logger, const char* line) {
 
 bool EngineLogger_init(EngineLogger* logger, const EngineLoggerConfig* config) {
     EngineLoggerConfig defaults;
+    const EngineSettings* settings = EngineSettings_GetDefaults();
 
     if (logger == 0) {
         return false;
     }
 
-    defaults.path = "logs/runtime.log";
-    defaults.max_lines = 800;
-    defaults.flush_every = 1;
-    defaults.echo_to_console = true;
+    defaults.path = settings->logger_path;
+    defaults.max_lines = settings->logger_max_lines;
+    defaults.flush_every = settings->logger_flush_every;
+    defaults.echo_to_console = settings->logger_echo_to_console;
     defaults.minimum_level = ENGINE_LOG_LEVEL_TRACE;
 
     memset(logger, 0, sizeof(*logger));
