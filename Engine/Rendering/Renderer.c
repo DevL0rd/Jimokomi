@@ -156,16 +156,64 @@ static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend
                     BAKED_SURFACE_PASS_OVERLAY
                 );
             }
-            target_init(&target, backend, dest.x, dest.y);
-            started_ms = renderer_now_ms();
-            source->draw_body(&target, &context, item->user_data);
-            renderer->stats->last_body_draw_ms += renderer_now_ms() - started_ms;
+
+            baked_body = resource_manager_get_or_create_baked_surface(
+                renderer->lifecycle->resource_manager,
+                item->visual_source_handle,
+                item->material_handle,
+                item->shader_handle,
+                context.frame_index,
+                BAKED_SURFACE_PASS_BODY,
+                item->user_data
+            );
+            baked_overlay = NULL;
             if (source->draw_overlay != NULL) {
+                baked_overlay = resource_manager_get_or_create_baked_surface(
+                    renderer->lifecycle->resource_manager,
+                    item->visual_source_handle,
+                    item->material_handle,
+                    item->shader_handle,
+                    context.frame_index,
+                    BAKED_SURFACE_PASS_OVERLAY,
+                    item->user_data
+                );
+            }
+            if (baked_body != NULL && (source->draw_overlay == NULL || baked_overlay != NULL)) {
+                started_ms = renderer_now_ms();
+                target_init(&target, backend, 0.0f, 0.0f);
+                target_surface_ex(
+                    &target,
+                    baked_body,
+                    dest,
+                    (Vec2){ screen_size.x * item->anchor_x, screen_size.y * item->anchor_y },
+                    item->angle_radians * (180.0f / 3.14159265359f)
+                );
+                renderer->stats->last_body_draw_ms += renderer_now_ms() - started_ms;
+                if (source->draw_overlay != NULL) {
+                    started_ms = renderer_now_ms();
+                    target_init(&target, backend, 0.0f, 0.0f);
+                    target_surface_ex(
+                        &target,
+                        baked_overlay,
+                        dest,
+                        (Vec2){ screen_size.x * item->anchor_x, screen_size.y * item->anchor_y },
+                        item->angle_radians * (180.0f / 3.14159265359f)
+                    );
+                    renderer->stats->last_overlay_draw_ms += renderer_now_ms() - started_ms;
+                    renderer->stats->last_overlay_draw_count += 1U;
+                }
+            } else {
                 target_init(&target, backend, dest.x, dest.y);
                 started_ms = renderer_now_ms();
-                source->draw_overlay(&target, &context, item->user_data);
-                renderer->stats->last_overlay_draw_ms += renderer_now_ms() - started_ms;
-                renderer->stats->last_overlay_draw_count += 1U;
+                source->draw_body(&target, &context, item->user_data);
+                renderer->stats->last_body_draw_ms += renderer_now_ms() - started_ms;
+                if (source->draw_overlay != NULL) {
+                    target_init(&target, backend, dest.x, dest.y);
+                    started_ms = renderer_now_ms();
+                    source->draw_overlay(&target, &context, item->user_data);
+                    renderer->stats->last_overlay_draw_ms += renderer_now_ms() - started_ms;
+                    renderer->stats->last_overlay_draw_count += 1U;
+                }
             }
         }
     } else {

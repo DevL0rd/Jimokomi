@@ -16,6 +16,7 @@ typedef struct TaskSystemTask {
     int chunk_size;
     atomic_int next_index;
     atomic_int remaining_chunks;
+    int active_worker_count;
     bool completed;
     EnginePlatformMutex mutex;
     EnginePlatformConditionVariable completed_cond;
@@ -97,12 +98,30 @@ static TaskSystemTask* task_system_pick_task_locked(TaskSystemImpl* system) {
 
     while (task != NULL) {
         if (!task->completed && atomic_load(&task->next_index) < task->item_count) {
+            engine_platform_mutex_lock(&task->mutex);
+            task->active_worker_count += 1;
+            engine_platform_mutex_unlock(&task->mutex);
             return task;
         }
         task = task->next;
     }
 
     return NULL;
+}
+
+static void task_system_release_task_worker(TaskSystemTask* task) {
+    if (task == NULL) {
+        return;
+    }
+
+    engine_platform_mutex_lock(&task->mutex);
+    if (task->active_worker_count > 0) {
+        task->active_worker_count -= 1;
+    }
+    if (task->completed && task->active_worker_count == 0) {
+        engine_platform_condition_variable_broadcast(&task->completed_cond);
+    }
+    engine_platform_mutex_unlock(&task->mutex);
 }
 
 static void task_system_run_inline(
@@ -150,6 +169,7 @@ static void* task_system_worker_main(void* user_data) {
 
         start_index = atomic_fetch_add(&task->next_index, task->chunk_size);
         if (start_index >= task->item_count) {
+            task_system_release_task_worker(task);
             continue;
         }
 
@@ -167,6 +187,7 @@ static void* task_system_worker_main(void* user_data) {
             engine_platform_condition_variable_broadcast(&task->completed_cond);
             engine_platform_mutex_unlock(&task->mutex);
         }
+        task_system_release_task_worker(task);
     }
 
     return NULL;
@@ -281,7 +302,7 @@ static void task_system_finish_task(void* user_task, void* user_context) {
     }
 
     engine_platform_mutex_lock(&task->mutex);
-    while (!task->completed) {
+    while (!task->completed || task->active_worker_count > 0) {
         engine_platform_condition_variable_wait(&task->completed_cond, &task->mutex);
     }
     engine_platform_mutex_unlock(&task->mutex);

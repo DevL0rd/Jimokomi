@@ -9,6 +9,8 @@
 #include "../Scene/Components/RigidBodyComponent.h"
 #include "../Scene/Components/TransformComponent.h"
 
+#include <math.h>
+
 b2BodyId PhysicsWorld_LoadBodyHandle(PhysicsBodyHandle handle)
 {
     return (b2BodyId){ handle.index1, handle.world0, handle.generation };
@@ -79,6 +81,10 @@ b2BodyId PhysicsWorld_EnsureEntityBody(PhysicsWorld* world, struct Entity* entit
         body_def.angularDamping = rigid_body->friction_air;
         body_def.userData = entity;
         body_def.enableSleep = true;
+        if (world->lifecycle->has_sleep_threshold_setting)
+        {
+            body_def.sleepThreshold = world->lifecycle->sleep_threshold;
+        }
         body_def.motionLocks.angularZ = rigid_body->fixed_rotation;
 
         body_id = b2CreateBody(world->lifecycle->world_id, &body_def);
@@ -103,10 +109,45 @@ b2BodyId PhysicsWorld_EnsureEntityBody(PhysicsWorld* world, struct Entity* entit
 
         rigid_body->body_id = PhysicsWorld_StoreBodyHandle(body_id);
         rigid_body->has_body = true;
+        rigid_body->applied_sleep_threshold = world->lifecycle->has_sleep_threshold_setting
+            ? world->lifecycle->sleep_threshold
+            : body_def.sleepThreshold;
+        rigid_body->sleep_threshold_is_onscreen = false;
         RigidBodyComponent_ClearDirty(rigid_body, RIGID_BODY_DIRTY_DEFINITION);
         ColliderComponent_ClearDirty(collider, COLLIDER_DIRTY_SHAPE | COLLIDER_DIRTY_BOUNDS);
         return body_id;
     }
+}
+
+bool PhysicsWorld_SetEntitySleepThreshold(PhysicsWorld* world, struct Entity* entity, float sleep_threshold, bool is_onscreen)
+{
+    RigidBodyComponent* rigid_body = NULL;
+    b2BodyId body_id;
+
+    if (entity == NULL)
+    {
+        return false;
+    }
+
+    rigid_body = (RigidBodyComponent*)Entity_GetFixedComponent(entity, COMPONENT_RIGID_BODY);
+    if (rigid_body == NULL || rigid_body->body_type == RIGID_BODY_STATIC)
+    {
+        return false;
+    }
+    if (!PhysicsWorld_GetEntityBody(world, entity, false, &body_id))
+    {
+        return false;
+    }
+    if (fabsf(rigid_body->applied_sleep_threshold - sleep_threshold) <= 0.0001f &&
+        rigid_body->sleep_threshold_is_onscreen == is_onscreen)
+    {
+        return true;
+    }
+
+    b2Body_SetSleepThreshold(body_id, sleep_threshold);
+    rigid_body->applied_sleep_threshold = sleep_threshold;
+    rigid_body->sleep_threshold_is_onscreen = is_onscreen;
+    return true;
 }
 
 bool PhysicsWorld_GetEntityBody(
@@ -218,6 +259,40 @@ void PhysicsWorld_SetEntityPosition(PhysicsWorld* world, struct Entity* entity, 
     }
 
     TransformComponent_MarkDirty(transform, TRANSFORM_DIRTY_POSITION | TRANSFORM_DIRTY_TELEPORT);
+}
+
+void PhysicsWorld_SetEntityTargetPosition(PhysicsWorld* world, struct Entity* entity, float x, float y, float time_step, bool wake)
+{
+    TransformComponent* transform = NULL;
+    b2BodyId body_id;
+
+    if (entity == NULL)
+    {
+        return;
+    }
+
+    transform = (TransformComponent*)Entity_GetFixedComponent(entity, COMPONENT_TRANSFORM);
+    if (transform == NULL)
+    {
+        return;
+    }
+
+    transform->previous_x = transform->x;
+    transform->previous_y = transform->y;
+    transform->previous_angle_radians = transform->angle_radians;
+    TransformComponent_SetPosition(transform, x, y, false);
+
+    if (world == NULL || time_step <= 0.0f || !PhysicsWorld_GetEntityBody(world, entity, true, &body_id))
+    {
+        return;
+    }
+
+    b2Body_SetTargetTransform(
+        body_id,
+        (b2Transform){ { x, y }, b2MakeRot(transform->angle_radians) },
+        time_step,
+        wake
+    );
 }
 
 bool PhysicsWorld_GetEntityLinearVelocity(PhysicsWorld* world, struct Entity* entity, Vec2* out_velocity)

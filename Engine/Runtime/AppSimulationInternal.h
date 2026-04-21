@@ -20,6 +20,9 @@ typedef struct EngineAppSimThreadContext
     atomic_bool shutdown_requested;
     double accumulator_seconds;
     double fixed_dt_seconds;
+    uint64_t last_sleep_visibility_update_ms;
+    struct Entity** sleep_visible_entities;
+    size_t sleep_visible_entity_capacity;
     uint32_t max_substeps;
     bool cached_debug_overlay_enabled;
     bool cached_draw_debug_world;

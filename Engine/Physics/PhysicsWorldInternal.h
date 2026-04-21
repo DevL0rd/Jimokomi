@@ -23,6 +23,7 @@ b2BodyId PhysicsWorld_LoadBodyHandle(PhysicsBodyHandle handle);
 PhysicsBodyHandle PhysicsWorld_StoreBodyHandle(b2BodyId body_id);
 PhysicsShapeHandle PhysicsWorld_StoreShapeHandle(b2ShapeId shape_id);
 b2BodyId PhysicsWorld_EnsureEntityBody(PhysicsWorld* world, struct Entity* entity);
+bool PhysicsWorld_SetEntitySleepThreshold(PhysicsWorld* world, struct Entity* entity, float sleep_threshold, bool is_onscreen);
 bool PhysicsWorld_GetEntityBody(
     PhysicsWorld* world,
     struct Entity* entity,

@@ -109,106 +109,46 @@ static bool PhysicsWorld_AppendTrackedEntity(PhysicsWorld* world, struct Entity*
     return true;
 }
 
-static void PhysicsWorld_SyncEntities(PhysicsWorld* world, struct Scene* scene)
+static bool PhysicsWorld_AppendOnscreenSleepEntity(PhysicsWorld* world, struct Entity* entity)
 {
-    size_t index = 0;
+    if (world == NULL || entity == NULL)
+    {
+        return false;
+    }
 
-    if (world == NULL || scene == NULL)
+    if (!PhysicsWorld_ReserveEntityPointerArray(
+            &world->entities->onscreen_sleep_entities,
+            &world->entities->onscreen_sleep_entity_capacity,
+            world->entities->onscreen_sleep_entity_count + 1U))
+    {
+        return false;
+    }
+
+    world->entities->onscreen_sleep_entities[world->entities->onscreen_sleep_entity_count++] = entity;
+    return true;
+}
+
+static void PhysicsWorld_RemoveOnscreenSleepEntity(PhysicsWorld* world, struct Entity* entity)
+{
+    size_t index = 0U;
+
+    if (world == NULL || world->entities == NULL || entity == NULL)
     {
         return;
     }
 
-    world->stats->active_entity_count = 0U;
-    world->stats->dirty_entity_count = 0U;
-    world->stats->collider_changed_entity_count = 0U;
-    world->stats->body_create_count = 0U;
-    world->stats->body_remove_count = 0U;
-    world->stats->shape_change_count = 0U;
-
-    for (index = 0; index < world->entities->tracked_entity_count; ++index)
+    for (index = 0U; index < world->entities->onscreen_sleep_entity_count; ++index)
     {
-        Entity* entity = world->entities->tracked_entities[index];
-        TransformComponent* transform = NULL;
-        RigidBodyComponent* rigid_body = NULL;
-        ColliderComponent* collider = NULL;
-        bool needs_body_rebuild = false;
-        bool has_valid_body = false;
-
-        if (!Entity_IsActive(entity))
+        if (world->entities->onscreen_sleep_entities[index] == entity)
         {
-            continue;
-        }
-
-        transform = (TransformComponent*)Entity_GetFixedComponent(entity, COMPONENT_TRANSFORM);
-        rigid_body = (RigidBodyComponent*)Entity_GetFixedComponent(entity, COMPONENT_RIGID_BODY);
-        collider = (ColliderComponent*)Entity_GetFixedComponent(entity, COMPONENT_COLLIDER);
-        if (transform == NULL || rigid_body == NULL)
-        {
-            if (rigid_body != NULL && rigid_body->has_body && b2Body_IsValid(PhysicsWorld_LoadBodyHandle(rigid_body->body_id)))
-            {
-                PhysicsWorld_RemoveBodyForEntity(world, entity);
-                world->stats->body_remove_count += 1U;
-            }
-            continue;
-        }
-
-        if (collider == NULL)
-        {
-            if (rigid_body->has_body && b2Body_IsValid(PhysicsWorld_LoadBodyHandle(rigid_body->body_id)))
-            {
-                PhysicsWorld_RemoveBodyForEntity(world, entity);
-                world->stats->body_remove_count += 1U;
-            }
-            continue;
-        }
-
-        has_valid_body = rigid_body->has_body;
-        if (!has_valid_body)
-        {
-            world->stats->body_create_count += 1U;
-            if (!b2Body_IsValid(PhysicsWorld_EnsureEntityBody(world, entity)))
-            {
-                continue;
-            }
-            has_valid_body = true;
-        }
-
-        if (collider->dirty_flags != COLLIDER_DIRTY_NONE)
-        {
-            world->stats->collider_changed_entity_count += 1U;
-            world->stats->shape_change_count += 1U;
-            needs_body_rebuild = true;
-        }
-
-        if (rigid_body->dirty_flags != RIGID_BODY_DIRTY_NONE)
-        {
-            needs_body_rebuild = true;
-        }
-
-        if (needs_body_rebuild)
-        {
-            PhysicsWorld_RemoveBodyForEntity(world, entity);
-            if (!b2Body_IsValid(PhysicsWorld_EnsureEntityBody(world, entity)))
-            {
-                continue;
-            }
-            has_valid_body = true;
-            world->stats->dirty_entity_count += 1U;
-        }
-
-        if (transform->dirty && has_valid_body)
-        {
-            b2Body_SetTransform(PhysicsWorld_LoadBodyHandle(rigid_body->body_id), (b2Vec2){transform->x, transform->y}, b2MakeRot(transform->angle_radians));
-            TransformComponent_ClearDirty(
-                transform,
-                TRANSFORM_DIRTY_ROTATION | TRANSFORM_DIRTY_SCALE
+            memmove(
+                &world->entities->onscreen_sleep_entities[index],
+                &world->entities->onscreen_sleep_entities[index + 1U],
+                sizeof(struct Entity*) * (world->entities->onscreen_sleep_entity_count - index - 1U)
             );
-            world->stats->dirty_entity_count += 1U;
-        }
-
-        if (has_valid_body)
-        {
-            world->stats->active_entity_count += 1U;
+            world->entities->onscreen_sleep_entity_count -= 1U;
+            world->entities->onscreen_sleep_entities[world->entities->onscreen_sleep_entity_count] = NULL;
+            return;
         }
     }
 }
@@ -319,6 +259,132 @@ void PhysicsWorld_UpdateAdaptiveStepRate(PhysicsWorld* world, float accumulator_
     }
 }
 
+void PhysicsWorld_SetSleepThreshold(PhysicsWorld* world, float sleep_threshold)
+{
+    size_t index = 0U;
+
+    if (world == NULL || world->lifecycle == NULL || world->entities == NULL)
+    {
+        return;
+    }
+    if (sleep_threshold < 0.0f)
+    {
+        sleep_threshold = 0.0f;
+    }
+
+    world->lifecycle->sleep_threshold = sleep_threshold;
+    world->lifecycle->has_sleep_threshold_setting = true;
+    for (index = 0U; index < world->entities->tracked_entity_count; ++index)
+    {
+        RigidBodyComponent* rigid_body = NULL;
+        b2BodyId body_id;
+        Entity* entity = world->entities->tracked_entities[index];
+
+        if (entity == NULL)
+        {
+            continue;
+        }
+        rigid_body = (RigidBodyComponent*)Entity_GetFixedComponent(entity, COMPONENT_RIGID_BODY);
+        if (rigid_body == NULL || !rigid_body->has_body)
+        {
+            continue;
+        }
+        body_id = PhysicsWorld_LoadBodyHandle(rigid_body->body_id);
+        if (b2Body_IsValid(body_id))
+        {
+            b2Body_SetSleepThreshold(body_id, sleep_threshold);
+            rigid_body->applied_sleep_threshold = sleep_threshold;
+            rigid_body->sleep_threshold_is_onscreen = false;
+        }
+    }
+    world->entities->onscreen_sleep_entity_count = 0U;
+}
+
+void PhysicsWorld_UpdateViewSleepThresholds(
+    PhysicsWorld* world,
+    struct Entity* const* onscreen_entities,
+    size_t onscreen_entity_count,
+    float onscreen_sleep_threshold,
+    float offscreen_sleep_threshold
+) {
+    uint32_t stamp;
+    size_t index = 0U;
+    size_t compacted_count = 0U;
+
+    if (world == NULL || world->lifecycle == NULL || world->entities == NULL)
+    {
+        return;
+    }
+    if (onscreen_sleep_threshold < 0.0f)
+    {
+        onscreen_sleep_threshold = 0.0f;
+    }
+    if (offscreen_sleep_threshold < 0.0f)
+    {
+        offscreen_sleep_threshold = 0.0f;
+    }
+
+    world->lifecycle->sleep_threshold = offscreen_sleep_threshold;
+    world->lifecycle->has_sleep_threshold_setting = true;
+    world->entities->sleep_visibility_stamp += 1U;
+    if (world->entities->sleep_visibility_stamp == 0U)
+    {
+        world->entities->sleep_visibility_stamp = 1U;
+    }
+    stamp = world->entities->sleep_visibility_stamp;
+
+    for (index = 0U; index < onscreen_entity_count; ++index)
+    {
+        Entity* entity = onscreen_entities != NULL ? onscreen_entities[index] : NULL;
+        RigidBodyComponent* rigid_body = NULL;
+        bool was_onscreen = false;
+
+        if (entity == NULL)
+        {
+            continue;
+        }
+
+        rigid_body = (RigidBodyComponent*)Entity_GetFixedComponent(entity, COMPONENT_RIGID_BODY);
+        if (rigid_body == NULL || rigid_body->body_type == RIGID_BODY_STATIC)
+        {
+            continue;
+        }
+
+        was_onscreen = rigid_body->sleep_threshold_is_onscreen;
+        rigid_body->sleep_visibility_stamp = stamp;
+        if (PhysicsWorld_SetEntitySleepThreshold(world, entity, onscreen_sleep_threshold, true) && !was_onscreen)
+        {
+            (void)PhysicsWorld_AppendOnscreenSleepEntity(world, entity);
+        }
+    }
+
+    for (index = 0U; index < world->entities->onscreen_sleep_entity_count; ++index)
+    {
+        Entity* entity = world->entities->onscreen_sleep_entities[index];
+        RigidBodyComponent* rigid_body = NULL;
+
+        if (entity == NULL)
+        {
+            continue;
+        }
+
+        rigid_body = (RigidBodyComponent*)Entity_GetFixedComponent(entity, COMPONENT_RIGID_BODY);
+        if (rigid_body == NULL || rigid_body->sleep_visibility_stamp != stamp)
+        {
+            (void)PhysicsWorld_SetEntitySleepThreshold(world, entity, offscreen_sleep_threshold, false);
+            continue;
+        }
+
+        world->entities->onscreen_sleep_entities[compacted_count++] = entity;
+    }
+
+    for (index = compacted_count; index < world->entities->onscreen_sleep_entity_count; ++index)
+    {
+        world->entities->onscreen_sleep_entities[index] = NULL;
+    }
+    world->entities->onscreen_sleep_entity_count = compacted_count;
+}
+
 void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
 {
     b2WorldDef world_def;
@@ -351,6 +417,10 @@ void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
     world->lifecycle->frame_budget_hz = config != NULL && config->frame_budget_hz > 0.0f
         ? config->frame_budget_hz
         : PHYSICS_DEFAULT_FRAME_BUDGET_HZ;
+    world->lifecycle->sleep_threshold = config != NULL && config->sleep_threshold >= 0.0f
+        ? config->sleep_threshold
+        : 0.0f;
+    world->lifecycle->has_sleep_threshold_setting = config != NULL && config->has_sleep_threshold_setting;
     PhysicsWorld_SetTargetHz(
         world,
         config != NULL && config->target_hz > 0.0f ? config->target_hz : world->lifecycle->max_hz
@@ -360,6 +430,10 @@ void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
     world->lifecycle->step_substep_count = world->lifecycle->base_step_substep_count;
     world_def.gravity = (b2Vec2){world->lifecycle->gravity_x, world->lifecycle->gravity_y};
     world_def.enableSleep = true;
+    if (config != NULL && config->has_continuous_collision_setting)
+    {
+        world_def.enableContinuous = config->continuous_collision_enabled;
+    }
     world->lifecycle->task_system = config != NULL ? config->task_system : NULL;
     if (config != NULL && config->task_system != NULL)
     {
@@ -389,6 +463,7 @@ PhysicsWorld* PhysicsWorld_Create(const PhysicsWorldConfig* config)
 void PhysicsWorld_RegisterEntity(PhysicsWorld* world, struct Entity* entity)
 {
     RigidBodyComponent* rigid_body = NULL;
+    b2BodyId body_id;
 
     if (world == NULL || entity == NULL)
     {
@@ -402,6 +477,12 @@ void PhysicsWorld_RegisterEntity(PhysicsWorld* world, struct Entity* entity)
     }
 
     PhysicsWorld_AppendTrackedEntity(world, entity);
+    body_id = PhysicsWorld_EnsureEntityBody(world, entity);
+    if (b2Body_IsValid(body_id))
+    {
+        world->stats->body_create_count += 1U;
+    }
+    world->stats->active_entity_count = world->entities->tracked_entity_count;
 }
 
 void PhysicsWorld_UnregisterEntity(PhysicsWorld* world, struct Entity* entity)
@@ -424,10 +505,12 @@ void PhysicsWorld_UnregisterEntity(PhysicsWorld* world, struct Entity* entity)
             );
             world->entities->tracked_entity_count -= 1U;
             world->entities->tracked_entities[world->entities->tracked_entity_count] = NULL;
+            world->stats->active_entity_count = world->entities->tracked_entity_count;
             break;
         }
     }
 
+    PhysicsWorld_RemoveOnscreenSleepEntity(world, entity);
     PhysicsWorld_RemoveBodyForEntity(world, entity);
 }
 
@@ -455,7 +538,6 @@ void PhysicsWorld_Update(PhysicsWorld* world, struct Scene* scene, float dt_seco
         return;
     }
 
-    PhysicsWorld_SyncEntities(world, scene);
     if (dt_seconds > 0.0f)
     {
         if (world->lifecycle->task_system != NULL)
@@ -519,6 +601,7 @@ void PhysicsWorld_Destroy(PhysicsWorld* world)
     if (world->entities != NULL)
     {
         free(world->entities->tracked_entities);
+        free(world->entities->onscreen_sleep_entities);
     }
     free(world->lifecycle);
     free(world->tilemap);

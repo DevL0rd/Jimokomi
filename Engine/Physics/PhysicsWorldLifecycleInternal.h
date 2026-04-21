@@ -13,10 +13,12 @@ struct PhysicsWorldLifecycleState {
     float min_hz;
     float max_hz;
     float frame_budget_hz;
+    float sleep_threshold;
     float fixed_dt;
     uint32_t max_substeps;
     uint32_t base_step_substep_count;
     uint32_t step_substep_count;
+    bool has_sleep_threshold_setting;
 };
 
 #endif

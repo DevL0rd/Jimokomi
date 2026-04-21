@@ -20,6 +20,9 @@ typedef struct EngineSettings
 
     float scene_spatial_grid_cell_size;
 
+    float physics_onscreen_sleep_threshold;
+    float physics_offscreen_sleep_threshold;
+
     float camera_pan_key_speed;
     float camera_zoom_step;
     float camera_zoom_key_speed;

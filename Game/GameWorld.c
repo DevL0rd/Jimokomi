@@ -5,7 +5,7 @@
 #include "../Engine/Scene/SceneFactories.h"
 #include "../Engine/Scene/ScenePhysics.h"
 #include "../Engine/Scene/SceneView.h"
-#include "../Engine/Scene/Systems/RandomForceSystem.h"
+#include "../Engine/Settings.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -103,7 +103,7 @@ static Entity* jimokomi_spawn_ball(JimokomiGameState* game, size_t index)
     desc.shader_handle = game->shared_ball_shader_handle;
     desc.initial_velocity.x = ((index % 2U) == 0U) ? 8.0f : -8.0f;
     desc.initial_velocity.y = ((index % 3U) == 0U) ? -4.0f : 4.0f;
-    desc.initial_angular_velocity = 0.9f + (float)index * 0.04f;
+    desc.initial_angular_velocity = 0.0f;
     desc.density = 1.0f;
     desc.friction = 0.12f;
     desc.restitution = 0.0f;
@@ -117,7 +117,6 @@ static Entity* jimokomi_spawn_ball(JimokomiGameState* game, size_t index)
         return NULL;
     }
 
-    RandomForceSystem_AddToEntity(game->scene, entity, BALL_RANDOM_FORCE_STRENGTH, BALL_RANDOM_FORCE_INTERVAL_SECONDS);
     game->active_ball_count += 1U;
     return entity;
 }
@@ -155,6 +154,7 @@ Scene* jimokomi_game_create_scene(EngineAppContext* app, JimokomiGameState* game
 {
     PhysicsWorldConfig physics_config = { 0 };
     SceneView view = { 0 };
+    const EngineSettings* settings = EngineSettings_GetDefaults();
 
     if (app == NULL || game == NULL)
     {
@@ -166,6 +166,10 @@ Scene* jimokomi_game_create_scene(EngineAppContext* app, JimokomiGameState* game
     physics_config.min_hz = PHYSICS_MIN_HZ;
     physics_config.max_hz = PHYSICS_MAX_HZ;
     physics_config.frame_budget_hz = PHYSICS_FRAME_BUDGET_HZ;
+    physics_config.sleep_threshold = settings != NULL ? settings->physics_offscreen_sleep_threshold : 30.0f;
+    physics_config.continuous_collision_enabled = false;
+    physics_config.has_continuous_collision_setting = true;
+    physics_config.has_sleep_threshold_setting = true;
     physics_config.max_substeps = PHYSICS_MAX_SUBSTEPS;
     physics_config.step_substep_count = 4U;
     physics_config.task_system = EngineApp_GetTaskSystem(app);

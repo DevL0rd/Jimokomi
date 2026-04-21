@@ -15,6 +15,9 @@ const EngineSettings* EngineSettings_GetDefaults(void)
 
         .scene_spatial_grid_cell_size = 64.0f,
 
+        .physics_onscreen_sleep_threshold = 0.05f,
+        .physics_offscreen_sleep_threshold = 5.0f,
+
         .camera_pan_key_speed = 640.0f,
         .camera_zoom_step = 0.12f,
         .camera_zoom_key_speed = 5.0f,

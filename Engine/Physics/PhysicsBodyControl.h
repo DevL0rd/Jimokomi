@@ -6,6 +6,7 @@
 void PhysicsWorld_RemoveBodyForEntity(PhysicsWorld* world, struct Entity* entity);
 void PhysicsWorld_ClearEntityBodies(PhysicsWorld* world, struct Scene* scene);
 void PhysicsWorld_SetEntityPosition(PhysicsWorld* world, struct Entity* entity, float x, float y);
+void PhysicsWorld_SetEntityTargetPosition(PhysicsWorld* world, struct Entity* entity, float x, float y, float time_step, bool wake);
 bool PhysicsWorld_GetEntityLinearVelocity(PhysicsWorld* world, struct Entity* entity, Vec2* out_velocity);
 bool PhysicsWorld_SetEntityLinearVelocity(PhysicsWorld* world, struct Entity* entity, Vec2 velocity);
 bool PhysicsWorld_SetEntityAngularVelocity(PhysicsWorld* world, struct Entity* entity, float angular_velocity);

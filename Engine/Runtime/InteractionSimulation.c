@@ -15,6 +15,7 @@ void InteractionSystem_ApplyDragPacket(Scene* scene, const EngineRuntimeInputPac
     RigidBodyComponent* rigid_body;
     DraggableComponent* draggable;
     float release_velocity_scale = 0.55f;
+    float fixed_dt = 0.0f;
 
     if (scene == NULL || input_packet == NULL ||
         (!input_packet->drag_entity_active && !input_packet->drag_entity_release) ||
@@ -40,16 +41,15 @@ void InteractionSystem_ApplyDragPacket(Scene* scene, const EngineRuntimeInputPac
 
     if (input_packet->drag_entity_active)
     {
-        if (rigid_body->has_body)
-        {
-            PhysicsWorld_SetEntityAwake(physics_world, entity, true);
-        }
-        PhysicsWorld_SetEntityPosition(physics_world, entity, input_packet->drag_world_x, input_packet->drag_world_y);
-        if (rigid_body->has_body)
-        {
-            PhysicsWorld_SetEntityLinearVelocity(physics_world, entity, (Vec2){ 0.0f, 0.0f });
-            PhysicsWorld_SetEntityAngularVelocity(physics_world, entity, 0.0f);
-        }
+        PhysicsWorld_GetStepConfig(physics_world, &fixed_dt, NULL);
+        PhysicsWorld_SetEntityTargetPosition(
+            physics_world,
+            entity,
+            input_packet->drag_world_x,
+            input_packet->drag_world_y,
+            fixed_dt > 0.0f ? fixed_dt : 1.0f / 60.0f,
+            true
+        );
     }
 
     if (input_packet->drag_entity_release && rigid_body->has_body)

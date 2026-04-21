@@ -22,6 +22,10 @@ typedef struct PhysicsWorldConfig
     float min_hz;
     float max_hz;
     float frame_budget_hz;
+    float sleep_threshold;
+    bool continuous_collision_enabled;
+    bool has_continuous_collision_setting;
+    bool has_sleep_threshold_setting;
     uint32_t max_substeps;
     uint32_t step_substep_count;
     const struct TaskSystem* task_system;
@@ -79,6 +83,14 @@ void PhysicsWorld_Destroy(PhysicsWorld* world);
 
 void PhysicsWorld_GetStepConfig(const PhysicsWorld* world, float* out_fixed_dt, uint32_t* out_max_substeps);
 void PhysicsWorld_UpdateAdaptiveStepRate(PhysicsWorld* world, float accumulator_seconds);
+void PhysicsWorld_SetSleepThreshold(PhysicsWorld* world, float sleep_threshold);
+void PhysicsWorld_UpdateViewSleepThresholds(
+    PhysicsWorld* world,
+    struct Entity* const* onscreen_entities,
+    size_t onscreen_entity_count,
+    float onscreen_sleep_threshold,
+    float offscreen_sleep_threshold
+);
 void PhysicsWorld_RegisterEntity(PhysicsWorld* world, struct Entity* entity);
 void PhysicsWorld_UnregisterEntity(PhysicsWorld* world, struct Entity* entity);
 

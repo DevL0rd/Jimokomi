@@ -26,10 +26,13 @@ void RigidBodyComponent_Init(RigidBodyComponent* component)
     component->initial_velocity_x = 0.0f;
     component->initial_velocity_y = 0.0f;
     component->initial_angular_velocity = 0.0f;
+    component->applied_sleep_threshold = 0.0f;
     component->body_id = (PhysicsBodyHandle){ 0 };
     component->shape_id = (PhysicsShapeHandle){ 0 };
     component->dirty_flags = RIGID_BODY_DIRTY_DEFINITION;
+    component->sleep_visibility_stamp = 0U;
     component->has_body = false;
+    component->sleep_threshold_is_onscreen = false;
 }
 
 RigidBodyComponent* RigidBodyComponent_Create(void)

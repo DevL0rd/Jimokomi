@@ -23,10 +23,13 @@ typedef struct RigidBodyComponent
     float initial_velocity_x;
     float initial_velocity_y;
     float initial_angular_velocity;
+    float applied_sleep_threshold;
     PhysicsBodyHandle body_id;
     PhysicsShapeHandle shape_id;
     uint32_t dirty_flags;
+    uint32_t sleep_visibility_stamp;
     bool has_body;
+    bool sleep_threshold_is_onscreen;
 } RigidBodyComponent;
 
 typedef struct RigidBodyComponentDesc

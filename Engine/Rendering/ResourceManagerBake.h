@@ -24,6 +24,15 @@ const Surface* resource_manager_get_baked_surface(
     BakedSurfacePass pass,
     void* user_data
 );
+const Surface* resource_manager_get_or_create_baked_surface(
+    ResourceManager* manager,
+    ResourceHandle visual_source_handle,
+    ResourceHandle material_handle,
+    ResourceHandle shader_handle,
+    uint32_t frame_index,
+    BakedSurfacePass pass,
+    void* user_data
+);
 void resource_manager_request_baked_surface(
     ResourceManager* manager,
     ResourceHandle visual_source_handle,

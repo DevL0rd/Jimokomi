@@ -7,10 +7,14 @@
 #include "../Rendering/SceneRenderSnapshot.h"
 #include "../Scene/Scene.h"
 #include "../Scene/ScenePhysics.h"
+#include "../Scene/SceneQueries.h"
+#include "../Scene/SceneStats.h"
 
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define ENGINE_APP_SLEEP_VISIBILITY_UPDATE_INTERVAL_MS 33ULL
 
 static double engine_app_sim_now_ms(void)
 {
@@ -52,6 +56,132 @@ static float engine_app_sim_compute_render_alpha(const EngineAppSimThreadContext
     }
 
     return clamp_f((float)(context->accumulator_seconds / context->fixed_dt_seconds), 0.0f, 1.0f);
+}
+
+static bool engine_app_sim_reserve_sleep_visible_entities(EngineAppSimThreadContext* context, size_t required_capacity)
+{
+    struct Entity** entities = NULL;
+    size_t next_capacity = 0U;
+
+    if (context == NULL)
+    {
+        return false;
+    }
+    if (context->sleep_visible_entity_capacity >= required_capacity)
+    {
+        return true;
+    }
+
+    next_capacity = context->sleep_visible_entity_capacity > 0U ? context->sleep_visible_entity_capacity : 64U;
+    while (next_capacity < required_capacity)
+    {
+        next_capacity *= 2U;
+    }
+
+    entities = (struct Entity**)realloc(context->sleep_visible_entities, next_capacity * sizeof(*entities));
+    if (entities == NULL)
+    {
+        return false;
+    }
+
+    context->sleep_visible_entities = entities;
+    context->sleep_visible_entity_capacity = next_capacity;
+    return true;
+}
+
+static bool engine_app_sim_get_camera_sleep_bounds(
+    EngineAppSimThreadContext* context,
+    const EngineRuntimeInputPacket* latest_input,
+    bool has_input,
+    Aabb* out_bounds
+) {
+    const Camera* render_camera = NULL;
+    float x = 0.0f;
+    float y = 0.0f;
+    float view_width = 0.0f;
+    float view_height = 0.0f;
+
+    if (context == NULL || context->app == NULL || out_bounds == NULL)
+    {
+        return false;
+    }
+
+    if (has_input && latest_input != NULL && latest_input->camera_view_width > 0.0f && latest_input->camera_view_height > 0.0f)
+    {
+        x = latest_input->camera_x;
+        y = latest_input->camera_y;
+        view_width = latest_input->camera_view_width;
+        view_height = latest_input->camera_view_height;
+    }
+    else
+    {
+        render_camera = renderer_get_camera_const(context->app->renderer);
+        if (render_camera == NULL || render_camera->view_width <= 0.0f || render_camera->view_height <= 0.0f)
+        {
+            return false;
+        }
+        x = render_camera->x;
+        y = render_camera->y;
+        view_width = render_camera->view_width;
+        view_height = render_camera->view_height;
+    }
+
+    out_bounds->min_x = x;
+    out_bounds->min_y = y;
+    out_bounds->max_x = x + view_width;
+    out_bounds->max_y = y + view_height;
+    return true;
+}
+
+static void engine_app_sim_update_sleep_visibility(
+    EngineAppSimThreadContext* context,
+    const EngineRuntimeInputPacket* latest_input,
+    bool has_input,
+    bool input_changed,
+    uint64_t now_ms
+) {
+    PhysicsWorld* physics_world = NULL;
+    Aabb sleep_bounds;
+    size_t entity_capacity = 0U;
+    size_t visible_count = 0U;
+
+    if (context == NULL || context->app == NULL || context->app->scene == NULL || context->settings == NULL)
+    {
+        return;
+    }
+    if (!input_changed &&
+        context->last_sleep_visibility_update_ms != 0ULL &&
+        now_ms - context->last_sleep_visibility_update_ms < ENGINE_APP_SLEEP_VISIBILITY_UPDATE_INTERVAL_MS)
+    {
+        return;
+    }
+
+    physics_world = Scene_GetPhysicsWorld(context->app->scene);
+    if (physics_world == NULL || !engine_app_sim_get_camera_sleep_bounds(context, latest_input, has_input, &sleep_bounds))
+    {
+        return;
+    }
+
+    entity_capacity = Scene_GetEntityCount(context->app->scene);
+    if (entity_capacity == 0U || !engine_app_sim_reserve_sleep_visible_entities(context, entity_capacity))
+    {
+        return;
+    }
+
+    visible_count = Scene_QueryEntitiesInAabb(
+        context->app->scene,
+        sleep_bounds,
+        context->sleep_visible_entities,
+        context->sleep_visible_entity_capacity
+    );
+    PhysicsWorld_UpdateViewSleepThresholds(
+        physics_world,
+        context->sleep_visible_entities,
+        visible_count,
+        context->settings->physics_onscreen_sleep_threshold,
+        context->settings->physics_offscreen_sleep_threshold
+    );
+    context->last_sleep_visibility_update_ms = now_ms;
 }
 
 static uint32_t engine_app_sim_step_scene(
@@ -206,6 +336,8 @@ void* engine_app_simulation_thread_main(void* user_data)
         }
         game_update_ms = engine_app_sim_now_ms() - game_update_started_ms;
 
+        engine_app_sim_update_sleep_visibility(context, &latest_input, has_input, input_changed, now_ms);
+
         fixed_step_started_ms = engine_app_sim_now_ms();
         physics_substeps = engine_app_sim_step_scene(context, dt_seconds, &sim_input);
         fixed_step_wall_ms = engine_app_sim_now_ms() - fixed_step_started_ms;
@@ -296,5 +428,8 @@ void* engine_app_simulation_thread_main(void* user_data)
     }
 
     scene_render_snapshot_builder_destroy(snapshot_builder);
+    free(context->sleep_visible_entities);
+    context->sleep_visible_entities = NULL;
+    context->sleep_visible_entity_capacity = 0U;
     return NULL;
 }
