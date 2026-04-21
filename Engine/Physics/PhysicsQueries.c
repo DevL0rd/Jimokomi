@@ -1,4 +1,4 @@
-#include "PhysicsWorldInternal.h"
+#include "PhysicsWorldLifecycleInternal.h"
 
 typedef struct PhysicsQueryAccumulator
 {
@@ -55,14 +55,14 @@ size_t PhysicsWorld_QueryPoint(PhysicsWorld* world, float x, float y, PhysicsQue
     b2QueryFilter filter = b2DefaultQueryFilter();
     PhysicsQueryAccumulator accumulator = {world, results, capacity, 0u, {x, y}};
 
-    if (world == NULL || !world->lifecycle.has_world || results == NULL || capacity == 0)
+    if (world == NULL || !world->lifecycle->has_world || results == NULL || capacity == 0)
     {
         return 0;
     }
 
     aabb.lowerBound = (b2Vec2){x - 0.001f, y - 0.001f};
     aabb.upperBound = (b2Vec2){x + 0.001f, y + 0.001f};
-    b2World_OverlapAABB(world->lifecycle.world_id, aabb, filter, PhysicsWorld_OverlapCollector, &accumulator);
+    b2World_OverlapAABB(world->lifecycle->world_id, aabb, filter, PhysicsWorld_OverlapCollector, &accumulator);
     return accumulator.count;
 }
 
@@ -77,12 +77,12 @@ size_t PhysicsWorld_QueryRay(PhysicsWorld* world,
     b2QueryFilter filter = b2DefaultQueryFilter();
     PhysicsQueryAccumulator accumulator = {world, results, capacity, 0u, {x0, y0}};
 
-    if (world == NULL || !world->lifecycle.has_world || results == NULL || capacity == 0)
+    if (world == NULL || !world->lifecycle->has_world || results == NULL || capacity == 0)
     {
         return 0;
     }
 
-    b2World_CastRay(world->lifecycle.world_id,
+    b2World_CastRay(world->lifecycle->world_id,
                     (b2Vec2){x0, y0},
                     (b2Vec2){x1 - x0, y1 - y0},
                     filter,
@@ -97,14 +97,14 @@ size_t PhysicsWorld_QueryRadius(PhysicsWorld* world, float x, float y, float rad
     b2QueryFilter filter = b2DefaultQueryFilter();
     PhysicsQueryAccumulator accumulator = {world, results, capacity, 0u, {x, y}};
 
-    if (world == NULL || !world->lifecycle.has_world || results == NULL || capacity == 0)
+    if (world == NULL || !world->lifecycle->has_world || results == NULL || capacity == 0)
     {
         return 0;
     }
 
     aabb.lowerBound = (b2Vec2){x - radius, y - radius};
     aabb.upperBound = (b2Vec2){x + radius, y + radius};
-    b2World_OverlapAABB(world->lifecycle.world_id, aabb, filter, PhysicsWorld_OverlapCollector, &accumulator);
+    b2World_OverlapAABB(world->lifecycle->world_id, aabb, filter, PhysicsWorld_OverlapCollector, &accumulator);
     return accumulator.count;
 }
 
@@ -112,11 +112,11 @@ size_t PhysicsWorld_GetContactHitCount(PhysicsWorld* world)
 {
     b2ContactEvents contact_events;
 
-    if (world == NULL || !world->lifecycle.has_world) {
+    if (world == NULL || !world->lifecycle->has_world) {
         return 0U;
     }
 
-    contact_events = b2World_GetContactEvents(world->lifecycle.world_id);
+    contact_events = b2World_GetContactEvents(world->lifecycle->world_id);
     return contact_events.hitCount > 0 ? (size_t)contact_events.hitCount : 0U;
 }
 
@@ -126,11 +126,11 @@ size_t PhysicsWorld_GetContactHits(PhysicsWorld* world, PhysicsContactHit* hits,
     size_t count = 0U;
     int event_index;
 
-    if (world == NULL || !world->lifecycle.has_world || hits == NULL || capacity == 0U) {
+    if (world == NULL || !world->lifecycle->has_world || hits == NULL || capacity == 0U) {
         return 0U;
     }
 
-    contact_events = b2World_GetContactEvents(world->lifecycle.world_id);
+    contact_events = b2World_GetContactEvents(world->lifecycle->world_id);
     for (event_index = 0; event_index < contact_events.hitCount && count < capacity; ++event_index) {
         const b2ContactHitEvent* hit = &contact_events.hitEvents[event_index];
         PhysicsContactHit* out_hit = &hits[count++];

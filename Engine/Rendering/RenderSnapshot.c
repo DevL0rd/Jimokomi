@@ -377,3 +377,95 @@ void render_world_snapshot_build_frame(const RenderWorldSnapshot* snapshot, Rend
     frame->draw_debug = snapshot->draw_debug_world;
     frame->now_ms = snapshot->now_ms;
 }
+
+void render_snapshot_buffer_build_frame(const RenderSnapshotBuffer* buffer, RendererFrame* frame) {
+    if (buffer == NULL) {
+        if (frame != NULL) {
+            memset(frame, 0, sizeof(*frame));
+        }
+        return;
+    }
+
+    render_world_snapshot_build_frame(&buffer->world, frame);
+}
+
+const RenderStatsSnapshot* render_snapshot_buffer_get_stats(const RenderSnapshotBuffer* buffer) {
+    return buffer != NULL ? &buffer->stats : NULL;
+}
+
+uint64_t render_snapshot_buffer_get_sequence(const RenderSnapshotBuffer* buffer) {
+    return buffer != NULL ? buffer->sequence : 0U;
+}
+
+uint64_t render_snapshot_buffer_get_published_at_ms(const RenderSnapshotBuffer* buffer) {
+    return buffer != NULL ? buffer->published_at_ms : 0U;
+}
+
+uint64_t render_snapshot_buffer_get_now_ms(const RenderSnapshotBuffer* buffer) {
+    return buffer != NULL ? buffer->world.now_ms : 0U;
+}
+
+const DebugEntityView* render_snapshot_buffer_get_selected_entity(const RenderSnapshotBuffer* buffer) {
+    if (buffer == NULL || !buffer->world.has_selected_entity) {
+        return NULL;
+    }
+
+    return &buffer->world.selected_entity;
+}
+
+uint64_t render_snapshot_buffer_pick_entity(
+    const RenderSnapshotBuffer* buffer,
+    const Camera* camera,
+    Vec2 screen_point
+) {
+    Vec2 world_point;
+    size_t index;
+
+    if (buffer == NULL || camera == NULL) {
+        return 0U;
+    }
+
+    world_point = camera_screen_to_world(camera, screen_point);
+    for (index = buffer->world.pick_target_count; index > 0U; --index) {
+        const PickTargetView* target = &buffer->world.pick_targets[index - 1U];
+        if (target->is_circle) {
+            float dx = world_point.x - target->x;
+            float dy = world_point.y - target->y;
+            if ((dx * dx) + (dy * dy) <= target->radius * target->radius) {
+                return target->id;
+            }
+        } else if (world_point.x >= target->x - target->extent_x &&
+                   world_point.x <= target->x + target->extent_x &&
+                   world_point.y >= target->y - target->extent_y &&
+                   world_point.y <= target->y + target->extent_y) {
+            return target->id;
+        }
+    }
+
+    return 0U;
+}
+
+void render_snapshot_buffer_set_sim_timings(
+    RenderSnapshotBuffer* buffer,
+    float update_ms,
+    float sim_ms,
+    float input_ms,
+    float game_update_ms,
+    float fixed_step_wall_ms,
+    float drag_ms,
+    float snapshot_acquire_ms,
+    float snapshot_build_ms
+) {
+    if (buffer == NULL) {
+        return;
+    }
+
+    buffer->stats.overlay.update_ms = update_ms;
+    buffer->stats.overlay.sim_ms = sim_ms;
+    buffer->stats.sim.input_ms = input_ms;
+    buffer->stats.sim.game_update_ms = game_update_ms;
+    buffer->stats.sim.fixed_step_wall_ms = fixed_step_wall_ms;
+    buffer->stats.sim.drag_ms = drag_ms;
+    buffer->stats.sim.snapshot_acquire_ms = snapshot_acquire_ms;
+    buffer->stats.sim.snapshot_build_ms = snapshot_build_ms;
+}

@@ -1,5 +1,7 @@
 #include "RendererInternal.h"
 
+#include "RendererSignaturesInternal.h"
+
 static uint64_t renderer_hash_u64(uint64_t hash, uint64_t value)
 {
     hash ^= value + 0x9e3779b97f4a7c15ULL + (hash << 6U) + (hash >> 2U);

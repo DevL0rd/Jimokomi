@@ -1,5 +1,7 @@
 #include "DebugOverlayInternal.h"
 
+#include "DebugOverlayUiInternal.h"
+#include "DebugOverlayWorldInternal.h"
 #include <math.h>
 
 static void debug_draw_entity(
@@ -227,7 +229,7 @@ void debug_overlay_draw_world(
     double redraw_started_ms = 0.0;
     (void)now_ms;
 
-    if (overlay == NULL || !overlay->draw_world_gizmos || backend == NULL || camera == NULL) {
+    if (overlay == NULL || !overlay->ui->draw_world_gizmos || backend == NULL || camera == NULL) {
         return;
     }
 
@@ -239,23 +241,23 @@ void debug_overlay_draw_world(
         return;
     }
 
-    if (overlay->world_surface == NULL ||
-        overlay->world_surface_width != (int)camera->viewport_width ||
-        overlay->world_surface_height != (int)camera->viewport_height) {
-        if (overlay->world_surface != NULL) {
-            backend->destroy_surface(backend->userdata, overlay->world_surface);
+    if (overlay->world->surface == NULL ||
+        overlay->world->surface_width != (int)camera->viewport_width ||
+        overlay->world->surface_height != (int)camera->viewport_height) {
+        if (overlay->world->surface != NULL) {
+            backend->destroy_surface(backend->userdata, overlay->world->surface);
         }
-        overlay->world_surface = backend->create_surface(
+        overlay->world->surface = backend->create_surface(
             backend->userdata,
             (int)camera->viewport_width,
             (int)camera->viewport_height
         );
-        overlay->world_surface_backend = backend;
-        overlay->world_surface_width = (int)camera->viewport_width;
-        overlay->world_surface_height = (int)camera->viewport_height;
+        overlay->world->surface_backend = backend;
+        overlay->world->surface_width = (int)camera->viewport_width;
+        overlay->world->surface_height = (int)camera->viewport_height;
     }
 
-    if (overlay->world_surface == NULL) {
+    if (overlay->world->surface == NULL) {
         return;
     }
 
@@ -270,14 +272,14 @@ void debug_overlay_draw_world(
         selected_entity_id,
         hovered_entity_id
     );
-    overlay->last_visible_entity_count = 0U;
-    overlay->last_active_collision_count = 0U;
+    overlay->world->last_visible_entity_count = 0U;
+    overlay->world->last_active_collision_count = 0U;
     has_selected_entity = selected_entity_id != 0U;
     has_hovered_entity = hovered_entity_id != 0U;
 
-    if (overlay->last_world_signature != world_signature) {
+    if (overlay->world->last_signature != world_signature) {
         redraw_started_ms = debug_overlay_now_ms();
-        backend->set_target(backend->userdata, overlay->world_surface);
+        backend->set_target(backend->userdata, overlay->world->surface);
         backend->clear(backend->userdata, (Color32){ 0x00000000U });
         target_init(&target, backend, 0.0f, 0.0f);
 
@@ -287,7 +289,7 @@ void debug_overlay_draw_world(
             if (!debug_entity_visible(camera, &entities[index])) {
                 continue;
             }
-            overlay->last_visible_entity_count += 1U;
+            overlay->world->last_visible_entity_count += 1U;
             debug_draw_entity(
                 &target,
                 camera,
@@ -305,7 +307,7 @@ void debug_overlay_draw_world(
             if (!collisions[index].active) {
                 continue;
             }
-            overlay->last_active_collision_count += 1U;
+            overlay->world->last_active_collision_count += 1U;
             a = camera_world_to_screen(camera, collisions[index].point_a);
             b = camera_world_to_screen(camera, collisions[index].point_b);
             c = camera_world_to_screen(camera, collisions[index].contact_point);
@@ -317,13 +319,13 @@ void debug_overlay_draw_world(
         }
 
         backend->reset_target(backend->userdata);
-        overlay->last_world_signature = world_signature;
-        overlay->world_redraw_count += 1U;
-        overlay->last_world_redraw_ms = debug_overlay_now_ms() - redraw_started_ms;
+        overlay->world->last_signature = world_signature;
+        overlay->world->redraw_count += 1U;
+        overlay->world->last_redraw_ms = debug_overlay_now_ms() - redraw_started_ms;
     } else {
-        overlay->world_redraw_skip_count += 1U;
+        overlay->world->redraw_skip_count += 1U;
     }
 
     target_init(&target, backend, 0.0f, 0.0f);
-    target_surface(&target, overlay->world_surface, 0.0f, 0.0f);
+    target_surface(&target, overlay->world->surface, 0.0f, 0.0f);
 }

@@ -272,14 +272,17 @@ void* engine_app_simulation_thread_main(void* user_data)
         }
         snapshot_build_ms = engine_app_sim_now_ms() - snapshot_build_started_ms;
         update_ms = engine_app_sim_now_ms() - update_started_ms;
-        next_render_snapshot->stats.overlay.update_ms = (float)fmax(update_ms - fixed_step_wall_ms, 0.0);
-        next_render_snapshot->stats.overlay.sim_ms = (float)update_ms;
-        next_render_snapshot->stats.sim.input_ms = input_captured ? (float)input_ms : 0.0f;
-        next_render_snapshot->stats.sim.game_update_ms = (float)game_update_ms;
-        next_render_snapshot->stats.sim.fixed_step_wall_ms = (float)fixed_step_wall_ms;
-        next_render_snapshot->stats.sim.drag_ms = (float)drag_ms;
-        next_render_snapshot->stats.sim.snapshot_acquire_ms = (float)snapshot_acquire_ms;
-        next_render_snapshot->stats.sim.snapshot_build_ms = (float)snapshot_build_ms;
+        render_snapshot_buffer_set_sim_timings(
+            next_render_snapshot,
+            (float)fmax(update_ms - fixed_step_wall_ms, 0.0),
+            (float)update_ms,
+            input_captured ? (float)input_ms : 0.0f,
+            (float)game_update_ms,
+            (float)fixed_step_wall_ms,
+            (float)drag_ms,
+            (float)snapshot_acquire_ms,
+            (float)snapshot_build_ms
+        );
         render_snapshot_exchange_publish(context->render_snapshot_exchange, next_render_snapshot);
         last_snapshot_publish_ms = now_ms;
     }

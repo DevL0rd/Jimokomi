@@ -64,47 +64,26 @@ typedef struct PickTargetView {
     bool is_circle;
 } PickTargetView;
 
-typedef struct RenderWorldSnapshot {
-    SpriteRenderable* items;
-    size_t item_capacity;
-    size_t item_count;
-    uint64_t item_frame_signature;
-    uint64_t item_sort_signature;
-    uint64_t item_instance_signature;
-    bool item_signatures_valid;
-    bool items_sorted_by_layer;
-    RendererBackdropDrawFn backdrop_draw;
-    void* backdrop_user_data;
-    DebugGridView debug_grid;
-    uint64_t backdrop_signature;
-    uint64_t metadata_signature;
-    bool metadata_dirty;
-    DebugEntityView* debug_entities;
-    size_t debug_entity_capacity;
-    size_t debug_entity_count;
-    DebugCollisionView* debug_collisions;
-    size_t debug_collision_capacity;
-    size_t debug_collision_count;
-    PickTargetView* pick_targets;
-    size_t pick_target_capacity;
-    size_t pick_target_count;
-    Camera camera;
-    DebugEntityView selected_entity;
-    bool has_selected_entity;
-    DebugEntityView hovered_entity;
-    bool has_hovered_entity;
-    bool draw_sprites;
-    bool draw_debug_world;
-    uint64_t now_ms;
-} RenderWorldSnapshot;
+typedef struct RenderWorldSnapshot RenderWorldSnapshot;
+typedef struct RenderSnapshotBuffer RenderSnapshotBuffer;
 
-typedef struct RenderSnapshotBuffer {
-    RenderWorldSnapshot world;
-    RenderStatsSnapshot stats;
-    uint64_t sequence;
-    uint64_t published_at_ms;
-} RenderSnapshotBuffer;
-
-void render_world_snapshot_build_frame(const RenderWorldSnapshot* snapshot, RendererFrame* frame);
+void render_snapshot_buffer_build_frame(const RenderSnapshotBuffer* buffer, RendererFrame* frame);
+const RenderStatsSnapshot* render_snapshot_buffer_get_stats(const RenderSnapshotBuffer* buffer);
+uint64_t render_snapshot_buffer_get_sequence(const RenderSnapshotBuffer* buffer);
+uint64_t render_snapshot_buffer_get_published_at_ms(const RenderSnapshotBuffer* buffer);
+uint64_t render_snapshot_buffer_get_now_ms(const RenderSnapshotBuffer* buffer);
+const DebugEntityView* render_snapshot_buffer_get_selected_entity(const RenderSnapshotBuffer* buffer);
+uint64_t render_snapshot_buffer_pick_entity(const RenderSnapshotBuffer* buffer, const Camera* camera, Vec2 screen_point);
+void render_snapshot_buffer_set_sim_timings(
+    RenderSnapshotBuffer* buffer,
+    float update_ms,
+    float sim_ms,
+    float input_ms,
+    float game_update_ms,
+    float fixed_step_wall_ms,
+    float drag_ms,
+    float snapshot_acquire_ms,
+    float snapshot_build_ms
+);
 
 #endif

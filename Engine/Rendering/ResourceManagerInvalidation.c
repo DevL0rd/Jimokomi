@@ -1,4 +1,5 @@
-#include "ResourceManagerInternal.h"
+#include "ResourceManagerInvalidationInternal.h"
+#include "ResourceManagerStatsInternal.h"
 
 #include <stdlib.h>
 
@@ -114,11 +115,11 @@ void resource_manager_mark_dirty_visual_source(ResourceManager* manager, Resourc
     }
 
     if (resource_manager_append_unique_handle(
-            &manager->invalidation.dirty_visual_source_handles,
-            &manager->invalidation.dirty_visual_source_count,
-            &manager->invalidation.dirty_visual_source_capacity,
+            &manager->invalidation->dirty_visual_source_handles,
+            &manager->invalidation->dirty_visual_source_count,
+            &manager->invalidation->dirty_visual_source_capacity,
             handle)) {
-        manager->stats.bake_invalidation_visual_source_count += 1U;
+        manager->stats->bake_invalidation_visual_source_count += 1U;
     }
 }
 
@@ -128,11 +129,11 @@ void resource_manager_mark_dirty_material(ResourceManager* manager, ResourceHand
     }
 
     if (resource_manager_append_unique_handle(
-            &manager->invalidation.dirty_material_handles,
-            &manager->invalidation.dirty_material_count,
-            &manager->invalidation.dirty_material_capacity,
+            &manager->invalidation->dirty_material_handles,
+            &manager->invalidation->dirty_material_count,
+            &manager->invalidation->dirty_material_capacity,
             handle)) {
-        manager->stats.bake_invalidation_material_count += 1U;
+        manager->stats->bake_invalidation_material_count += 1U;
     }
 }
 
@@ -142,11 +143,11 @@ void resource_manager_mark_dirty_shader(ResourceManager* manager, ResourceHandle
     }
 
     if (resource_manager_append_unique_handle(
-            &manager->invalidation.dirty_shader_handles,
-            &manager->invalidation.dirty_shader_count,
-            &manager->invalidation.dirty_shader_capacity,
+            &manager->invalidation->dirty_shader_handles,
+            &manager->invalidation->dirty_shader_count,
+            &manager->invalidation->dirty_shader_capacity,
             handle)) {
-        manager->stats.bake_invalidation_shader_count += 1U;
+        manager->stats->bake_invalidation_shader_count += 1U;
     }
 }
 
@@ -156,9 +157,9 @@ void resource_manager_mark_dirty_baked_surface(ResourceManager* manager, BakedSu
     }
 
     (void)resource_manager_append_unique_baked_key(
-        &manager->invalidation.dirty_baked_surface_keys,
-        &manager->invalidation.dirty_baked_surface_count,
-        &manager->invalidation.dirty_baked_surface_capacity,
+        &manager->invalidation->dirty_baked_surface_keys,
+        &manager->invalidation->dirty_baked_surface_count,
+        &manager->invalidation->dirty_baked_surface_capacity,
         key
     );
 }

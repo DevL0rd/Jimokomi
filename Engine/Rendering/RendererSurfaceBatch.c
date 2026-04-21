@@ -1,5 +1,8 @@
 #include "RendererInternal.h"
 
+#include "RendererLifecycleInternal.h"
+#include "RendererScratchInternal.h"
+#include "RendererStatsInternal.h"
 #include "ResourceManagerBake.h"
 #include "ResourceManagerRegistry.h"
 
@@ -17,25 +20,25 @@ bool renderer_reserve_instances(Renderer* renderer, size_t required_capacity)
         return false;
     }
 
-    if (renderer->scratch_instance_capacity >= required_capacity)
+    if (renderer->scratch->scratch_instance_capacity >= required_capacity)
     {
         return true;
     }
 
-    next_capacity = renderer->scratch_instance_capacity > 0U ? renderer->scratch_instance_capacity : 32U;
+    next_capacity = renderer->scratch->scratch_instance_capacity > 0U ? renderer->scratch->scratch_instance_capacity : 32U;
     while (next_capacity < required_capacity)
     {
         next_capacity *= 2U;
     }
 
-    items = (SurfaceDrawInstance*)realloc(renderer->scratch_instances, next_capacity * sizeof(*items));
+    items = (SurfaceDrawInstance*)realloc(renderer->scratch->scratch_instances, next_capacity * sizeof(*items));
     if (items == NULL)
     {
         return false;
     }
 
-    renderer->scratch_instances = items;
-    renderer->scratch_instance_capacity = next_capacity;
+    renderer->scratch->scratch_instances = items;
+    renderer->scratch->scratch_instance_capacity = next_capacity;
     return true;
 }
 
@@ -63,8 +66,8 @@ bool renderer_prepare_batched_surface_draw(
 
     memset(prepared, 0, sizeof(*prepared));
 
-    source = resource_manager_get_visual_source(renderer->resource_manager, item->visual_source_handle);
-    material = resource_manager_get_material(renderer->resource_manager, item->material_handle);
+    source = resource_manager_get_visual_source(renderer->lifecycle->resource_manager, item->visual_source_handle);
+    material = resource_manager_get_material(renderer->lifecycle->resource_manager, item->material_handle);
     if (source == NULL || material == NULL || source->draw_body == NULL)
     {
         return false;
@@ -82,7 +85,7 @@ bool renderer_prepare_batched_surface_draw(
         ? (uint32_t)floorf(((float)now_ms / 1000.0f) * source->animation_fps)
         : 0U;
     baked_body = resource_manager_get_baked_surface(
-        renderer->resource_manager,
+        renderer->lifecycle->resource_manager,
         item->visual_source_handle,
         item->material_handle,
         item->shader_handle,
@@ -97,8 +100,8 @@ bool renderer_prepare_batched_surface_draw(
 
     width = (float)source->width;
     height = (float)source->height;
-    screen_size = camera_world_size_to_screen(&renderer->camera, (Vec2){ width, height });
-    screen = camera_world_to_screen(&renderer->camera, (Vec2){ item->x, item->y });
+    screen_size = camera_world_size_to_screen(&renderer->lifecycle->camera, (Vec2){ width, height });
+    screen = camera_world_to_screen(&renderer->lifecycle->camera, (Vec2){ item->x, item->y });
     dest.x = screen.x - screen_size.x * item->anchor_x;
     dest.y = screen.y - screen_size.y * item->anchor_y;
     dest.w = screen_size.x;
@@ -141,13 +144,13 @@ void renderer_flush_surface_batch(
     backend->draw_surface_batch(
         backend->userdata,
         batch->surface,
-        renderer->scratch_instances,
+        renderer->scratch->scratch_instances,
         batch->count
     );
-    renderer->last_instance_draw_ms += renderer_now_ms() - started_ms;
-    renderer->last_instanced_batch_count += 1U;
-    renderer->last_instanced_draw_count += batch->count;
-    renderer->last_sprite_draw_count += batch->count;
+    renderer->stats->last_instance_draw_ms += renderer_now_ms() - started_ms;
+    renderer->stats->last_instanced_batch_count += 1U;
+    renderer->stats->last_instanced_draw_count += batch->count;
+    renderer->stats->last_sprite_draw_count += batch->count;
     batch->surface = NULL;
     batch->tint.value = 0U;
     batch->count = 0U;

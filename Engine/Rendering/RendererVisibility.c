@@ -1,5 +1,6 @@
 #include "RendererInternal.h"
 
+#include "RendererLifecycleInternal.h"
 #include "ResourceManagerRegistry.h"
 
 bool renderer_is_item_visible(const Renderer* renderer, const SpriteRenderable* item)
@@ -17,7 +18,7 @@ bool renderer_is_item_visible(const Renderer* renderer, const SpriteRenderable* 
         return false;
     }
 
-    source = resource_manager_get_visual_source(renderer->resource_manager, item->visual_source_handle);
+    source = resource_manager_get_visual_source(renderer->lifecycle->resource_manager, item->visual_source_handle);
     if (source == NULL)
     {
         return false;
@@ -30,8 +31,8 @@ bool renderer_is_item_visible(const Renderer* renderer, const SpriteRenderable* 
     right = left + width;
     bottom = top + height;
 
-    return right >= renderer->camera.x &&
-           bottom >= renderer->camera.y &&
-           left <= renderer->camera.x + renderer->camera.view_width &&
-           top <= renderer->camera.y + renderer->camera.view_height;
+    return right >= renderer->lifecycle->camera.x &&
+           bottom >= renderer->lifecycle->camera.y &&
+           left <= renderer->lifecycle->camera.x + renderer->lifecycle->camera.view_width &&
+           top <= renderer->lifecycle->camera.y + renderer->lifecycle->camera.view_height;
 }

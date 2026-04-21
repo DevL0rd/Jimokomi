@@ -1,6 +1,7 @@
 #include "InputRoutingSystem.h"
 
 #include "../SceneInternal.h"
+#include "../SceneLifecycleInternal.h"
 
 static bool input_routing_is_idle(const struct SceneInputState* input_state)
 {
@@ -26,10 +27,10 @@ static bool input_routing_is_idle(const struct SceneInputState* input_state)
 
 void InputRoutingSystem_Update(struct Scene* scene, const struct SceneInputState* input_state, float dt_seconds)
 {
-    if (scene == NULL || scene->lifecycle.on_input == NULL || input_routing_is_idle(input_state))
+    if (scene == NULL || scene->lifecycle->on_input == NULL || input_routing_is_idle(input_state))
     {
         return;
     }
 
-    scene->lifecycle.on_input(scene, input_state, dt_seconds, scene->lifecycle.user_data);
+    scene->lifecycle->on_input(scene, input_state, dt_seconds, scene->lifecycle->user_data);
 }

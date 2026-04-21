@@ -1,4 +1,6 @@
-#include "ResourceManagerInternal.h"
+#include "ResourceManagerBakeCacheInternal.h"
+#include "ResourceManagerInvalidationInternal.h"
+#include "ResourceManagerStatsInternal.h"
 
 #include <stdlib.h>
 
@@ -9,25 +11,25 @@ bool resource_manager_reserve_baked_surfaces(
     BakedSurfaceResource* next_values;
     size_t next_capacity;
 
-    if (manager->bake_cache.baked_surface_capacity >= required) {
+    if (manager->bake_cache->baked_surface_capacity >= required) {
         return true;
     }
 
-    next_capacity = manager->bake_cache.baked_surface_capacity > 0U ? manager->bake_cache.baked_surface_capacity : 16U;
+    next_capacity = manager->bake_cache->baked_surface_capacity > 0U ? manager->bake_cache->baked_surface_capacity : 16U;
     while (next_capacity < required) {
         next_capacity *= 2U;
     }
 
     next_values = (BakedSurfaceResource*)realloc(
-        manager->bake_cache.baked_surfaces,
+        manager->bake_cache->baked_surfaces,
         next_capacity * sizeof(*next_values)
     );
     if (next_values == NULL) {
         return false;
     }
 
-    manager->bake_cache.baked_surfaces = next_values;
-    manager->bake_cache.baked_surface_capacity = next_capacity;
+    manager->bake_cache->baked_surfaces = next_values;
+    manager->bake_cache->baked_surface_capacity = next_capacity;
     return true;
 }
 
@@ -39,11 +41,11 @@ static bool resource_manager_reserve_baked_surface_slots(
     size_t next_capacity;
     size_t index;
 
-    if (manager->bake_cache.baked_surface_slot_capacity >= required) {
+    if (manager->bake_cache->baked_surface_slot_capacity >= required) {
         return true;
     }
 
-    next_capacity = manager->bake_cache.baked_surface_slot_capacity > 0U ? manager->bake_cache.baked_surface_slot_capacity : 64U;
+    next_capacity = manager->bake_cache->baked_surface_slot_capacity > 0U ? manager->bake_cache->baked_surface_slot_capacity : 64U;
     while (next_capacity < required) {
         next_capacity *= 2U;
     }
@@ -53,8 +55,8 @@ static bool resource_manager_reserve_baked_surface_slots(
         return false;
     }
 
-    for (index = 0U; index < manager->bake_cache.baked_surface_slot_capacity; ++index) {
-        BakedSurfaceSlot* slot = &manager->bake_cache.baked_surface_slots[index];
+    for (index = 0U; index < manager->bake_cache->baked_surface_slot_capacity; ++index) {
+        BakedSurfaceSlot* slot = &manager->bake_cache->baked_surface_slots[index];
         if (slot->state != SLOT_STATE_FILLED) {
             continue;
         }
@@ -68,9 +70,9 @@ static bool resource_manager_reserve_baked_surface_slots(
         }
     }
 
-    free(manager->bake_cache.baked_surface_slots);
-    manager->bake_cache.baked_surface_slots = next_slots;
-    manager->bake_cache.baked_surface_slot_capacity = next_capacity;
+    free(manager->bake_cache->baked_surface_slots);
+    manager->bake_cache->baked_surface_slots = next_slots;
+    manager->bake_cache->baked_surface_slot_capacity = next_capacity;
     return true;
 }
 
@@ -85,31 +87,31 @@ bool resource_manager_insert_baked_surface_slot(
         return false;
     }
 
-    if ((manager->bake_cache.baked_surface_slot_count + 1U) * 10U >= manager->bake_cache.baked_surface_slot_capacity * 7U) {
+    if ((manager->bake_cache->baked_surface_slot_count + 1U) * 10U >= manager->bake_cache->baked_surface_slot_capacity * 7U) {
         if (!resource_manager_reserve_baked_surface_slots(
                 manager,
-                manager->bake_cache.baked_surface_slot_capacity > 0U
-                    ? manager->bake_cache.baked_surface_slot_capacity * 2U
+                manager->bake_cache->baked_surface_slot_capacity > 0U
+                    ? manager->bake_cache->baked_surface_slot_capacity * 2U
                     : 64U)) {
             return false;
         }
     }
 
-    if (manager->bake_cache.baked_surface_slot_capacity == 0U &&
+    if (manager->bake_cache->baked_surface_slot_capacity == 0U &&
         !resource_manager_reserve_baked_surface_slots(manager, 64U)) {
         return false;
     }
 
     slot_index = (size_t)(resource_manager_hash_baked_key(key) &
-        (uint64_t)(manager->bake_cache.baked_surface_slot_capacity - 1U));
-    while (manager->bake_cache.baked_surface_slots[slot_index].state == SLOT_STATE_FILLED) {
-        slot_index = (slot_index + 1U) & (manager->bake_cache.baked_surface_slot_capacity - 1U);
+        (uint64_t)(manager->bake_cache->baked_surface_slot_capacity - 1U));
+    while (manager->bake_cache->baked_surface_slots[slot_index].state == SLOT_STATE_FILLED) {
+        slot_index = (slot_index + 1U) & (manager->bake_cache->baked_surface_slot_capacity - 1U);
     }
 
-    manager->bake_cache.baked_surface_slots[slot_index].state = SLOT_STATE_FILLED;
-    manager->bake_cache.baked_surface_slots[slot_index].key = key;
-    manager->bake_cache.baked_surface_slots[slot_index].index = value_index;
-    manager->bake_cache.baked_surface_slot_count += 1U;
+    manager->bake_cache->baked_surface_slots[slot_index].state = SLOT_STATE_FILLED;
+    manager->bake_cache->baked_surface_slots[slot_index].key = key;
+    manager->bake_cache->baked_surface_slots[slot_index].index = value_index;
+    manager->bake_cache->baked_surface_slot_count += 1U;
     return true;
 }
 
@@ -119,18 +121,18 @@ const Surface* resource_manager_find_baked_surface(
 ) {
     size_t slot_index;
 
-    if (manager == NULL || manager->bake_cache.baked_surface_slot_capacity == 0U) {
+    if (manager == NULL || manager->bake_cache->baked_surface_slot_capacity == 0U) {
         return NULL;
     }
 
     slot_index = (size_t)(resource_manager_hash_baked_key(key) &
-        (uint64_t)(manager->bake_cache.baked_surface_slot_capacity - 1U));
-    while (manager->bake_cache.baked_surface_slots[slot_index].state != SLOT_STATE_EMPTY) {
-        if (manager->bake_cache.baked_surface_slots[slot_index].state == SLOT_STATE_FILLED &&
-            resource_manager_baked_key_equals(manager->bake_cache.baked_surface_slots[slot_index].key, key)) {
-            return manager->bake_cache.baked_surfaces[manager->bake_cache.baked_surface_slots[slot_index].index].surface;
+        (uint64_t)(manager->bake_cache->baked_surface_slot_capacity - 1U));
+    while (manager->bake_cache->baked_surface_slots[slot_index].state != SLOT_STATE_EMPTY) {
+        if (manager->bake_cache->baked_surface_slots[slot_index].state == SLOT_STATE_FILLED &&
+            resource_manager_baked_key_equals(manager->bake_cache->baked_surface_slots[slot_index].key, key)) {
+            return manager->bake_cache->baked_surfaces[manager->bake_cache->baked_surface_slots[slot_index].index].surface;
         }
-        slot_index = (slot_index + 1U) & (manager->bake_cache.baked_surface_slot_capacity - 1U);
+        slot_index = (slot_index + 1U) & (manager->bake_cache->baked_surface_slot_capacity - 1U);
     }
 
     return NULL;
@@ -147,16 +149,16 @@ bool resource_manager_store_baked_surface(
         return false;
     }
 
-    if (!resource_manager_reserve_baked_surfaces(manager, manager->bake_cache.baked_surface_count + 1U)) {
+    if (!resource_manager_reserve_baked_surfaces(manager, manager->bake_cache->baked_surface_count + 1U)) {
         return false;
     }
 
-    index = manager->bake_cache.baked_surface_count++;
-    manager->bake_cache.baked_surfaces[index].key = key;
-    manager->bake_cache.baked_surfaces[index].surface = surface;
+    index = manager->bake_cache->baked_surface_count++;
+    manager->bake_cache->baked_surfaces[index].key = key;
+    manager->bake_cache->baked_surfaces[index].surface = surface;
     if (!resource_manager_insert_baked_surface_slot(manager, key, index)) {
-        manager->bake_cache.baked_surface_count -= 1U;
-        manager->bake_cache.baked_surfaces[index].surface = NULL;
+        manager->bake_cache->baked_surface_count -= 1U;
+        manager->bake_cache->baked_surfaces[index].surface = NULL;
         return false;
     }
 
@@ -200,11 +202,11 @@ const Surface* resource_manager_get_baked_surface(
 
     baked_surface = resource_manager_find_baked_surface(manager, key);
     if (baked_surface != NULL) {
-        manager->stats.bake_cache_hits += 1U;
+        manager->stats->bake_cache_hits += 1U;
         return baked_surface;
     }
 
-    manager->stats.bake_cache_misses += 1U;
+    manager->stats->bake_cache_misses += 1U;
     (void)user_data;
     return NULL;
 }

@@ -1,4 +1,8 @@
-#include "ResourceManagerInternal.h"
+#include "ResourceManagerBakeCacheInternal.h"
+#include "ResourceManagerBakeQueueInternal.h"
+#include "ResourceManagerInvalidationInternal.h"
+#include "ResourceManagerRegistryInternal.h"
+#include "ResourceManagerStatsInternal.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -42,11 +46,11 @@ static bool resource_manager_reserve_pending_bake_slots(
     size_t next_capacity;
     size_t index;
 
-    if (manager->bake_queue.pending_bake_slot_capacity >= required) {
+    if (manager->bake_queue->pending_bake_slot_capacity >= required) {
         return true;
     }
 
-    next_capacity = manager->bake_queue.pending_bake_slot_capacity > 0U ? manager->bake_queue.pending_bake_slot_capacity : 64U;
+    next_capacity = manager->bake_queue->pending_bake_slot_capacity > 0U ? manager->bake_queue->pending_bake_slot_capacity : 64U;
     while (next_capacity < required) {
         next_capacity *= 2U;
     }
@@ -56,8 +60,8 @@ static bool resource_manager_reserve_pending_bake_slots(
         return false;
     }
 
-    for (index = 0U; index < manager->bake_queue.pending_bake_slot_capacity; ++index) {
-        PendingBakeSlot* slot = &manager->bake_queue.pending_bake_slots[index];
+    for (index = 0U; index < manager->bake_queue->pending_bake_slot_capacity; ++index) {
+        PendingBakeSlot* slot = &manager->bake_queue->pending_bake_slots[index];
         if (slot->state != SLOT_STATE_FILLED) {
             continue;
         }
@@ -71,9 +75,9 @@ static bool resource_manager_reserve_pending_bake_slots(
         }
     }
 
-    free(manager->bake_queue.pending_bake_slots);
-    manager->bake_queue.pending_bake_slots = next_slots;
-    manager->bake_queue.pending_bake_slot_capacity = next_capacity;
+    free(manager->bake_queue->pending_bake_slots);
+    manager->bake_queue->pending_bake_slots = next_slots;
+    manager->bake_queue->pending_bake_slot_capacity = next_capacity;
     return true;
 }
 
@@ -83,18 +87,18 @@ static bool resource_manager_pending_bake_contains(
 ) {
     size_t slot_index;
 
-    if (manager == NULL || manager->bake_queue.pending_bake_slot_capacity == 0U) {
+    if (manager == NULL || manager->bake_queue->pending_bake_slot_capacity == 0U) {
         return false;
     }
 
     slot_index = (size_t)(resource_manager_hash_baked_key(key) &
-        (uint64_t)(manager->bake_queue.pending_bake_slot_capacity - 1U));
-    while (manager->bake_queue.pending_bake_slots[slot_index].state != SLOT_STATE_EMPTY) {
-        if (manager->bake_queue.pending_bake_slots[slot_index].state == SLOT_STATE_FILLED &&
-            resource_manager_baked_key_equals(manager->bake_queue.pending_bake_slots[slot_index].key, key)) {
+        (uint64_t)(manager->bake_queue->pending_bake_slot_capacity - 1U));
+    while (manager->bake_queue->pending_bake_slots[slot_index].state != SLOT_STATE_EMPTY) {
+        if (manager->bake_queue->pending_bake_slots[slot_index].state == SLOT_STATE_FILLED &&
+            resource_manager_baked_key_equals(manager->bake_queue->pending_bake_slots[slot_index].key, key)) {
             return true;
         }
-        slot_index = (slot_index + 1U) & (manager->bake_queue.pending_bake_slot_capacity - 1U);
+        slot_index = (slot_index + 1U) & (manager->bake_queue->pending_bake_slot_capacity - 1U);
     }
 
     return false;
@@ -111,42 +115,42 @@ static bool resource_manager_insert_pending_bake_slot(
         return false;
     }
 
-    if ((manager->bake_queue.pending_bake_slot_count + 1U) * 10U >= manager->bake_queue.pending_bake_slot_capacity * 7U) {
+    if ((manager->bake_queue->pending_bake_slot_count + 1U) * 10U >= manager->bake_queue->pending_bake_slot_capacity * 7U) {
         if (!resource_manager_reserve_pending_bake_slots(
                 manager,
-                manager->bake_queue.pending_bake_slot_capacity > 0U
-                    ? manager->bake_queue.pending_bake_slot_capacity * 2U
+                manager->bake_queue->pending_bake_slot_capacity > 0U
+                    ? manager->bake_queue->pending_bake_slot_capacity * 2U
                     : 64U)) {
             return false;
         }
     }
 
-    if (manager->bake_queue.pending_bake_slot_capacity == 0U &&
+    if (manager->bake_queue->pending_bake_slot_capacity == 0U &&
         !resource_manager_reserve_pending_bake_slots(manager, 64U)) {
         return false;
     }
 
     slot_index = (size_t)(resource_manager_hash_baked_key(key) &
-        (uint64_t)(manager->bake_queue.pending_bake_slot_capacity - 1U));
-    while (manager->bake_queue.pending_bake_slots[slot_index].state != SLOT_STATE_EMPTY) {
-        if (manager->bake_queue.pending_bake_slots[slot_index].state == SLOT_STATE_FILLED &&
-            resource_manager_baked_key_equals(manager->bake_queue.pending_bake_slots[slot_index].key, key)) {
+        (uint64_t)(manager->bake_queue->pending_bake_slot_capacity - 1U));
+    while (manager->bake_queue->pending_bake_slots[slot_index].state != SLOT_STATE_EMPTY) {
+        if (manager->bake_queue->pending_bake_slots[slot_index].state == SLOT_STATE_FILLED &&
+            resource_manager_baked_key_equals(manager->bake_queue->pending_bake_slots[slot_index].key, key)) {
             return true;
         }
         if (first_tombstone == (size_t)-1 &&
-            manager->bake_queue.pending_bake_slots[slot_index].state == SLOT_STATE_TOMBSTONE) {
+            manager->bake_queue->pending_bake_slots[slot_index].state == SLOT_STATE_TOMBSTONE) {
             first_tombstone = slot_index;
         }
-        slot_index = (slot_index + 1U) & (manager->bake_queue.pending_bake_slot_capacity - 1U);
+        slot_index = (slot_index + 1U) & (manager->bake_queue->pending_bake_slot_capacity - 1U);
     }
 
     if (first_tombstone != (size_t)-1) {
         slot_index = first_tombstone;
     }
 
-    manager->bake_queue.pending_bake_slots[slot_index].state = SLOT_STATE_FILLED;
-    manager->bake_queue.pending_bake_slots[slot_index].key = key;
-    manager->bake_queue.pending_bake_slot_count += 1U;
+    manager->bake_queue->pending_bake_slots[slot_index].state = SLOT_STATE_FILLED;
+    manager->bake_queue->pending_bake_slots[slot_index].key = key;
+    manager->bake_queue->pending_bake_slot_count += 1U;
     return true;
 }
 
@@ -156,20 +160,20 @@ void resource_manager_remove_pending_bake_slot(
 ) {
     size_t slot_index;
 
-    if (manager == NULL || manager->bake_queue.pending_bake_slot_capacity == 0U) {
+    if (manager == NULL || manager->bake_queue->pending_bake_slot_capacity == 0U) {
         return;
     }
 
     slot_index = (size_t)(resource_manager_hash_baked_key(key) &
-        (uint64_t)(manager->bake_queue.pending_bake_slot_capacity - 1U));
-    while (manager->bake_queue.pending_bake_slots[slot_index].state != SLOT_STATE_EMPTY) {
-        if (manager->bake_queue.pending_bake_slots[slot_index].state == SLOT_STATE_FILLED &&
-            resource_manager_baked_key_equals(manager->bake_queue.pending_bake_slots[slot_index].key, key)) {
-            manager->bake_queue.pending_bake_slots[slot_index].state = SLOT_STATE_TOMBSTONE;
-            manager->bake_queue.pending_bake_slot_count -= 1U;
+        (uint64_t)(manager->bake_queue->pending_bake_slot_capacity - 1U));
+    while (manager->bake_queue->pending_bake_slots[slot_index].state != SLOT_STATE_EMPTY) {
+        if (manager->bake_queue->pending_bake_slots[slot_index].state == SLOT_STATE_FILLED &&
+            resource_manager_baked_key_equals(manager->bake_queue->pending_bake_slots[slot_index].key, key)) {
+            manager->bake_queue->pending_bake_slots[slot_index].state = SLOT_STATE_TOMBSTONE;
+            manager->bake_queue->pending_bake_slot_count -= 1U;
             return;
         }
-        slot_index = (slot_index + 1U) & (manager->bake_queue.pending_bake_slot_capacity - 1U);
+        slot_index = (slot_index + 1U) & (manager->bake_queue->pending_bake_slot_capacity - 1U);
     }
 }
 
@@ -178,28 +182,28 @@ void resource_manager_reset_empty_bake_queue(ResourceManager* manager) {
         return;
     }
 
-    if (manager->bake_queue.static_pending_bake_request_head > 0U &&
-        manager->bake_queue.static_pending_bake_request_head == manager->bake_queue.static_pending_bake_request_count) {
-        manager->bake_queue.static_pending_bake_request_head = 0U;
-        manager->bake_queue.static_pending_bake_request_count = 0U;
+    if (manager->bake_queue->static_pending_bake_request_head > 0U &&
+        manager->bake_queue->static_pending_bake_request_head == manager->bake_queue->static_pending_bake_request_count) {
+        manager->bake_queue->static_pending_bake_request_head = 0U;
+        manager->bake_queue->static_pending_bake_request_count = 0U;
     }
 
-    if (manager->bake_queue.transient_pending_bake_request_head > 0U &&
-        manager->bake_queue.transient_pending_bake_request_head == manager->bake_queue.transient_pending_bake_request_count) {
-        manager->bake_queue.transient_pending_bake_request_head = 0U;
-        manager->bake_queue.transient_pending_bake_request_count = 0U;
+    if (manager->bake_queue->transient_pending_bake_request_head > 0U &&
+        manager->bake_queue->transient_pending_bake_request_head == manager->bake_queue->transient_pending_bake_request_count) {
+        manager->bake_queue->transient_pending_bake_request_head = 0U;
+        manager->bake_queue->transient_pending_bake_request_count = 0U;
     }
 
-    if ((manager->bake_queue.static_pending_bake_request_count == 0U ||
-         manager->bake_queue.static_pending_bake_request_head == manager->bake_queue.static_pending_bake_request_count) &&
-        (manager->bake_queue.transient_pending_bake_request_count == 0U ||
-         manager->bake_queue.transient_pending_bake_request_head == manager->bake_queue.transient_pending_bake_request_count)) {
-        manager->bake_queue.pending_bake_slot_count = 0U;
-        if (manager->bake_queue.pending_bake_slots != NULL && manager->bake_queue.pending_bake_slot_capacity > 0U) {
+    if ((manager->bake_queue->static_pending_bake_request_count == 0U ||
+         manager->bake_queue->static_pending_bake_request_head == manager->bake_queue->static_pending_bake_request_count) &&
+        (manager->bake_queue->transient_pending_bake_request_count == 0U ||
+         manager->bake_queue->transient_pending_bake_request_head == manager->bake_queue->transient_pending_bake_request_count)) {
+        manager->bake_queue->pending_bake_slot_count = 0U;
+        if (manager->bake_queue->pending_bake_slots != NULL && manager->bake_queue->pending_bake_slot_capacity > 0U) {
             memset(
-                manager->bake_queue.pending_bake_slots,
+                manager->bake_queue->pending_bake_slots,
                 0,
-                manager->bake_queue.pending_bake_slot_capacity * sizeof(*manager->bake_queue.pending_bake_slots)
+                manager->bake_queue->pending_bake_slot_capacity * sizeof(*manager->bake_queue->pending_bake_slots)
             );
         }
     }
@@ -212,25 +216,25 @@ static bool resource_manager_reserve_bake_interest_entries(
     BakeInterestEntry* next_values;
     size_t next_capacity;
 
-    if (manager->bake_queue.bake_interest_capacity >= required) {
+    if (manager->bake_queue->bake_interest_capacity >= required) {
         return true;
     }
 
-    next_capacity = manager->bake_queue.bake_interest_capacity > 0U ? manager->bake_queue.bake_interest_capacity : 32U;
+    next_capacity = manager->bake_queue->bake_interest_capacity > 0U ? manager->bake_queue->bake_interest_capacity : 32U;
     while (next_capacity < required) {
         next_capacity *= 2U;
     }
 
     next_values = (BakeInterestEntry*)realloc(
-        manager->bake_queue.bake_interest_entries,
+        manager->bake_queue->bake_interest_entries,
         next_capacity * sizeof(*next_values)
     );
     if (next_values == NULL) {
         return false;
     }
 
-    manager->bake_queue.bake_interest_entries = next_values;
-    manager->bake_queue.bake_interest_capacity = next_capacity;
+    manager->bake_queue->bake_interest_entries = next_values;
+    manager->bake_queue->bake_interest_capacity = next_capacity;
     return true;
 }
 
@@ -244,10 +248,10 @@ static size_t resource_manager_get_bake_interest_priority(
         return 0U;
     }
 
-    for (index = 0U; index < manager->bake_queue.bake_interest_count; ++index) {
-        if (resource_manager_baked_key_equals(manager->bake_queue.bake_interest_entries[index].key, key)) {
-            return (size_t)manager->bake_queue.bake_interest_entries[index].frame_hits * 4U +
-                   (size_t)manager->bake_queue.bake_interest_entries[index].total_hits;
+    for (index = 0U; index < manager->bake_queue->bake_interest_count; ++index) {
+        if (resource_manager_baked_key_equals(manager->bake_queue->bake_interest_entries[index].key, key)) {
+            return (size_t)manager->bake_queue->bake_interest_entries[index].frame_hits * 4U +
+                   (size_t)manager->bake_queue->bake_interest_entries[index].total_hits;
         }
     }
 
@@ -293,32 +297,32 @@ static bool resource_manager_should_admit_bake(
         return false;
     }
 
-    for (index = 0U; index < manager->bake_queue.bake_interest_count; ++index) {
-        if (resource_manager_baked_key_equals(manager->bake_queue.bake_interest_entries[index].key, key)) {
-            entry = &manager->bake_queue.bake_interest_entries[index];
-            if (entry->last_seen_frame != manager->bake_queue.frame_serial) {
+    for (index = 0U; index < manager->bake_queue->bake_interest_count; ++index) {
+        if (resource_manager_baked_key_equals(manager->bake_queue->bake_interest_entries[index].key, key)) {
+            entry = &manager->bake_queue->bake_interest_entries[index];
+            if (entry->last_seen_frame != manager->bake_queue->frame_serial) {
                 entry->frame_hits = 0U;
-                entry->last_seen_frame = manager->bake_queue.frame_serial;
+                entry->last_seen_frame = manager->bake_queue->frame_serial;
             }
             entry->frame_hits += 1U;
             entry->total_hits += 1U;
-            return entry->frame_hits >= manager->bake_queue.bake_admission_frame_hits ||
-                   entry->total_hits >= manager->bake_queue.bake_admission_total_hits;
+            return entry->frame_hits >= manager->bake_queue->bake_admission_frame_hits ||
+                   entry->total_hits >= manager->bake_queue->bake_admission_total_hits;
         }
     }
 
-    if (!resource_manager_reserve_bake_interest_entries(manager, manager->bake_queue.bake_interest_count + 1U)) {
+    if (!resource_manager_reserve_bake_interest_entries(manager, manager->bake_queue->bake_interest_count + 1U)) {
         return false;
     }
 
-    entry = &manager->bake_queue.bake_interest_entries[manager->bake_queue.bake_interest_count++];
+    entry = &manager->bake_queue->bake_interest_entries[manager->bake_queue->bake_interest_count++];
     memset(entry, 0, sizeof(*entry));
     entry->key = key;
     entry->total_hits = 1U;
     entry->frame_hits = 1U;
-    entry->last_seen_frame = manager->bake_queue.frame_serial;
-    return entry->frame_hits >= manager->bake_queue.bake_admission_frame_hits ||
-           entry->total_hits >= manager->bake_queue.bake_admission_total_hits;
+    entry->last_seen_frame = manager->bake_queue->frame_serial;
+    return entry->frame_hits >= manager->bake_queue->bake_admission_frame_hits ||
+           entry->total_hits >= manager->bake_queue->bake_admission_total_hits;
 }
 
 bool resource_manager_enqueue_baked_request(
@@ -348,9 +352,9 @@ bool resource_manager_enqueue_baked_request(
     if (source != NULL && source->prebake_required) {
         priority += 1000000U;
         if (!resource_manager_enqueue_pending_request(
-            &manager->bake_queue.static_pending_bake_requests,
-            &manager->bake_queue.static_pending_bake_request_count,
-            &manager->bake_queue.static_pending_bake_request_capacity,
+            &manager->bake_queue->static_pending_bake_requests,
+            &manager->bake_queue->static_pending_bake_request_count,
+            &manager->bake_queue->static_pending_bake_request_capacity,
             key,
             priority
         )) {
@@ -361,9 +365,9 @@ bool resource_manager_enqueue_baked_request(
     }
 
     if (!resource_manager_enqueue_pending_request(
-        &manager->bake_queue.transient_pending_bake_requests,
-        &manager->bake_queue.transient_pending_bake_request_count,
-        &manager->bake_queue.transient_pending_bake_request_capacity,
+        &manager->bake_queue->transient_pending_bake_requests,
+        &manager->bake_queue->transient_pending_bake_request_count,
+        &manager->bake_queue->transient_pending_bake_request_capacity,
         key,
         priority
     )) {
@@ -445,15 +449,15 @@ void resource_manager_request_baked_surface(
     key.pass = (uint8_t)pass;
 
     if (visual_source_handle.id > 0U &&
-        visual_source_handle.id - 1U < manager->bake_queue.visual_source_last_requested_frame_capacity &&
-        manager->bake_queue.visual_source_last_requested_frame_indices[visual_source_handle.id - 1U] != normalized_frame_index) {
-        manager->bake_queue.visual_source_last_requested_frame_indices[visual_source_handle.id - 1U] = normalized_frame_index;
-        manager->stats.bake_invalidation_animation_frame_count += 1U;
+        visual_source_handle.id - 1U < manager->bake_queue->visual_source_last_requested_frame_capacity &&
+        manager->bake_queue->visual_source_last_requested_frame_indices[visual_source_handle.id - 1U] != normalized_frame_index) {
+        manager->bake_queue->visual_source_last_requested_frame_indices[visual_source_handle.id - 1U] = normalized_frame_index;
+        manager->stats->bake_invalidation_animation_frame_count += 1U;
     }
     resource_manager_mark_dirty_visual_source(manager, visual_source_handle);
     if (!source->bake_ignores_material) {
         resource_manager_mark_dirty_material(manager, material_handle);
-        manager->stats.prebake_ready_material_count += 1U;
+        manager->stats->prebake_ready_material_count += 1U;
     }
     if (shader_handle.id != 0U) {
         resource_manager_mark_dirty_shader(manager, shader_handle);

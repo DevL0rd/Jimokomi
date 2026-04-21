@@ -1,5 +1,6 @@
 #include "DebugOverlayInternal.h"
 
+#include "DebugOverlayUiInternal.h"
 #include <stdio.h>
 
 void debug_overlay_draw_inspector_contents(
@@ -16,24 +17,24 @@ void debug_overlay_draw_inspector_contents(
         return;
     }
 
-    if (overlay->inspector_collapsed) {
+    if (overlay->ui->inspector_collapsed) {
         debug_draw_inspector_rail(
             target,
-            &overlay->inspector_panel,
-            overlay->hovered_ui_region == DEBUG_UI_HOVER_INSPECTOR
+            &overlay->ui->inspector_panel,
+            overlay->ui->hovered_ui_region == DEBUG_UI_HOVER_INSPECTOR
         );
         return;
     }
 
     debug_draw_panel_frame(
         target,
-        &overlay->inspector_panel,
+        &overlay->ui->inspector_panel,
         "Inspector",
-        overlay->hovered_ui_region == DEBUG_UI_HOVER_INSPECTOR
+        overlay->ui->hovered_ui_region == DEBUG_UI_HOVER_INSPECTOR
     );
-    left = overlay->inspector_panel.x + 12.0f;
-    top = overlay->inspector_panel.y + 30.0f;
-    right = overlay->inspector_panel.x + overlay->inspector_panel.width - 12.0f;
+    left = overlay->ui->inspector_panel.x + 12.0f;
+    top = overlay->ui->inspector_panel.y + 30.0f;
+    right = overlay->ui->inspector_panel.x + overlay->ui->inspector_panel.width - 12.0f;
 
     snprintf(text, sizeof(text), "Entity %llu", (unsigned long long)selected_entity->id);
     target_text(target, left, top, text, (Color32){ 0xf2f8fcU });

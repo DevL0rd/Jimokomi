@@ -1,6 +1,10 @@
 #include "RendererInternal.h"
 
 #include "DebugOverlay.h"
+#include "RendererLifecycleInternal.h"
+#include "RendererScratchInternal.h"
+#include "RendererSignaturesInternal.h"
+#include "RendererStatsInternal.h"
 #include "ResourceManagerBake.h"
 #include "ResourceManagerRegistry.h"
 #include "ResourceManagerStats.h"
@@ -25,22 +29,22 @@ static bool renderer_reserve_scratch(Renderer* renderer, size_t required_capacit
         return false;
     }
 
-    if (renderer->scratch_capacity >= required_capacity) {
+    if (renderer->scratch->scratch_capacity >= required_capacity) {
         return true;
     }
 
-    next_capacity = renderer->scratch_capacity > 0U ? renderer->scratch_capacity : 16U;
+    next_capacity = renderer->scratch->scratch_capacity > 0U ? renderer->scratch->scratch_capacity : 16U;
     while (next_capacity < required_capacity) {
         next_capacity *= 2U;
     }
 
-    items = (SpriteRenderable*)realloc(renderer->scratch_items, next_capacity * sizeof(*items));
+    items = (SpriteRenderable*)realloc(renderer->scratch->scratch_items, next_capacity * sizeof(*items));
     if (items == NULL) {
         return false;
     }
 
-    renderer->scratch_items = items;
-    renderer->scratch_capacity = next_capacity;
+    renderer->scratch->scratch_items = items;
+    renderer->scratch->scratch_capacity = next_capacity;
     return true;
 }
 
@@ -63,17 +67,17 @@ static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend
         return;
     }
 
-    source = resource_manager_get_visual_source(renderer->resource_manager, item->visual_source_handle);
-    material = resource_manager_get_material(renderer->resource_manager, item->material_handle);
-    shader = resource_manager_get_shader(renderer->resource_manager, item->shader_handle);
+    source = resource_manager_get_visual_source(renderer->lifecycle->resource_manager, item->visual_source_handle);
+    material = resource_manager_get_material(renderer->lifecycle->resource_manager, item->material_handle);
+    shader = resource_manager_get_shader(renderer->lifecycle->resource_manager, item->shader_handle);
     if (source == NULL || material == NULL || source->draw_body == NULL) {
         return;
     }
 
     width = (float)source->width;
     height = (float)source->height;
-    screen_size = camera_world_size_to_screen(&renderer->camera, (Vec2){ width, height });
-    screen = camera_world_to_screen(&renderer->camera, (Vec2){ item->x, item->y });
+    screen_size = camera_world_size_to_screen(&renderer->lifecycle->camera, (Vec2){ width, height });
+    screen = camera_world_to_screen(&renderer->lifecycle->camera, (Vec2){ item->x, item->y });
     dest.x = screen.x - screen_size.x * item->anchor_x;
     dest.y = screen.y - screen_size.y * item->anchor_y;
     dest.w = screen_size.x;
@@ -90,7 +94,7 @@ static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend
     context.shader_style = shader != NULL ? shader->style : material->value.shader_style;
     if (source->bake_policy != BAKE_POLICY_DISABLED) {
         baked_body = resource_manager_get_baked_surface(
-            renderer->resource_manager,
+            renderer->lifecycle->resource_manager,
             item->visual_source_handle,
             item->material_handle,
             item->shader_handle,
@@ -101,7 +105,7 @@ static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend
         baked_overlay = NULL;
         if (source->draw_overlay != NULL) {
             baked_overlay = resource_manager_get_baked_surface(
-                renderer->resource_manager,
+                renderer->lifecycle->resource_manager,
                 item->visual_source_handle,
                 item->material_handle,
                 item->shader_handle,
@@ -120,7 +124,7 @@ static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend
                 (Vec2){ screen_size.x * item->anchor_x, screen_size.y * item->anchor_y },
                 item->angle_radians * (180.0f / 3.14159265359f)
             );
-            renderer->last_body_draw_ms += renderer_now_ms() - started_ms;
+            renderer->stats->last_body_draw_ms += renderer_now_ms() - started_ms;
             if (source->draw_overlay != NULL) {
                 started_ms = renderer_now_ms();
                 target_init(&target, backend, 0.0f, 0.0f);
@@ -131,12 +135,12 @@ static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend
                     (Vec2){ screen_size.x * item->anchor_x, screen_size.y * item->anchor_y },
                     item->angle_radians * (180.0f / 3.14159265359f)
                 );
-                renderer->last_overlay_draw_ms += renderer_now_ms() - started_ms;
-                renderer->last_overlay_draw_count += 1U;
+                renderer->stats->last_overlay_draw_ms += renderer_now_ms() - started_ms;
+                renderer->stats->last_overlay_draw_count += 1U;
             }
         } else {
             resource_manager_request_baked_surface(
-                renderer->resource_manager,
+                renderer->lifecycle->resource_manager,
                 item->visual_source_handle,
                 item->material_handle,
                 item->shader_handle,
@@ -145,7 +149,7 @@ static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend
             );
             if (source->draw_overlay != NULL) {
                 resource_manager_request_baked_surface(
-                    renderer->resource_manager,
+                    renderer->lifecycle->resource_manager,
                     item->visual_source_handle,
                     item->material_handle,
                     item->shader_handle,
@@ -156,30 +160,30 @@ static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend
             target_init(&target, backend, dest.x, dest.y);
             started_ms = renderer_now_ms();
             source->draw_body(&target, &context, item->user_data);
-            renderer->last_body_draw_ms += renderer_now_ms() - started_ms;
+            renderer->stats->last_body_draw_ms += renderer_now_ms() - started_ms;
             if (source->draw_overlay != NULL) {
                 target_init(&target, backend, dest.x, dest.y);
                 started_ms = renderer_now_ms();
                 source->draw_overlay(&target, &context, item->user_data);
-                renderer->last_overlay_draw_ms += renderer_now_ms() - started_ms;
-                renderer->last_overlay_draw_count += 1U;
+                renderer->stats->last_overlay_draw_ms += renderer_now_ms() - started_ms;
+                renderer->stats->last_overlay_draw_count += 1U;
             }
         }
     } else {
         target_init(&target, backend, dest.x, dest.y);
         started_ms = renderer_now_ms();
         source->draw_body(&target, &context, item->user_data);
-        renderer->last_body_draw_ms += renderer_now_ms() - started_ms;
+        renderer->stats->last_body_draw_ms += renderer_now_ms() - started_ms;
         if (source->draw_overlay != NULL) {
             target_init(&target, backend, dest.x, dest.y);
             started_ms = renderer_now_ms();
             source->draw_overlay(&target, &context, item->user_data);
-            renderer->last_overlay_draw_ms += renderer_now_ms() - started_ms;
-            renderer->last_overlay_draw_count += 1U;
+            renderer->stats->last_overlay_draw_ms += renderer_now_ms() - started_ms;
+            renderer->stats->last_overlay_draw_count += 1U;
         }
     }
     if (source->kind == VISUAL_KIND_PROCEDURAL_TEXTURE) {
-        renderer->last_procedural_item_count += 1U;
+        renderer->stats->last_procedural_item_count += 1U;
     }
 }
 
@@ -208,28 +212,40 @@ void renderer_init(Renderer *renderer, RenderBackend *backend, const RendererCon
         return;
     }
     memset(renderer, 0, sizeof(*renderer));
-    renderer->resource_manager = resource_manager_create(backend);
-    renderer->debug_overlay = debug_overlay_create();
-    if (renderer->resource_manager == NULL || renderer->debug_overlay == NULL) {
-        resource_manager_destroy(renderer->resource_manager);
-        debug_overlay_destroy(renderer->debug_overlay);
+    renderer->lifecycle = (RendererLifecycleState*)calloc(1U, sizeof(*renderer->lifecycle));
+    renderer->scratch = (RendererScratchState*)calloc(1U, sizeof(*renderer->scratch));
+    renderer->stats = (RendererStatsState*)calloc(1U, sizeof(*renderer->stats));
+    renderer->signatures = (RendererSignatureState*)calloc(1U, sizeof(*renderer->signatures));
+    if (renderer->lifecycle == NULL || renderer->scratch == NULL || renderer->stats == NULL || renderer->signatures == NULL) {
+        free(renderer->lifecycle);
+        free(renderer->scratch);
+        free(renderer->stats);
+        free(renderer->signatures);
         memset(renderer, 0, sizeof(*renderer));
         return;
     }
-    renderer->view_width = config != NULL && config->view_width > 0 ? config->view_width : 480;
-    renderer->view_height = config != NULL && config->view_height > 0 ? config->view_height : 270;
-    renderer->prebake_target_fps = config != NULL && config->prebake_target_fps > 0.0f
+    renderer->lifecycle->resource_manager = resource_manager_create(backend);
+    renderer->lifecycle->debug_overlay = debug_overlay_create();
+    if (renderer->lifecycle->resource_manager == NULL || renderer->lifecycle->debug_overlay == NULL) {
+        resource_manager_destroy(renderer->lifecycle->resource_manager);
+        debug_overlay_destroy(renderer->lifecycle->debug_overlay);
+        memset(renderer, 0, sizeof(*renderer));
+        return;
+    }
+    renderer->lifecycle->view_width = config != NULL && config->view_width > 0 ? config->view_width : 480;
+    renderer->lifecycle->view_height = config != NULL && config->view_height > 0 ? config->view_height : 270;
+    renderer->lifecycle->prebake_target_fps = config != NULL && config->prebake_target_fps > 0.0f
         ? config->prebake_target_fps
         : 60.0f;
-    resource_manager_set_bake_time_budget(renderer->resource_manager, 1000.0 / (double)renderer->prebake_target_fps);
+    resource_manager_set_bake_time_budget(renderer->lifecycle->resource_manager, 1000.0 / (double)renderer->lifecycle->prebake_target_fps);
     if (config != NULL) {
         resource_manager_set_bake_admission_thresholds(
-            renderer->resource_manager,
+            renderer->lifecycle->resource_manager,
             config->prebake_admission_total_hits,
             config->prebake_admission_frame_hits
         );
     }
-    camera_init(&renderer->camera, 0.0f, 0.0f, (float)renderer->view_width, (float)renderer->view_height, 0.12f);
+    camera_init(&renderer->lifecycle->camera, 0.0f, 0.0f, (float)renderer->lifecycle->view_width, (float)renderer->lifecycle->view_height, 0.12f);
 }
 
 Renderer* renderer_create(RenderBackend *backend, const RendererConfig *config) {
@@ -239,7 +255,13 @@ Renderer* renderer_create(RenderBackend *backend, const RendererConfig *config) 
     }
 
     renderer_init(renderer, backend, config);
-    if (renderer->resource_manager == NULL || renderer->debug_overlay == NULL) {
+    if (renderer->lifecycle == NULL ||
+        renderer->scratch == NULL ||
+        renderer->stats == NULL ||
+        renderer->signatures == NULL ||
+        renderer->lifecycle->resource_manager == NULL ||
+        renderer->lifecycle->debug_overlay == NULL) {
+        renderer_dispose(renderer);
         free(renderer);
         return NULL;
     }
@@ -251,10 +273,18 @@ void renderer_dispose(Renderer *renderer) {
     if (renderer == NULL) {
         return;
     }
-    resource_manager_destroy(renderer->resource_manager);
-    debug_overlay_destroy(renderer->debug_overlay);
-    free(renderer->scratch_items);
-    free(renderer->scratch_instances);
+    if (renderer->lifecycle != NULL) {
+        resource_manager_destroy(renderer->lifecycle->resource_manager);
+        debug_overlay_destroy(renderer->lifecycle->debug_overlay);
+    }
+    if (renderer->scratch != NULL) {
+        free(renderer->scratch->scratch_items);
+        free(renderer->scratch->scratch_instances);
+    }
+    free(renderer->lifecycle);
+    free(renderer->scratch);
+    free(renderer->stats);
+    free(renderer->signatures);
     memset(renderer, 0, sizeof(*renderer));
 }
 
@@ -268,40 +298,40 @@ void renderer_destroy(Renderer* renderer) {
 }
 
 Camera* renderer_get_camera(Renderer* renderer) {
-    return renderer != NULL ? &renderer->camera : NULL;
+    return renderer != NULL ? &renderer->lifecycle->camera : NULL;
 }
 
 const Camera* renderer_get_camera_const(const Renderer* renderer) {
-    return renderer != NULL ? &renderer->camera : NULL;
+    return renderer != NULL ? &renderer->lifecycle->camera : NULL;
 }
 
 void renderer_get_viewport_size(const Renderer* renderer, int* out_width, int* out_height) {
     if (out_width != NULL) {
-        *out_width = renderer != NULL ? renderer->view_width : 0;
+        *out_width = renderer != NULL ? renderer->lifecycle->view_width : 0;
     }
     if (out_height != NULL) {
-        *out_height = renderer != NULL ? renderer->view_height : 0;
+        *out_height = renderer != NULL ? renderer->lifecycle->view_height : 0;
     }
 }
 
 void renderer_toggle_debug_overlay(Renderer* renderer) {
     if (renderer != NULL) {
-        debug_overlay_toggle(renderer->debug_overlay);
+        debug_overlay_toggle(renderer->lifecycle->debug_overlay);
     }
 }
 
 void renderer_toggle_debug_world_gizmos(Renderer* renderer) {
     if (renderer != NULL) {
-        debug_overlay_toggle_world_gizmos(renderer->debug_overlay);
+        debug_overlay_toggle_world_gizmos(renderer->lifecycle->debug_overlay);
     }
 }
 
 bool renderer_debug_overlay_is_ui_visible(const Renderer* renderer) {
-    return renderer != NULL && debug_overlay_is_ui_visible(renderer->debug_overlay);
+    return renderer != NULL && debug_overlay_is_ui_visible(renderer->lifecycle->debug_overlay);
 }
 
 bool renderer_debug_overlay_is_world_gizmos_visible(const Renderer* renderer) {
-    return renderer != NULL && debug_overlay_is_world_gizmos_visible(renderer->debug_overlay);
+    return renderer != NULL && debug_overlay_is_world_gizmos_visible(renderer->lifecycle->debug_overlay);
 }
 
 void renderer_debug_overlay_handle_input(
@@ -312,7 +342,7 @@ void renderer_debug_overlay_handle_input(
     int window_height
 ) {
     if (renderer != NULL) {
-        debug_overlay_handle_input(renderer->debug_overlay, input, has_selection, window_width, window_height);
+        debug_overlay_handle_input(renderer->lifecycle->debug_overlay, input, has_selection, window_width, window_height);
     }
 }
 
@@ -325,7 +355,7 @@ bool renderer_debug_overlay_is_pointer_over_ui(
     int window_height
 ) {
     return renderer != NULL &&
-           debug_overlay_is_pointer_over_ui(renderer->debug_overlay, has_selection, mouse_x, mouse_y, window_width, window_height);
+           debug_overlay_is_pointer_over_ui(renderer->lifecycle->debug_overlay, has_selection, mouse_x, mouse_y, window_width, window_height);
 }
 
 void renderer_draw_debug_overlay_ui(
@@ -338,19 +368,19 @@ void renderer_draw_debug_overlay_ui(
     int window_height
 ) {
     if (renderer != NULL) {
-        debug_overlay_draw_ui(renderer->debug_overlay, backend, snapshot, engine_stats, selected_entity, window_width, window_height);
+        debug_overlay_draw_ui(renderer->lifecycle->debug_overlay, backend, snapshot, engine_stats, selected_entity, window_width, window_height);
     }
 }
 
 ResourceHandle renderer_register_material(Renderer* renderer, const char* name, const Material* material) {
     return renderer != NULL
-        ? resource_manager_register_material(renderer->resource_manager, name, material)
+        ? resource_manager_register_material(renderer->lifecycle->resource_manager, name, material)
         : (ResourceHandle){ 0U };
 }
 
 ResourceHandle renderer_register_shader(Renderer* renderer, const char* name, ShaderStyle style) {
     return renderer != NULL
-        ? resource_manager_register_shader(renderer->resource_manager, name, style)
+        ? resource_manager_register_shader(renderer->lifecycle->resource_manager, name, style)
         : (ResourceHandle){ 0U };
 }
 
@@ -360,7 +390,7 @@ ResourceHandle renderer_register_procedural_source(
     const ProceduralSourceDesc* desc
 ) {
     return renderer != NULL
-        ? resource_manager_register_procedural_source(renderer->resource_manager, name, desc)
+        ? resource_manager_register_procedural_source(renderer->lifecycle->resource_manager, name, desc)
         : (ResourceHandle){ 0U };
 }
 
@@ -373,19 +403,19 @@ void renderer_get_stats_snapshot(const Renderer* renderer, RendererStatsSnapshot
         return;
     }
 
-    out_snapshot->render_item_count = renderer->last_render_item_count;
-    out_snapshot->sprite_draw_count = renderer->last_sprite_draw_count;
-    out_snapshot->visible_item_count = renderer->last_visible_item_count;
-    out_snapshot->overlay_draw_count = renderer->last_overlay_draw_count;
-    out_snapshot->procedural_item_count = renderer->last_procedural_item_count;
-    out_snapshot->baked_surface_count = renderer->last_baked_surface_count;
-    out_snapshot->instanced_batch_count = renderer->last_instanced_batch_count;
-    out_snapshot->instanced_draw_count = renderer->last_instanced_draw_count;
-    out_snapshot->sort_ms = renderer->last_sort_ms;
-    out_snapshot->visibility_ms = renderer->last_visibility_ms;
-    out_snapshot->body_draw_ms = renderer->last_body_draw_ms;
-    out_snapshot->overlay_draw_ms = renderer->last_overlay_draw_ms;
-    out_snapshot->instance_draw_ms = renderer->last_instance_draw_ms;
+    out_snapshot->render_item_count = renderer->stats->last_render_item_count;
+    out_snapshot->sprite_draw_count = renderer->stats->last_sprite_draw_count;
+    out_snapshot->visible_item_count = renderer->stats->last_visible_item_count;
+    out_snapshot->overlay_draw_count = renderer->stats->last_overlay_draw_count;
+    out_snapshot->procedural_item_count = renderer->stats->last_procedural_item_count;
+    out_snapshot->baked_surface_count = renderer->stats->last_baked_surface_count;
+    out_snapshot->instanced_batch_count = renderer->stats->last_instanced_batch_count;
+    out_snapshot->instanced_draw_count = renderer->stats->last_instanced_draw_count;
+    out_snapshot->sort_ms = renderer->stats->last_sort_ms;
+    out_snapshot->visibility_ms = renderer->stats->last_visibility_ms;
+    out_snapshot->body_draw_ms = renderer->stats->last_body_draw_ms;
+    out_snapshot->overlay_draw_ms = renderer->stats->last_overlay_draw_ms;
+    out_snapshot->instance_draw_ms = renderer->stats->last_instance_draw_ms;
 }
 
 void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFrame *frame) {
@@ -407,40 +437,40 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
 
     renderer_compute_frame_signatures(frame, &frame_signature, &sort_signature, &instance_signature, &items_sorted_by_layer);
     overlay_signature = renderer_compute_overlay_signature(frame);
-    renderer->dirty_flags = RENDERER_DIRTY_NONE;
-    if (frame_signature != renderer->last_frame_signature) {
-        renderer->dirty_flags |= RENDERER_DIRTY_FRAME_LIST;
+    renderer->signatures->dirty_flags = RENDERER_DIRTY_NONE;
+    if (frame_signature != renderer->signatures->last_frame_signature) {
+        renderer->signatures->dirty_flags |= RENDERER_DIRTY_FRAME_LIST;
     }
-    if (sort_signature != renderer->last_sort_signature) {
-        renderer->dirty_flags |= RENDERER_DIRTY_SORT;
+    if (sort_signature != renderer->signatures->last_sort_signature) {
+        renderer->signatures->dirty_flags |= RENDERER_DIRTY_SORT;
     }
-    if (overlay_signature != renderer->last_overlay_signature) {
-        renderer->dirty_flags |= RENDERER_DIRTY_OVERLAY_LIST;
+    if (overlay_signature != renderer->signatures->last_overlay_signature) {
+        renderer->signatures->dirty_flags |= RENDERER_DIRTY_OVERLAY_LIST;
     }
-    if (instance_signature != renderer->last_instance_batch_signature) {
-        renderer->dirty_flags |= RENDERER_DIRTY_INSTANCE_BATCH;
+    if (instance_signature != renderer->signatures->last_instance_batch_signature) {
+        renderer->signatures->dirty_flags |= RENDERER_DIRTY_INSTANCE_BATCH;
     }
-    if (frame->backdrop_signature != renderer->last_backdrop_signature) {
-        renderer->dirty_flags |= RENDERER_DIRTY_BACKDROP;
+    if (frame->backdrop_signature != renderer->signatures->last_backdrop_signature) {
+        renderer->signatures->dirty_flags |= RENDERER_DIRTY_BACKDROP;
     }
-    if (frame->metadata_dirty || frame->metadata_signature != renderer->last_metadata_signature) {
-        renderer->dirty_flags |= RENDERER_DIRTY_SNAPSHOT_METADATA;
+    if (frame->metadata_dirty || frame->metadata_signature != renderer->signatures->last_metadata_signature) {
+        renderer->signatures->dirty_flags |= RENDERER_DIRTY_SNAPSHOT_METADATA;
     }
 
-    renderer->last_render_item_count = frame->item_count;
-    renderer->last_sprite_draw_count = 0U;
-    renderer->last_visible_item_count = 0U;
-    renderer->last_overlay_draw_count = 0U;
-    renderer->last_procedural_item_count = 0U;
-    renderer->last_baked_surface_count = resource_manager_get_baked_surface_count(renderer->resource_manager);
-    renderer->last_instanced_batch_count = 0U;
-    renderer->last_instanced_draw_count = 0U;
-    renderer->last_sort_ms = 0.0;
-    renderer->last_visibility_ms = 0.0;
-    renderer->last_body_draw_ms = 0.0;
-    renderer->last_overlay_draw_ms = 0.0;
-    renderer->last_instance_draw_ms = 0.0;
-    resource_manager_begin_frame(renderer->resource_manager);
+    renderer->stats->last_render_item_count = frame->item_count;
+    renderer->stats->last_sprite_draw_count = 0U;
+    renderer->stats->last_visible_item_count = 0U;
+    renderer->stats->last_overlay_draw_count = 0U;
+    renderer->stats->last_procedural_item_count = 0U;
+    renderer->stats->last_baked_surface_count = resource_manager_get_baked_surface_count(renderer->lifecycle->resource_manager);
+    renderer->stats->last_instanced_batch_count = 0U;
+    renderer->stats->last_instanced_draw_count = 0U;
+    renderer->stats->last_sort_ms = 0.0;
+    renderer->stats->last_visibility_ms = 0.0;
+    renderer->stats->last_body_draw_ms = 0.0;
+    renderer->stats->last_overlay_draw_ms = 0.0;
+    renderer->stats->last_instance_draw_ms = 0.0;
+    resource_manager_begin_frame(renderer->lifecycle->resource_manager);
 
     if (frame->draw_sprites) {
         double started_ms;
@@ -448,22 +478,22 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
         if (frame->backdrop_draw != NULL) {
             Target target;
             target_init(&target, backend, 0.0f, 0.0f);
-            frame->backdrop_draw(&target, &renderer->camera, frame->backdrop_user_data);
+            frame->backdrop_draw(&target, &renderer->lifecycle->camera, frame->backdrop_user_data);
         }
         if (draw_items != NULL && frame->item_count == 1U) {
             started_ms = renderer_now_ms();
             if (renderer_is_item_visible(renderer, &draw_items[0])) {
-                renderer->last_visible_item_count = 1U;
-                renderer->last_visibility_ms = renderer_now_ms() - started_ms;
+                renderer->stats->last_visible_item_count = 1U;
+                renderer->stats->last_visibility_ms = renderer_now_ms() - started_ms;
                 renderer_draw_sprite_body(renderer, backend, &draw_items[0], frame->now_ms);
-                renderer->last_sprite_draw_count = 1U;
+                renderer->stats->last_sprite_draw_count = 1U;
             } else {
-                renderer->last_visibility_ms = renderer_now_ms() - started_ms;
+                renderer->stats->last_visibility_ms = renderer_now_ms() - started_ms;
             }
-            if (resource_manager_has_pending_bakes(renderer->resource_manager)) {
+            if (resource_manager_has_pending_bakes(renderer->lifecycle->resource_manager)) {
                 resource_manager_process_pending_bakes(
-                    renderer->resource_manager,
-                    renderer_compute_bake_budget_ms(frame_started_ms, renderer->prebake_target_fps)
+                    renderer->lifecycle->resource_manager,
+                    renderer_compute_bake_budget_ms(frame_started_ms, renderer->lifecycle->prebake_target_fps)
                 );
             }
             goto draw_debug;
@@ -478,10 +508,10 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
         }
         if (frame->items != NULL && needs_sort && renderer_reserve_scratch(renderer, frame->item_count)) {
             started_ms = renderer_now_ms();
-            memcpy(renderer->scratch_items, frame->items, frame->item_count * sizeof(*renderer->scratch_items));
-            qsort(renderer->scratch_items, frame->item_count, sizeof(*renderer->scratch_items), renderer_compare_item_layer);
-            renderer->last_sort_ms = renderer_now_ms() - started_ms;
-            draw_items = renderer->scratch_items;
+            memcpy(renderer->scratch->scratch_items, frame->items, frame->item_count * sizeof(*renderer->scratch->scratch_items));
+            qsort(renderer->scratch->scratch_items, frame->item_count, sizeof(*renderer->scratch->scratch_items), renderer_compare_item_layer);
+            renderer->stats->last_sort_ms = renderer_now_ms() - started_ms;
+            draw_items = renderer->scratch->scratch_items;
         }
         if (draw_items != NULL) {
             RendererSurfaceBatch batch = { 0 };
@@ -493,11 +523,11 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
 
                 started_ms = renderer_now_ms();
                 if (!renderer_is_item_visible(renderer, &draw_items[index])) {
-                    renderer->last_visibility_ms += renderer_now_ms() - started_ms;
+                    renderer->stats->last_visibility_ms += renderer_now_ms() - started_ms;
                     continue;
                 }
-                renderer->last_visibility_ms += renderer_now_ms() - started_ms;
-                renderer->last_visible_item_count += 1U;
+                renderer->stats->last_visibility_ms += renderer_now_ms() - started_ms;
+                renderer->stats->last_visible_item_count += 1U;
 
                 if (batching_enabled &&
                     renderer_prepare_batched_surface_draw(renderer, &draw_items[index], frame->now_ms, &prepared)) {
@@ -507,20 +537,20 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
                     }
                     batch.surface = prepared.surface;
                     batch.tint = prepared.instance.tint;
-                    renderer->scratch_instances[batch.count++] = prepared.instance;
+                    renderer->scratch->scratch_instances[batch.count++] = prepared.instance;
                     continue;
                 }
 
                 renderer_flush_surface_batch(renderer, backend, &batch);
                 renderer_draw_sprite_body(renderer, backend, &draw_items[index], frame->now_ms);
-                renderer->last_sprite_draw_count += 1U;
+                renderer->stats->last_sprite_draw_count += 1U;
             }
             renderer_flush_surface_batch(renderer, backend, &batch);
         }
-        if (resource_manager_has_pending_bakes(renderer->resource_manager)) {
+        if (resource_manager_has_pending_bakes(renderer->lifecycle->resource_manager)) {
             resource_manager_process_pending_bakes(
-                renderer->resource_manager,
-                renderer_compute_bake_budget_ms(frame_started_ms, renderer->prebake_target_fps)
+                renderer->lifecycle->resource_manager,
+                renderer_compute_bake_budget_ms(frame_started_ms, renderer->lifecycle->prebake_target_fps)
             );
         }
     }
@@ -528,10 +558,10 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
 draw_debug:
     if (frame->draw_debug) {
         debug_overlay_draw_world(
-            renderer->debug_overlay,
+            renderer->lifecycle->debug_overlay,
             backend,
             frame->now_ms,
-            &renderer->camera,
+            &renderer->lifecycle->camera,
             &frame->debug_grid,
             frame->debug_entities,
             frame->debug_entity_count,
@@ -541,10 +571,10 @@ draw_debug:
             frame->hovered_debug_entity_id
         );
     }
-    renderer->last_frame_signature = frame_signature;
-    renderer->last_sort_signature = sort_signature;
-    renderer->last_overlay_signature = overlay_signature;
-    renderer->last_instance_batch_signature = instance_signature;
-    renderer->last_backdrop_signature = frame->backdrop_signature;
-    renderer->last_metadata_signature = frame->metadata_signature;
+    renderer->signatures->last_frame_signature = frame_signature;
+    renderer->signatures->last_sort_signature = sort_signature;
+    renderer->signatures->last_overlay_signature = overlay_signature;
+    renderer->signatures->last_instance_batch_signature = instance_signature;
+    renderer->signatures->last_backdrop_signature = frame->backdrop_signature;
+    renderer->signatures->last_metadata_signature = frame->metadata_signature;
 }

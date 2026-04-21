@@ -1,4 +1,6 @@
-#include "ResourceManagerInternal.h"
+#include "ResourceManagerBakeCacheInternal.h"
+#include "ResourceManagerBakeProcessInternal.h"
+#include "ResourceManagerBakeQueueInternal.h"
 
 #include <string.h>
 #include <time.h>
@@ -38,7 +40,7 @@ const Surface* resource_manager_execute_baked_surface(
         return NULL;
     }
 
-    manager->bake_queue.bake_requests_this_frame += 1U;
+    manager->bake_queue->bake_requests_this_frame += 1U;
     manager->backend->set_target(manager->backend->userdata, surface);
     manager->backend->clear(manager->backend->userdata, color_rgba(0U, 0U, 0U, 0U));
     target_init(&target, manager->backend, 0.0f, 0.0f);
@@ -99,16 +101,16 @@ void resource_manager_process_pending_bakes(ResourceManager* manager, double tim
         return;
     }
 
-    effective_budget_ms = time_budget_ms > 0.0 ? time_budget_ms : manager->bake_queue.bake_time_budget_ms;
-    manager->bake_queue.bake_time_budget_ms = effective_budget_ms;
-    manager->bake_queue.last_bake_process_ms = 0.0;
+    effective_budget_ms = time_budget_ms > 0.0 ? time_budget_ms : manager->bake_queue->bake_time_budget_ms;
+    manager->bake_queue->bake_time_budget_ms = effective_budget_ms;
+    manager->bake_queue->last_bake_process_ms = 0.0;
     if (effective_budget_ms <= 0.0) {
         return;
     }
 
     started_ms = resource_manager_now_ms();
-    while ((manager->bake_queue.static_pending_bake_request_head < manager->bake_queue.static_pending_bake_request_count ||
-            manager->bake_queue.transient_pending_bake_request_head < manager->bake_queue.transient_pending_bake_request_count) &&
+    while ((manager->bake_queue->static_pending_bake_request_head < manager->bake_queue->static_pending_bake_request_count ||
+            manager->bake_queue->transient_pending_bake_request_head < manager->bake_queue->transient_pending_bake_request_count) &&
            resource_manager_now_ms() - started_ms < effective_budget_ms) {
         PendingBakeRequest request;
         BakedSurfaceKey key;
@@ -116,10 +118,10 @@ void resource_manager_process_pending_bakes(ResourceManager* manager, double tim
         const MaterialResource* material;
         const ShaderResource* shader;
 
-        if (manager->bake_queue.static_pending_bake_request_head < manager->bake_queue.static_pending_bake_request_count) {
-            request = manager->bake_queue.static_pending_bake_requests[manager->bake_queue.static_pending_bake_request_head++];
+        if (manager->bake_queue->static_pending_bake_request_head < manager->bake_queue->static_pending_bake_request_count) {
+            request = manager->bake_queue->static_pending_bake_requests[manager->bake_queue->static_pending_bake_request_head++];
         } else {
-            request = manager->bake_queue.transient_pending_bake_requests[manager->bake_queue.transient_pending_bake_request_head++];
+            request = manager->bake_queue->transient_pending_bake_requests[manager->bake_queue->transient_pending_bake_request_head++];
         }
 
         key = request.key;
@@ -140,7 +142,7 @@ void resource_manager_process_pending_bakes(ResourceManager* manager, double tim
 
         (void)resource_manager_execute_baked_surface(manager, source, material, shader, key, NULL);
     }
-    manager->bake_queue.last_bake_process_ms = resource_manager_now_ms() - started_ms;
+    manager->bake_queue->last_bake_process_ms = resource_manager_now_ms() - started_ms;
 
     resource_manager_reset_empty_bake_queue(manager);
 }

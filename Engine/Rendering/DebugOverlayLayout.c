@@ -1,5 +1,6 @@
 #include "DebugOverlayInternal.h"
 
+#include "DebugOverlayUiInternal.h"
 #include "../Settings.h"
 
 float debug_title_bar_height(void) {
@@ -52,42 +53,42 @@ void debug_overlay_ensure_layout(
         return;
     }
 
-    if (overlay->layout_initialized &&
-        overlay->last_layout_viewport_width == viewport_width &&
-        overlay->last_layout_viewport_height == viewport_height &&
-        overlay->last_layout_has_selection == has_selection) {
+    if (overlay->ui->layout_initialized &&
+        overlay->ui->last_layout_viewport_width == viewport_width &&
+        overlay->ui->last_layout_viewport_height == viewport_height &&
+        overlay->ui->last_layout_has_selection == has_selection) {
         return;
     }
 
-    if (!overlay->layout_initialized) {
-        overlay->dashboard_panel.width = 336.0f;
-        overlay->dashboard_panel.height = 548.0f;
-        overlay->dashboard_panel.x = 12.0f;
-        overlay->dashboard_panel.y = 12.0f;
+    if (!overlay->ui->layout_initialized) {
+        overlay->ui->dashboard_panel.width = 336.0f;
+        overlay->ui->dashboard_panel.height = 548.0f;
+        overlay->ui->dashboard_panel.x = 12.0f;
+        overlay->ui->dashboard_panel.y = 12.0f;
 
-        overlay->inspector_panel.width = 336.0f;
-        overlay->inspector_panel.height = 166.0f;
-        overlay->inspector_panel.x = (float)viewport_width - debug_inspector_collapsed_width() - 12.0f;
-        overlay->inspector_panel.y = 12.0f;
-        overlay->inspector_collapsed = true;
-        overlay->layout_initialized = true;
+        overlay->ui->inspector_panel.width = 336.0f;
+        overlay->ui->inspector_panel.height = 166.0f;
+        overlay->ui->inspector_panel.x = (float)viewport_width - debug_inspector_collapsed_width() - 12.0f;
+        overlay->ui->inspector_panel.y = 12.0f;
+        overlay->ui->inspector_collapsed = true;
+        overlay->ui->layout_initialized = true;
     }
 
-    overlay->dashboard_panel.x = clamp_f(overlay->dashboard_panel.x, 0.0f, (float)viewport_width - overlay->dashboard_panel.width);
-    overlay->dashboard_panel.y = clamp_f(overlay->dashboard_panel.y, 0.0f, (float)viewport_height - overlay->dashboard_panel.height);
-    overlay->inspector_panel.x = clamp_f(
-        overlay->inspector_panel.x,
+    overlay->ui->dashboard_panel.x = clamp_f(overlay->ui->dashboard_panel.x, 0.0f, (float)viewport_width - overlay->ui->dashboard_panel.width);
+    overlay->ui->dashboard_panel.y = clamp_f(overlay->ui->dashboard_panel.y, 0.0f, (float)viewport_height - overlay->ui->dashboard_panel.height);
+    overlay->ui->inspector_panel.x = clamp_f(
+        overlay->ui->inspector_panel.x,
         0.0f,
-        (float)viewport_width - (overlay->inspector_collapsed ? debug_inspector_collapsed_width() : overlay->inspector_panel.width)
+        (float)viewport_width - (overlay->ui->inspector_collapsed ? debug_inspector_collapsed_width() : overlay->ui->inspector_panel.width)
     );
-    overlay->inspector_panel.y = clamp_f(overlay->inspector_panel.y, 0.0f, (float)viewport_height - overlay->inspector_panel.height);
+    overlay->ui->inspector_panel.y = clamp_f(overlay->ui->inspector_panel.y, 0.0f, (float)viewport_height - overlay->ui->inspector_panel.height);
 
     if (!has_selection) {
-        overlay->inspector_panel.dragging = false;
-        overlay->inspector_collapsed = true;
+        overlay->ui->inspector_panel.dragging = false;
+        overlay->ui->inspector_collapsed = true;
     }
 
-    overlay->last_layout_viewport_width = viewport_width;
-    overlay->last_layout_viewport_height = viewport_height;
-    overlay->last_layout_has_selection = has_selection;
+    overlay->ui->last_layout_viewport_width = viewport_width;
+    overlay->ui->last_layout_viewport_height = viewport_height;
+    overlay->ui->last_layout_has_selection = has_selection;
 }

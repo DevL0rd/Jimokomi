@@ -1,7 +1,14 @@
 #include "SceneInternal.h"
 
 #include "EntityInternal.h"
+#include "SceneCameraFollowInternal.h"
+#include "SceneLifecycleInternal.h"
+#include "ScenePhysicsInternal.h"
+#include "SceneSpatialInternal.h"
+#include "SceneStatsInternal.h"
 #include "SceneStorage.h"
+#include "SceneStorageInternal.h"
+#include "SceneTilemapInternal.h"
 #include "SceneView.h"
 #include "SpatialGrid.h"
 #include "Systems/CameraFollowSystem.h"
@@ -33,12 +40,37 @@ void Scene_Init(Scene* scene, const char* name, const PhysicsWorldConfig* physic
     }
 
     memset(scene, 0, sizeof(*scene));
-    strncpy(scene->lifecycle.name, name != NULL ? name : "Scene", sizeof(scene->lifecycle.name) - 1);
-    scene->lifecycle.active = true;
-    scene->lifecycle.next_entity_id = 1u;
-    scene->physics.physics_world = PhysicsWorld_Create(physics_config);
-    SpatialGrid_Init(&scene->spatial.spatial_grid, EngineSettings_GetDefaults()->scene_spatial_grid_cell_size);
-    scene->spatial.view = (SceneView){
+    scene->lifecycle = (SceneLifecycleState*)calloc(1U, sizeof(*scene->lifecycle));
+    scene->storage = (SceneStorage*)calloc(1U, sizeof(*scene->storage));
+    scene->physics = (ScenePhysicsState*)calloc(1U, sizeof(*scene->physics));
+    scene->tilemap = (SceneTilemapState*)calloc(1U, sizeof(*scene->tilemap));
+    scene->spatial = (SceneSpatialState*)calloc(1U, sizeof(*scene->spatial));
+    scene->stats = (SceneStatsState*)calloc(1U, sizeof(*scene->stats));
+    scene->camera_follow = (SceneCameraFollowState*)calloc(1U, sizeof(*scene->camera_follow));
+    if (scene->lifecycle == NULL ||
+        scene->storage == NULL ||
+        scene->physics == NULL ||
+        scene->tilemap == NULL ||
+        scene->spatial == NULL ||
+        scene->stats == NULL ||
+        scene->camera_follow == NULL)
+    {
+        free(scene->lifecycle);
+        free(scene->storage);
+        free(scene->physics);
+        free(scene->tilemap);
+        free(scene->spatial);
+        free(scene->stats);
+        free(scene->camera_follow);
+        memset(scene, 0, sizeof(*scene));
+        return;
+    }
+    strncpy(scene->lifecycle->name, name != NULL ? name : "Scene", sizeof(scene->lifecycle->name) - 1);
+    scene->lifecycle->active = true;
+    scene->lifecycle->next_entity_id = 1u;
+    scene->physics->physics_world = PhysicsWorld_Create(physics_config);
+    SpatialGrid_Init(&scene->spatial->spatial_grid, EngineSettings_GetDefaults()->scene_spatial_grid_cell_size);
+    scene->spatial->view = (SceneView){
         .previous_x = 0.0f,
         .previous_y = 0.0f,
         .previous_view_width = 480.0f,
@@ -66,35 +98,46 @@ Scene* Scene_Create(const char* name, const PhysicsWorldConfig* physics_config)
     }
 
     Scene_Init(scene, name, physics_config);
+    if (scene->lifecycle == NULL ||
+        scene->storage == NULL ||
+        scene->physics == NULL ||
+        scene->tilemap == NULL ||
+        scene->spatial == NULL ||
+        scene->stats == NULL ||
+        scene->camera_follow == NULL)
+    {
+        free(scene);
+        return NULL;
+    }
     return scene;
 }
 
 bool Scene_GetEntityLinearVelocity(Scene* scene, struct Entity* entity, Vec2* out_velocity)
 {
     return scene != NULL &&
-           scene->physics.physics_world != NULL &&
-           PhysicsWorld_GetEntityLinearVelocity(scene->physics.physics_world, entity, out_velocity);
+           scene->physics->physics_world != NULL &&
+           PhysicsWorld_GetEntityLinearVelocity(scene->physics->physics_world, entity, out_velocity);
 }
 
 bool Scene_SetEntityLinearVelocity(Scene* scene, struct Entity* entity, Vec2 velocity)
 {
     return scene != NULL &&
-           scene->physics.physics_world != NULL &&
-           PhysicsWorld_SetEntityLinearVelocity(scene->physics.physics_world, entity, velocity);
+           scene->physics->physics_world != NULL &&
+           PhysicsWorld_SetEntityLinearVelocity(scene->physics->physics_world, entity, velocity);
 }
 
 bool Scene_ApplyEntityLinearImpulse(Scene* scene, struct Entity* entity, Vec2 impulse, bool wake)
 {
     return scene != NULL &&
-           scene->physics.physics_world != NULL &&
-           PhysicsWorld_ApplyEntityLinearImpulse(scene->physics.physics_world, entity, impulse, wake);
+           scene->physics->physics_world != NULL &&
+           PhysicsWorld_ApplyEntityLinearImpulse(scene->physics->physics_world, entity, impulse, wake);
 }
 
 bool Scene_GetEntityContactCapacity(Scene* scene, struct Entity* entity, int* out_contact_capacity)
 {
     return scene != NULL &&
-           scene->physics.physics_world != NULL &&
-           PhysicsWorld_GetEntityContactCapacity(scene->physics.physics_world, entity, out_contact_capacity);
+           scene->physics->physics_world != NULL &&
+           PhysicsWorld_GetEntityContactCapacity(scene->physics->physics_world, entity, out_contact_capacity);
 }
 
 bool Scene_GetSpatialGridCellSpanForAabb(const Scene* scene, Aabb bounds, SpatialGridCellSpan* out_span)
@@ -108,7 +151,7 @@ bool Scene_GetSpatialGridCellSpanForAabb(const Scene* scene, Aabb bounds, Spatia
         return false;
     }
 
-    return SpatialGrid_GetCellSpanForAabb(&scene->spatial.spatial_grid, bounds, out_span);
+    return SpatialGrid_GetCellSpanForAabb(&scene->spatial->spatial_grid, bounds, out_span);
 }
 
 size_t Scene_GetSpatialGridDirtyCellSpans(const Scene* scene, SpatialGridCellSpan* results, size_t capacity)
@@ -118,7 +161,7 @@ size_t Scene_GetSpatialGridDirtyCellSpans(const Scene* scene, SpatialGridCellSpa
         return 0U;
     }
 
-    return SpatialGrid_GetDirtyCellSpans(&scene->spatial.spatial_grid, results, capacity);
+    return SpatialGrid_GetDirtyCellSpans(&scene->spatial->spatial_grid, results, capacity);
 }
 
 void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_state)
@@ -131,33 +174,33 @@ void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_s
         return;
     }
 
-    scene->stats.last_input_route_ms = 0.0;
-    scene->stats.last_random_force_ms = 0.0;
-    scene->stats.last_physics_sync_ms = 0.0;
-    scene->stats.last_camera_follow_ms = 0.0;
-    SpatialGrid_ClearDirtyCells(&scene->spatial.spatial_grid);
+    scene->stats->last_input_route_ms = 0.0;
+    scene->stats->last_random_force_ms = 0.0;
+    scene->stats->last_physics_sync_ms = 0.0;
+    scene->stats->last_camera_follow_ms = 0.0;
+    SpatialGrid_ClearDirtyCells(&scene->spatial->spatial_grid);
 
-    if (scene->lifecycle.on_input != NULL && input_state != NULL)
+    if (scene->lifecycle->on_input != NULL && input_state != NULL)
     {
         phase_started_ms = Scene_NowMs();
         InputRoutingSystem_Update(scene, input_state, dt_seconds);
-        scene->stats.last_input_route_ms = Scene_NowMs() - phase_started_ms;
+        scene->stats->last_input_route_ms = Scene_NowMs() - phase_started_ms;
     }
 
-    if (scene->storage.random_force_entity_count > 0U)
+    if (scene->storage->random_force_entity_count > 0U)
     {
         phase_started_ms = Scene_NowMs();
         RandomForceSystem_Update(scene, dt_seconds);
-        scene->stats.last_random_force_ms = Scene_NowMs() - phase_started_ms;
+        scene->stats->last_random_force_ms = Scene_NowMs() - phase_started_ms;
     }
 
     phase_started_ms = Scene_NowMs();
     PhysicsSyncSystem_Update(scene, dt_seconds);
-    scene->stats.last_physics_sync_ms = Scene_NowMs() - phase_started_ms;
+    scene->stats->last_physics_sync_ms = Scene_NowMs() - phase_started_ms;
 
-    for (index = 0U; index < scene->storage.renderable_entity_count; ++index)
+    for (index = 0U; index < scene->storage->renderable_entity_count; ++index)
     {
-        Entity* entity = scene->storage.renderable_entities[index];
+        Entity* entity = scene->storage->renderable_entities[index];
         TransformComponent* transform = NULL;
         ColliderComponent* collider = NULL;
 
@@ -172,7 +215,7 @@ void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_s
             (transform != NULL && (transform->dirty_flags & (TRANSFORM_DIRTY_POSITION | TRANSFORM_DIRTY_TELEPORT)) != 0U) ||
             (collider != NULL && collider->dirty_flags != COLLIDER_DIRTY_NONE))
         {
-            SpatialGrid_UpdateEntity(&scene->spatial.spatial_grid, entity);
+            SpatialGrid_UpdateEntity(&scene->spatial->spatial_grid, entity);
             if (transform != NULL)
             {
                 TransformComponent_ClearDirty(transform, TRANSFORM_DIRTY_POSITION | TRANSFORM_DIRTY_TELEPORT);
@@ -184,11 +227,11 @@ void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_s
         }
     }
 
-    if (scene->camera_follow.camera_target_entity != NULL)
+    if (scene->camera_follow->camera_target_entity != NULL)
     {
         phase_started_ms = Scene_NowMs();
         CameraFollowSystem_Update(scene, dt_seconds);
-        scene->stats.last_camera_follow_ms = Scene_NowMs() - phase_started_ms;
+        scene->stats->last_camera_follow_ms = Scene_NowMs() - phase_started_ms;
     }
 }
 
@@ -201,26 +244,42 @@ void Scene_Destroy(Scene* scene)
         return;
     }
 
-    for (index = scene->storage.entity_count; index > 0; --index)
+    for (index = scene->storage != NULL ? scene->storage->entity_count : 0U; index > 0; --index)
     {
-        struct Entity* entity = scene->storage.entities[index - 1];
+        struct Entity* entity = scene->storage->entities[index - 1];
         if (entity != NULL)
         {
-            PhysicsWorld_RemoveBodyForEntity(scene->physics.physics_world, entity);
+            if (scene->physics != NULL)
+            {
+                PhysicsWorld_RemoveBodyForEntity(scene->physics->physics_world, entity);
+            }
             entity->scene = NULL;
             Entity_Destroy(entity);
         }
     }
 
-    SceneStorage_Dispose(&scene->storage);
-
-    if (scene->physics.physics_world != NULL)
+    if (scene->storage != NULL)
     {
-        PhysicsWorld_Destroy(scene->physics.physics_world);
-        scene->physics.physics_world = NULL;
+        SceneStorage_Dispose(scene->storage);
     }
 
-    SpatialGrid_Dispose(&scene->spatial.spatial_grid);
+    if (scene->physics != NULL && scene->physics->physics_world != NULL)
+    {
+        PhysicsWorld_Destroy(scene->physics->physics_world);
+        scene->physics->physics_world = NULL;
+    }
 
+    if (scene->spatial != NULL)
+    {
+        SpatialGrid_Dispose(&scene->spatial->spatial_grid);
+    }
+
+    free(scene->lifecycle);
+    free(scene->storage);
+    free(scene->physics);
+    free(scene->tilemap);
+    free(scene->spatial);
+    free(scene->stats);
+    free(scene->camera_follow);
     free(scene);
 }

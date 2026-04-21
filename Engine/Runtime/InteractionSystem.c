@@ -49,45 +49,6 @@ static bool interaction_camera_rect_changed(const InteractionSystemState* state,
            camera->view_height != state->last_hover_camera_view_height;
 }
 
-static uint64_t interaction_pick_entity_from_snapshot(
-    const RenderSnapshotBuffer* render_snapshot,
-    const Camera* camera,
-    Vec2 screen_point
-)
-{
-    Vec2 world_point;
-    size_t index;
-
-    if (render_snapshot == NULL || camera == NULL)
-    {
-        return 0U;
-    }
-
-    world_point = camera_screen_to_world(camera, screen_point);
-    for (index = render_snapshot->world.pick_target_count; index > 0U; --index)
-    {
-        const PickTargetView* target = &render_snapshot->world.pick_targets[index - 1U];
-        if (target->is_circle)
-        {
-            float dx = world_point.x - target->x;
-            float dy = world_point.y - target->y;
-            if ((dx * dx) + (dy * dy) <= target->radius * target->radius)
-            {
-                return target->id;
-            }
-        }
-        else if (world_point.x >= target->x - target->extent_x &&
-                 world_point.x <= target->x + target->extent_x &&
-                 world_point.y >= target->y - target->extent_y &&
-                 world_point.y <= target->y + target->extent_y)
-        {
-            return target->id;
-        }
-    }
-
-    return 0U;
-}
-
 void InteractionSystem_UpdateRender(
     InteractionSystemState* state,
     const InteractionSystemConfig* config,
@@ -156,7 +117,7 @@ void InteractionSystem_UpdateRender(
     hover_query_dirty =
         !state->hover_cache_valid ||
         render_snapshot == NULL ||
-        render_snapshot->sequence != state->last_hover_snapshot_sequence ||
+        render_snapshot_buffer_get_sequence(render_snapshot) != state->last_hover_snapshot_sequence ||
         input->mouse_x != state->last_hover_mouse_x ||
         input->mouse_y != state->last_hover_mouse_y ||
         pointer_over_ui != state->last_hover_pointer_over_ui ||
@@ -164,9 +125,9 @@ void InteractionSystem_UpdateRender(
     if (hover_query_dirty)
     {
         state->hover_query_dirty_count += 1U;
-        state->hovered_entity_id = pointer_over_ui ? 0U : interaction_pick_entity_from_snapshot(render_snapshot, camera, mouse_screen);
+        state->hovered_entity_id = pointer_over_ui ? 0U : render_snapshot_buffer_pick_entity(render_snapshot, camera, mouse_screen);
         state->hover_pick_query_count += 1U;
-        state->last_hover_snapshot_sequence = render_snapshot != NULL ? render_snapshot->sequence : 0U;
+        state->last_hover_snapshot_sequence = render_snapshot_buffer_get_sequence(render_snapshot);
         state->last_hover_mouse_x = input->mouse_x;
         state->last_hover_mouse_y = input->mouse_y;
         state->last_hover_pointer_over_ui = pointer_over_ui;

@@ -1,5 +1,7 @@
 #include "DebugOverlayInternal.h"
 
+#include "DebugOverlayHistoryInternal.h"
+#include "DebugOverlayUiInternal.h"
 #include <stdio.h>
 
 typedef struct DebugMetricVisual {
@@ -59,16 +61,16 @@ static void debug_draw_history_graph(
         graph_max = metric->budget;
     }
 
-    if (overlay->history_count < 2U || graph_max <= 0.0f) {
+    if (overlay->history->history_count < 2U || graph_max <= 0.0f) {
         return;
     }
 
     previous_x = rect.x;
     previous_y = rect.y + rect.h;
 
-    for (sample_index = 0U; sample_index < overlay->history_count; ++sample_index) {
-        float sample = debug_overlay_history_sample(metric->history, overlay->history_count, overlay->history_cursor, sample_index);
-        float x = rect.x + ((float)sample_index / (float)(overlay->history_count - 1U)) * rect.w;
+    for (sample_index = 0U; sample_index < overlay->history->history_count; ++sample_index) {
+        float sample = debug_overlay_history_sample(metric->history, overlay->history->history_count, overlay->history->history_cursor, sample_index);
+        float x = rect.x + ((float)sample_index / (float)(overlay->history->history_count - 1U)) * rect.w;
         float y = rect.y + rect.h - rect.h * clamp_f(sample / graph_max, 0.0f, 1.0f);
 
         if (sample_index > 0U) {
@@ -177,21 +179,21 @@ void debug_overlay_draw_dashboard_contents(
     (void)viewport_width;
     (void)viewport_height;
 
-    metrics[0] = (DebugMetricVisual){ "FPS", overlay->display_fps, 120.0f, (Color32){ 0xb6f27cU }, overlay->fps_history };
-    metrics[1] = (DebugMetricVisual){ "Render", overlay->display_render_ms, 16.67f, (Color32){ 0x78e6ffU }, overlay->draw_ms_history };
-    metrics[2] = (DebugMetricVisual){ "1% Low", overlay->display_one_percent_low_fps, 120.0f, (Color32){ 0xffd07aU }, overlay->fps_history };
-    metrics[3] = (DebugMetricVisual){ "Sim", overlay->display_sim_ms, 16.67f, (Color32){ 0x8aa8bcU }, overlay->sim_ms_history };
-    metrics[4] = (DebugMetricVisual){ "Update", overlay->display_update_ms, 16.67f, (Color32){ 0x8fe8c4U }, overlay->update_ms_history };
-    metrics[5] = (DebugMetricVisual){ "Physics", overlay->display_physics_ms, 16.67f, (Color32){ 0xff8d7aU }, overlay->physics_ms_history };
-    metrics[6] = (DebugMetricVisual){ "Entities", overlay->display_visible_count, 20000.0f, (Color32){ 0xb896ffU }, overlay->visible_count_history };
+    metrics[0] = (DebugMetricVisual){ "FPS", overlay->history->display_fps, 120.0f, (Color32){ 0xb6f27cU }, overlay->history->fps_history };
+    metrics[1] = (DebugMetricVisual){ "Render", overlay->history->display_render_ms, 16.67f, (Color32){ 0x78e6ffU }, overlay->history->draw_ms_history };
+    metrics[2] = (DebugMetricVisual){ "1% Low", overlay->history->display_one_percent_low_fps, 120.0f, (Color32){ 0xffd07aU }, overlay->history->fps_history };
+    metrics[3] = (DebugMetricVisual){ "Sim", overlay->history->display_sim_ms, 16.67f, (Color32){ 0x8aa8bcU }, overlay->history->sim_ms_history };
+    metrics[4] = (DebugMetricVisual){ "Update", overlay->history->display_update_ms, 16.67f, (Color32){ 0x8fe8c4U }, overlay->history->update_ms_history };
+    metrics[5] = (DebugMetricVisual){ "Physics", overlay->history->display_physics_ms, 16.67f, (Color32){ 0xff8d7aU }, overlay->history->physics_ms_history };
+    metrics[6] = (DebugMetricVisual){ "Entities", overlay->history->display_visible_count, 20000.0f, (Color32){ 0xb896ffU }, overlay->history->visible_count_history };
 
-    debug_draw_panel_frame(target, &overlay->dashboard_panel, "Performance", overlay->hovered_ui_region == DEBUG_UI_HOVER_DASHBOARD);
-    left = overlay->dashboard_panel.x + 12.0f;
-    top = overlay->dashboard_panel.y + 30.0f;
-    column_width = (overlay->dashboard_panel.width - 36.0f) * 0.5f;
+    debug_draw_panel_frame(target, &overlay->ui->dashboard_panel, "Performance", overlay->ui->hovered_ui_region == DEBUG_UI_HOVER_DASHBOARD);
+    left = overlay->ui->dashboard_panel.x + 12.0f;
+    top = overlay->ui->dashboard_panel.y + 30.0f;
+    column_width = (overlay->ui->dashboard_panel.width - 36.0f) * 0.5f;
     row_height = 68.0f;
 
-    card_rect = (Rect){ left, top, overlay->dashboard_panel.width - 24.0f, row_height };
+    card_rect = (Rect){ left, top, overlay->ui->dashboard_panel.width - 24.0f, row_height };
     debug_draw_metric_card(target, card_rect, overlay, &metrics[0]);
     top += row_height + 10.0f;
 
@@ -199,7 +201,7 @@ void debug_overlay_draw_dashboard_contents(
     debug_draw_metric_card(target, card_rect, overlay, &metrics[1]);
     card_rect.x += column_width + 12.0f;
     debug_draw_metric_card(target, card_rect, overlay, &metrics[2]);
-    card_rect = (Rect){ left, top + (row_height + 10.0f), overlay->dashboard_panel.width - 24.0f, row_height };
+    card_rect = (Rect){ left, top + (row_height + 10.0f), overlay->ui->dashboard_panel.width - 24.0f, row_height };
     debug_draw_metric_card(target, card_rect, overlay, &metrics[3]);
 
     card_rect = (Rect){ left, card_rect.y + row_height + 10.0f, column_width, row_height };
@@ -207,23 +209,23 @@ void debug_overlay_draw_dashboard_contents(
     card_rect.x += column_width + 12.0f;
     debug_draw_metric_card(target, card_rect, overlay, &metrics[5]);
 
-    card_rect = (Rect){ left, card_rect.y + row_height + 10.0f, overlay->dashboard_panel.width - 24.0f, row_height };
+    card_rect = (Rect){ left, card_rect.y + row_height + 10.0f, overlay->ui->dashboard_panel.width - 24.0f, row_height };
     debug_draw_metric_card(target, card_rect, overlay, &metrics[6]);
 
-    snprintf(stat_text[0], sizeof(stat_text[0]), "%.0f", overlay->display_physics_hz);
-    snprintf(stat_text[1], sizeof(stat_text[1]), "%.0f", overlay->display_awake_body_count);
-    snprintf(stat_text[2], sizeof(stat_text[2]), "%.0f", overlay->display_total_body_count);
-    snprintf(stat_text[3], sizeof(stat_text[3]), "%.0f", overlay->display_sleeping_body_count);
-    snprintf(stat_text[4], sizeof(stat_text[4]), "%.0f", overlay->display_moved_body_count);
-    snprintf(stat_text[5], sizeof(stat_text[5]), "%.1f ms", overlay->display_snapshot_age_ms);
-    stat_chips[0] = (DebugStatChip){ "Hz", stat_text[0], clamp_f(overlay->display_physics_hz / 120.0f, 0.0f, 1.0f), (Color32){ 0xb896ffU } };
-    stat_chips[1] = (DebugStatChip){ "Awake", stat_text[1], clamp_f(overlay->display_awake_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0xffd07aU } };
-    stat_chips[2] = (DebugStatChip){ "Bodies", stat_text[2], clamp_f(overlay->display_total_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x8fe8c4U } };
-    stat_chips[3] = (DebugStatChip){ "Sleep", stat_text[3], clamp_f(overlay->display_sleeping_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x7f99adU } };
-    stat_chips[4] = (DebugStatChip){ "Moved", stat_text[4], clamp_f(overlay->display_moved_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x7ce2ffU } };
-    stat_chips[5] = (DebugStatChip){ "Age", stat_text[5], clamp_f(overlay->display_snapshot_age_ms / 16.67f, 0.0f, 1.0f), (Color32){ 0xd8d08fU } };
+    snprintf(stat_text[0], sizeof(stat_text[0]), "%.0f", overlay->history->display_physics_hz);
+    snprintf(stat_text[1], sizeof(stat_text[1]), "%.0f", overlay->history->display_awake_body_count);
+    snprintf(stat_text[2], sizeof(stat_text[2]), "%.0f", overlay->history->display_total_body_count);
+    snprintf(stat_text[3], sizeof(stat_text[3]), "%.0f", overlay->history->display_sleeping_body_count);
+    snprintf(stat_text[4], sizeof(stat_text[4]), "%.0f", overlay->history->display_moved_body_count);
+    snprintf(stat_text[5], sizeof(stat_text[5]), "%.1f ms", overlay->history->display_snapshot_age_ms);
+    stat_chips[0] = (DebugStatChip){ "Hz", stat_text[0], clamp_f(overlay->history->display_physics_hz / 120.0f, 0.0f, 1.0f), (Color32){ 0xb896ffU } };
+    stat_chips[1] = (DebugStatChip){ "Awake", stat_text[1], clamp_f(overlay->history->display_awake_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0xffd07aU } };
+    stat_chips[2] = (DebugStatChip){ "Bodies", stat_text[2], clamp_f(overlay->history->display_total_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x8fe8c4U } };
+    stat_chips[3] = (DebugStatChip){ "Sleep", stat_text[3], clamp_f(overlay->history->display_sleeping_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x7f99adU } };
+    stat_chips[4] = (DebugStatChip){ "Moved", stat_text[4], clamp_f(overlay->history->display_moved_body_count / 20000.0f, 0.0f, 1.0f), (Color32){ 0x7ce2ffU } };
+    stat_chips[5] = (DebugStatChip){ "Age", stat_text[5], clamp_f(overlay->history->display_snapshot_age_ms / 16.67f, 0.0f, 1.0f), (Color32){ 0xd8d08fU } };
 
-    stat_width = (overlay->dashboard_panel.width - 24.0f - 10.0f) / 3.0f;
+    stat_width = (overlay->ui->dashboard_panel.width - 24.0f - 10.0f) / 3.0f;
     stats_top = card_rect.y + row_height + 12.0f;
     stat_rect = (Rect){ left, stats_top, stat_width, 28.0f };
     debug_draw_stat_chip(target, stat_rect, &stat_chips[0]);

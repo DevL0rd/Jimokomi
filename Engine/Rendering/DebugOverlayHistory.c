@@ -1,5 +1,7 @@
 #include "DebugOverlayInternal.h"
 
+#include "DebugOverlayHistoryInternal.h"
+
 static float debug_smooth_display_value(float current, float target) {
     if (current <= 0.0f) {
         return target;
@@ -25,19 +27,19 @@ void debug_overlay_history_push(DebugOverlay* overlay, const DebugOverlaySnapsho
         return;
     }
 
-    slot = overlay->history_cursor;
-    overlay->fps_history[slot] = snapshot->fps;
-    overlay->frame_ms_history[slot] = (float)stats->frame_ms;
-    overlay->update_ms_history[slot] = snapshot->update_ms;
-    overlay->sim_ms_history[slot] = snapshot->sim_ms;
-    overlay->draw_ms_history[slot] = snapshot->draw_ms;
-    overlay->physics_ms_history[slot] = snapshot->physics_ms;
-    overlay->visible_count_history[slot] = (float)snapshot->visible_count;
-    overlay->history_cursor = (slot + 1U) % DEBUG_OVERLAY_HISTORY_CAPACITY;
-    if (overlay->history_count < DEBUG_OVERLAY_HISTORY_CAPACITY) {
-        overlay->history_count += 1U;
+    slot = overlay->history->history_cursor;
+    overlay->history->fps_history[slot] = snapshot->fps;
+    overlay->history->frame_ms_history[slot] = (float)stats->frame_ms;
+    overlay->history->update_ms_history[slot] = snapshot->update_ms;
+    overlay->history->sim_ms_history[slot] = snapshot->sim_ms;
+    overlay->history->draw_ms_history[slot] = snapshot->draw_ms;
+    overlay->history->physics_ms_history[slot] = snapshot->physics_ms;
+    overlay->history->visible_count_history[slot] = (float)snapshot->visible_count;
+    overlay->history->history_cursor = (slot + 1U) % DEBUG_OVERLAY_HISTORY_CAPACITY;
+    if (overlay->history->history_count < DEBUG_OVERLAY_HISTORY_CAPACITY) {
+        overlay->history->history_count += 1U;
     }
-    overlay->history_serial += 1U;
+    overlay->history->history_serial += 1U;
 }
 
 float debug_overlay_compute_one_percent_low_fps(const DebugOverlay* overlay) {
@@ -48,11 +50,11 @@ float debug_overlay_compute_one_percent_low_fps(const DebugOverlay* overlay) {
     size_t j;
     float accumulated_frame_ms = 0.0f;
 
-    if (overlay == NULL || overlay->history_count == 0U) {
+    if (overlay == NULL || overlay->history->history_count == 0U) {
         return 0.0f;
     }
 
-    count = overlay->history_count;
+    count = overlay->history->history_count;
     bucket_count = (count + 99U) / 100U;
     if (bucket_count == 0U) {
         bucket_count = 1U;
@@ -67,17 +69,17 @@ float debug_overlay_compute_one_percent_low_fps(const DebugOverlay* overlay) {
 
     for (i = 0U; i < bucket_count; ++i) {
         worst_samples[i] = debug_overlay_history_sample(
-            overlay->frame_ms_history,
-            overlay->history_count,
-            overlay->history_cursor,
+            overlay->history->frame_ms_history,
+            overlay->history->history_count,
+            overlay->history->history_cursor,
             i
         );
     }
     for (i = bucket_count; i < count; ++i) {
         float sample = debug_overlay_history_sample(
-            overlay->frame_ms_history,
-            overlay->history_count,
-            overlay->history_cursor,
+            overlay->history->frame_ms_history,
+            overlay->history->history_count,
+            overlay->history->history_cursor,
             i
         );
 
@@ -114,25 +116,25 @@ void debug_overlay_update_display_values(
         return;
     }
 
-    overlay->display_fps = debug_smooth_display_value(overlay->display_fps, snapshot->fps);
-    overlay->display_render_ms = debug_smooth_display_value(overlay->display_render_ms, snapshot->draw_ms);
-    overlay->display_one_percent_low_fps =
-        debug_smooth_display_value(overlay->display_one_percent_low_fps, one_percent_low_fps);
-    overlay->display_update_ms = debug_smooth_display_value(overlay->display_update_ms, snapshot->update_ms);
-    overlay->display_sim_ms = debug_smooth_display_value(overlay->display_sim_ms, snapshot->sim_ms);
-    overlay->display_physics_ms = debug_smooth_display_value(overlay->display_physics_ms, snapshot->physics_ms);
-    overlay->display_visible_count =
-        debug_smooth_display_value(overlay->display_visible_count, (float)snapshot->visible_count);
-    overlay->display_physics_hz =
-        debug_smooth_display_value(overlay->display_physics_hz, snapshot->physics_hz);
-    overlay->display_awake_body_count =
-        debug_smooth_display_value(overlay->display_awake_body_count, (float)snapshot->awake_body_count);
-    overlay->display_total_body_count =
-        debug_smooth_display_value(overlay->display_total_body_count, (float)snapshot->total_body_count);
-    overlay->display_sleeping_body_count =
-        debug_smooth_display_value(overlay->display_sleeping_body_count, (float)snapshot->sleeping_body_count);
-    overlay->display_moved_body_count =
-        debug_smooth_display_value(overlay->display_moved_body_count, (float)snapshot->moved_body_count);
-    overlay->display_snapshot_age_ms =
-        debug_smooth_display_value(overlay->display_snapshot_age_ms, snapshot->snapshot_age_ms);
+    overlay->history->display_fps = debug_smooth_display_value(overlay->history->display_fps, snapshot->fps);
+    overlay->history->display_render_ms = debug_smooth_display_value(overlay->history->display_render_ms, snapshot->draw_ms);
+    overlay->history->display_one_percent_low_fps =
+        debug_smooth_display_value(overlay->history->display_one_percent_low_fps, one_percent_low_fps);
+    overlay->history->display_update_ms = debug_smooth_display_value(overlay->history->display_update_ms, snapshot->update_ms);
+    overlay->history->display_sim_ms = debug_smooth_display_value(overlay->history->display_sim_ms, snapshot->sim_ms);
+    overlay->history->display_physics_ms = debug_smooth_display_value(overlay->history->display_physics_ms, snapshot->physics_ms);
+    overlay->history->display_visible_count =
+        debug_smooth_display_value(overlay->history->display_visible_count, (float)snapshot->visible_count);
+    overlay->history->display_physics_hz =
+        debug_smooth_display_value(overlay->history->display_physics_hz, snapshot->physics_hz);
+    overlay->history->display_awake_body_count =
+        debug_smooth_display_value(overlay->history->display_awake_body_count, (float)snapshot->awake_body_count);
+    overlay->history->display_total_body_count =
+        debug_smooth_display_value(overlay->history->display_total_body_count, (float)snapshot->total_body_count);
+    overlay->history->display_sleeping_body_count =
+        debug_smooth_display_value(overlay->history->display_sleeping_body_count, (float)snapshot->sleeping_body_count);
+    overlay->history->display_moved_body_count =
+        debug_smooth_display_value(overlay->history->display_moved_body_count, (float)snapshot->moved_body_count);
+    overlay->history->display_snapshot_age_ms =
+        debug_smooth_display_value(overlay->history->display_snapshot_age_ms, snapshot->snapshot_age_ms);
 }

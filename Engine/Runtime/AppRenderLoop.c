@@ -44,12 +44,13 @@ static const RenderSnapshotBuffer* engine_app_acquire_render_snapshot(
         render_snapshot_exchange_release_published(exchange, *retained_render_snapshot);
     }
     if (*last_render_snapshot_sequence > 0U &&
-        next_render_snapshot->sequence > *last_render_snapshot_sequence + 1U)
+        render_snapshot_buffer_get_sequence(next_render_snapshot) > *last_render_snapshot_sequence + 1U)
     {
-        app->dropped_render_snapshots += next_render_snapshot->sequence - *last_render_snapshot_sequence - 1U;
+        app->dropped_render_snapshots +=
+            render_snapshot_buffer_get_sequence(next_render_snapshot) - *last_render_snapshot_sequence - 1U;
     }
 
-    *last_render_snapshot_sequence = next_render_snapshot->sequence;
+    *last_render_snapshot_sequence = render_snapshot_buffer_get_sequence(next_render_snapshot);
     *retained_render_snapshot = next_render_snapshot;
     return next_render_snapshot;
 }
@@ -109,7 +110,7 @@ void engine_app_run_render_loop(
             continue;
         }
 
-        selected_entity = render_snapshot->world.has_selected_entity ? &render_snapshot->world.selected_entity : NULL;
+        selected_entity = render_snapshot_buffer_get_selected_entity(render_snapshot);
         has_selection = selected_entity != NULL || app->interaction_state.selected_entity_id != 0U;
         renderer_debug_overlay_handle_input(
             app->renderer,
@@ -155,14 +156,17 @@ void engine_app_run_render_loop(
         }
         InteractionSystem_ClearReleasedDrag(&app->interaction_state, &app->engine.input);
 
-        render_world_snapshot_build_frame(&render_snapshot->world, &frame);
-        selected_entity = render_snapshot->world.has_selected_entity ? &render_snapshot->world.selected_entity : NULL;
-        debug_overlay_snapshot = render_snapshot->stats.overlay;
+        render_snapshot_buffer_build_frame(render_snapshot, &frame);
+        selected_entity = render_snapshot_buffer_get_selected_entity(render_snapshot);
+        debug_overlay_snapshot = render_snapshot_buffer_get_stats(render_snapshot)->overlay;
         debug_overlay_snapshot.fps = (float)engine_stats_snapshot.fps;
         debug_overlay_snapshot.draw_ms = (float)engine_stats_snapshot.draw_ms;
         debug_overlay_snapshot.snapshot_age_ms =
-            render_snapshot->published_at_ms > 0U && frame.now_ms >= render_snapshot->published_at_ms
-                ? (float)(frame.now_ms - render_snapshot->published_at_ms)
+            render_snapshot_buffer_get_published_at_ms(render_snapshot) > 0U &&
+                    render_snapshot_buffer_get_now_ms(render_snapshot) >=
+                        render_snapshot_buffer_get_published_at_ms(render_snapshot)
+                ? (float)(render_snapshot_buffer_get_now_ms(render_snapshot) -
+                          render_snapshot_buffer_get_published_at_ms(render_snapshot))
                 : 0.0f;
 
         Engine_draw_begin(&app->engine);

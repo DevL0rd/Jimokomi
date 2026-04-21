@@ -2,6 +2,8 @@
 
 #include "../SceneInternal.h"
 #include "../SceneStorage.h"
+#include "../ScenePhysicsInternal.h"
+#include "../SceneStorageInternal.h"
 #include "../EntityInternal.h"
 #include "../Components/RandomForceComponent.h"
 #include "../Components/RigidBodyComponent.h"
@@ -63,7 +65,7 @@ bool RandomForceSystem_AddToEntity(
         RandomForceComponent_Destroy(random_force);
         return false;
     }
-    if (!Scene_AppendEntityToList(&scene->storage.random_force_entities, &scene->storage.random_force_entity_count, &scene->storage.random_force_entity_capacity, entity))
+    if (!Scene_AppendEntityToList(&scene->storage->random_force_entities, &scene->storage->random_force_entity_count, &scene->storage->random_force_entity_capacity, entity))
     {
         Entity_RemoveComponent(entity, COMPONENT_RANDOM_FORCE);
         RandomForceComponent_Destroy(random_force);
@@ -77,14 +79,14 @@ void RandomForceSystem_Update(struct Scene* scene, float dt_seconds)
 {
     size_t index = 0U;
 
-    if (scene == NULL || dt_seconds <= 0.0f || scene->storage.random_force_entity_count == 0U)
+    if (scene == NULL || dt_seconds <= 0.0f || scene->storage->random_force_entity_count == 0U)
     {
         return;
     }
 
-    for (index = 0U; index < scene->storage.random_force_entity_count; ++index)
+    for (index = 0U; index < scene->storage->random_force_entity_count; ++index)
     {
-        Entity* entity = scene->storage.random_force_entities[index];
+        Entity* entity = scene->storage->random_force_entities[index];
         RandomForceComponent* random_force = NULL;
         RigidBodyComponent* rigid_body = NULL;
 
@@ -115,7 +117,7 @@ void RandomForceSystem_Update(struct Scene* scene, float dt_seconds)
         if (random_force->current_force_x != 0.0f || random_force->current_force_y != 0.0f)
         {
             PhysicsWorld_ApplyEntityForce(
-                scene->physics.physics_world,
+                scene->physics->physics_world,
                 entity,
                 (Vec2){ random_force->current_force_x, random_force->current_force_y },
                 true

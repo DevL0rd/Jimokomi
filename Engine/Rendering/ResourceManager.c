@@ -1,4 +1,4 @@
-#include "ResourceManagerInternal.h"
+#include "ResourceManagerRegistryInternal.h"
 
 #include <stdlib.h>
 
