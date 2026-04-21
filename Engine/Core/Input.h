@@ -13,6 +13,13 @@ typedef enum EngineInputAction {
     ENGINE_INPUT_ACTION_ACTION,
     ENGINE_INPUT_ACTION_CYCLE_TARGET,
     ENGINE_INPUT_ACTION_DEBUG_TOGGLE,
+    ENGINE_INPUT_ACTION_DEBUG_WORLD_TOGGLE,
+    ENGINE_INPUT_ACTION_PAN_LEFT,
+    ENGINE_INPUT_ACTION_PAN_RIGHT,
+    ENGINE_INPUT_ACTION_PAN_UP,
+    ENGINE_INPUT_ACTION_PAN_DOWN,
+    ENGINE_INPUT_ACTION_ZOOM_IN,
+    ENGINE_INPUT_ACTION_ZOOM_OUT,
     ENGINE_INPUT_ACTION_COUNT
 } EngineInputAction;
 
@@ -25,6 +32,7 @@ typedef struct EngineInputSnapshot {
     bool repeated[ENGINE_INPUT_ACTION_COUNT];
     int mouse_x;
     int mouse_y;
+    float mouse_wheel_delta;
     uint32_t mouse_buttons;
 } EngineInputSnapshot;
 
@@ -36,6 +44,7 @@ typedef struct EngineInput {
     bool repeated_state[ENGINE_INPUT_ACTION_COUNT];
     int mouse_x;
     int mouse_y;
+    float mouse_wheel_delta;
     uint32_t mouse_buttons;
     uint32_t previous_mouse_buttons;
 } EngineInput;

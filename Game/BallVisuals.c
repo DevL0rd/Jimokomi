@@ -1,12 +1,18 @@
 #include "BallVisuals.h"
 
+#include "../Engine/RuntimeConfig.h"
+#include "../Engine/Rendering/Camera.h"
+#include "../Engine/Rendering/Renderer.h"
+#include "../Engine/Rendering/ResourceManager.h"
+#include "../Engine/Rendering/Target.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 
-#define BALL_RENDER_SIZE 7.0f
-#define BALL_RENDER_CENTER 3.5f
-#define BALL_RENDER_SCALE 0.5f
+#define BALL_RENDER_SIZE 14.0f
+#define BALL_RENDER_CENTER 7.0f
+#define BALL_RENDER_SCALE 1.0f
 
 static uint32_t game_color_from_hsv(float hue, float saturation, float value) {
     float r;
@@ -182,7 +188,9 @@ bool game_register_ball_visuals(
     source_desc.bake_policy = runtime_config != NULL
         ? runtime_config->default_procedural_bake_policy
         : BAKE_POLICY_SHARED_FRAME;
-    source_desc.prebake_required = false;
+    source_desc.prebake_required = runtime_config != NULL
+        ? runtime_config->default_prebake_required
+        : true;
     source_desc.bake_instance_invariant = runtime_config != NULL
         ? runtime_config->default_bake_instance_invariant
         : true;
@@ -191,7 +199,7 @@ bool game_register_ball_visuals(
     source_desc.draw_body = game_draw_ball_body;
     source_desc.draw_overlay = NULL;
     shared_source_handle = resource_manager_register_procedural_source(
-        &renderer->resource_manager,
+        renderer_get_resource_manager(renderer),
         "procedural.space_ball.shared_60fps",
         &source_desc
     );
@@ -203,7 +211,7 @@ bool game_register_ball_visuals(
     }
 
     *shared_shader_handle = resource_manager_register_shader(
-        &renderer->resource_manager,
+        renderer_get_resource_manager(renderer),
         "shader.space.v1",
         SHADER_STYLE_SPACE
     );
@@ -213,7 +221,7 @@ bool game_register_ball_visuals(
 
     game_fill_ball_material(&material, 0U);
     shared_material_handle = resource_manager_register_material(
-        &renderer->resource_manager,
+        renderer_get_resource_manager(renderer),
         "material.space_ball.shared",
         &material
     );
@@ -256,10 +264,22 @@ void game_draw_world_backdrop(Target* target, const Camera* camera, void* user_d
                 tile_size,
                 tile_size
             };
+            Vec2 top_left = camera_world_to_screen(camera, (Vec2){ cell.x, cell.y });
+            Vec2 screen_size = camera_world_size_to_screen(camera, (Vec2){ cell.w, cell.h });
+            Rect screen_cell = {
+                top_left.x,
+                top_left.y,
+                screen_size.x,
+                screen_size.y
+            };
             bool even = ((x + y) & 1) == 0;
-            target_rect_filled(target, cell, (Color32){ even ? 0x111827U : 0x0f172aU });
+            target_rect_filled(target, screen_cell, (Color32){ even ? 0x111827U : 0x0f172aU });
         }
     }
 
-    target_rect(target, (Rect){ 0.0f, 0.0f, world_width, world_height }, (Color32){ 0xff4d5aU });
+    {
+        Vec2 top_left = camera_world_to_screen(camera, (Vec2){ 0.0f, 0.0f });
+        Vec2 screen_size = camera_world_size_to_screen(camera, (Vec2){ world_width, world_height });
+        target_rect(target, (Rect){ top_left.x, top_left.y, screen_size.x, screen_size.y }, (Color32){ 0xff4d5aU });
+    }
 }

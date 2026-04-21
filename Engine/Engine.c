@@ -12,11 +12,11 @@ static EngineConfig Engine_default_config(void) {
     config.logger.flush_every = 1;
     config.logger.echo_to_console = true;
     config.logger.minimum_level = ENGINE_LOG_LEVEL_TRACE;
-    config.profiler.enabled = false;
+    config.profiler.enabled = true;
     config.profiler.path = "logs/performance_profile.bin";
     config.profiler.text_path = "logs/performance_profile.txt";
     config.profiler.max_frames = 180;
-    config.profiler.flush_every = 15;
+    config.profiler.flush_every = 120;
     return config;
 }
 

@@ -1,9 +1,11 @@
-#ifndef JIMOKOMI_ENGINE_CORE_RUNTIMECONFIG_H
-#define JIMOKOMI_ENGINE_CORE_RUNTIMECONFIG_H
+#ifndef JIMOKOMI_ENGINE_RUNTIMECONFIG_H
+#define JIMOKOMI_ENGINE_RUNTIMECONFIG_H
 
-#include "../Rendering/ResourceManager.h"
-#include "../Rendering/Renderer.h"
-#include "../Engine.h"
+#include "Core/EngineConfig.h"
+#include "Rendering/RendererConfig.h"
+#include "Rendering/ResourceTypes.h"
+
+#include <stdbool.h>
 
 typedef struct RuntimeConfig {
     int window_width;
@@ -12,6 +14,7 @@ typedef struct RuntimeConfig {
     EngineConfig engine;
     RendererConfig renderer;
     BakePolicy default_procedural_bake_policy;
+    bool default_prebake_required;
     bool default_bake_instance_invariant;
 } RuntimeConfig;
 

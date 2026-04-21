@@ -1,7 +1,7 @@
 #ifndef JIMOKOMI_ENGINE_PHYSICS_PHYSICSWORLD_H
 #define JIMOKOMI_ENGINE_PHYSICS_PHYSICSWORLD_H
 
-#include <box2d/box2d.h>
+#include "../Core/Geometry.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -10,6 +10,7 @@
 struct TaskSystem;
 struct Entity;
 struct Scene;
+struct RigidBodyComponent;
 struct TileRule;
 struct SceneTilemapAdapter;
 
@@ -23,7 +24,6 @@ typedef struct PhysicsWorldConfig
     size_t adaptive_level_count;
     float downshift_frame_ms;
     float upshift_frame_ms;
-    uint32_t tuner_hold_frames;
     uint32_t max_substeps;
     uint32_t step_substep_count;
     const struct TaskSystem* task_system;
@@ -31,57 +31,49 @@ typedef struct PhysicsWorldConfig
 
 typedef struct PhysicsQueryResult
 {
-    b2BodyId body_id;
-    b2ShapeId shape_id;
     struct Entity* entity;
-    b2Vec2 point;
-    b2Vec2 normal;
+    Vec2 point;
+    Vec2 normal;
     float fraction;
 } PhysicsQueryResult;
 
 typedef struct PhysicsWorldSnapshot
 {
     uint32_t body_count;
+    uint32_t total_body_count;
+    uint32_t sleeping_body_count;
+    uint32_t moved_body_count;
     uint32_t tile_body_count;
     uint32_t collision_pair_count;
     float physics_hz;
     float physics_fixed_dt;
     float physics_accumulator;
+    uint32_t physics_max_substeps;
     uint32_t physics_step_substeps;
+    float profile_step_ms;
+    float profile_pairs_ms;
+    float profile_collide_ms;
+    float profile_solve_ms;
+    float box2d_step_wall_ms;
     bool adaptive_enabled;
     uint32_t tuner_level_index;
+    uint32_t active_entity_count;
+    uint32_t dirty_entity_count;
+    uint32_t collider_changed_entity_count;
+    uint32_t body_create_count;
+    uint32_t body_remove_count;
+    uint32_t shape_change_count;
 } PhysicsWorldSnapshot;
 
-typedef struct PhysicsWorld
+typedef struct PhysicsContactHit
 {
-    b2WorldId world_id;
-    bool has_world;
-    float gravity_x;
-    float gravity_y;
-    float target_hz;
-    float fixed_dt;
-    uint32_t max_substeps;
-    uint32_t base_step_substep_count;
-    uint32_t step_substep_count;
-    float accumulator;
-    bool adaptive_enabled;
-    float adaptive_levels[8];
-    size_t adaptive_level_count;
-    uint32_t current_level_index;
-    float downshift_frame_ms;
-    float upshift_frame_ms;
-    uint32_t tuner_hold_frames;
-    uint32_t tuner_over_budget_frames;
-    uint32_t tuner_under_budget_frames;
-    char last_tuner_reason[16];
-    const struct SceneTilemapAdapter* tilemap_adapter;
-    const void* tilemap;
-    const struct TileRule* tile_rules;
-    size_t tile_rule_count;
-    b2BodyId* tile_bodies;
-    size_t tile_body_count;
-    size_t tile_body_capacity;
-} PhysicsWorld;
+    Vec2 point;
+    Vec2 normal;
+    struct Entity* entity_a;
+    struct Entity* entity_b;
+} PhysicsContactHit;
+
+typedef struct PhysicsWorld PhysicsWorld;
 
 void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config);
 PhysicsWorld* PhysicsWorld_Create(const PhysicsWorldConfig* config);
@@ -89,10 +81,21 @@ void PhysicsWorld_Destroy(PhysicsWorld* world);
 
 void PhysicsWorld_SetTargetHz(PhysicsWorld* world, float target_hz, const char* reason);
 void PhysicsWorld_UpdateAdaptiveBudget(PhysicsWorld* world, float frame_ms);
+void PhysicsWorld_GetStepConfig(const PhysicsWorld* world, float* out_fixed_dt, uint32_t* out_max_substeps);
+void PhysicsWorld_RegisterEntity(PhysicsWorld* world, struct Entity* entity);
+void PhysicsWorld_UnregisterEntity(PhysicsWorld* world, struct Entity* entity);
 
 void PhysicsWorld_RemoveBodyForEntity(PhysicsWorld* world, struct Entity* entity);
 void PhysicsWorld_ClearEntityBodies(PhysicsWorld* world, struct Scene* scene);
 void PhysicsWorld_SetEntityPosition(PhysicsWorld* world, struct Entity* entity, float x, float y);
+bool PhysicsWorld_GetEntityLinearVelocity(PhysicsWorld* world, struct Entity* entity, Vec2* out_velocity);
+bool PhysicsWorld_SetEntityLinearVelocity(PhysicsWorld* world, struct Entity* entity, Vec2 velocity);
+bool PhysicsWorld_SetEntityAngularVelocity(PhysicsWorld* world, struct Entity* entity, float angular_velocity);
+bool PhysicsWorld_ApplyEntityForce(PhysicsWorld* world, struct Entity* entity, Vec2 force, bool wake);
+bool PhysicsWorld_ApplyEntityLinearImpulse(PhysicsWorld* world, struct Entity* entity, Vec2 impulse, bool wake);
+bool PhysicsWorld_SetEntityAwake(PhysicsWorld* world, struct Entity* entity, bool awake);
+bool PhysicsWorld_IsEntityAwake(PhysicsWorld* world, struct Entity* entity, bool* out_awake);
+bool PhysicsWorld_GetEntityContactCapacity(PhysicsWorld* world, struct Entity* entity, int* out_contact_capacity);
 
 void PhysicsWorld_Update(PhysicsWorld* world, struct Scene* scene, float dt_seconds);
 void PhysicsWorld_SetTilemap(PhysicsWorld* world,
@@ -110,8 +113,7 @@ size_t PhysicsWorld_QueryRay(PhysicsWorld* world,
                                PhysicsQueryResult* results,
                                size_t capacity);
 size_t PhysicsWorld_QueryRadius(PhysicsWorld* world, float x, float y, float radius, PhysicsQueryResult* results, size_t capacity);
-
-struct Entity* PhysicsWorld_GetEntityForBody(PhysicsWorld* world, b2BodyId body_id);
+size_t PhysicsWorld_GetContactHits(PhysicsWorld* world, PhysicsContactHit* hits, size_t capacity);
 void PhysicsWorld_GetSnapshot(const PhysicsWorld* world, PhysicsWorldSnapshot* snapshot);
 
 #endif

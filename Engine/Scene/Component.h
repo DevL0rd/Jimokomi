@@ -1,8 +1,6 @@
 #ifndef JIMOKOMI_ENGINE_SCENE_COMPONENT_H
 #define JIMOKOMI_ENGINE_SCENE_COMPONENT_H
 
-#include "../Rendering/RenderCommon.h"
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -16,7 +14,8 @@ typedef enum ComponentType
     COMPONENT_RIGID_BODY,
     COMPONENT_COLLIDER,
     COMPONENT_CAMERA_TARGET,
-    COMPONENT_LIGHT
+    COMPONENT_RANDOM_FORCE,
+    COMPONENT_CUSTOM_BASE = 1024
 } ComponentType;
 
 typedef struct Component

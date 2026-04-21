@@ -1,35 +1,48 @@
 #include "Profiler.h"
+#include "PathResolver.h"
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <time.h>
 
-static char* engine_profiler_strdup(const char* source) {
-    char* copy = 0;
-    size_t length = 0;
-
-    if (source == 0) {
-        return 0;
-    }
-
-    length = strlen(source);
-    copy = (char*)malloc(length + 1);
-    if (copy == 0) {
-        return 0;
-    }
-
-    memcpy(copy, source, length + 1);
-    return copy;
-}
-
 static double engine_profiler_now_ms(void) {
     struct timespec ts;
-    timespec_get(&ts, TIME_UTC);
+    clock_gettime(CLOCK_MONOTONIC, &ts);
     return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
 }
 
+static uint32_t engine_profiler_hash_string(const char* value) {
+    uint32_t hash = 2166136261U;
+
+    if (value == NULL) {
+        return 0U;
+    }
+
+    while (*value != '\0') {
+        hash ^= (uint8_t)*value++;
+        hash *= 16777619U;
+    }
+
+    return hash;
+}
+
+static void engine_profiler_reset_lookup(int* lookup, size_t capacity) {
+    size_t index;
+
+    if (lookup == NULL) {
+        return;
+    }
+
+    for (index = 0U; index < capacity; ++index) {
+        lookup[index] = -1;
+    }
+}
+
 static void engine_profiler_copy_string(char* destination, size_t destination_size, const char* source) {
+    size_t index;
+
     if (destination == 0 || destination_size == 0) {
         return;
     }
@@ -39,20 +52,36 @@ static void engine_profiler_copy_string(char* destination, size_t destination_si
         return;
     }
 
-    snprintf(destination, destination_size, "%s", source);
+    for (index = 0U; index + 1U < destination_size && source[index] != '\0'; ++index) {
+        destination[index] = source[index];
+    }
+    destination[index] = '\0';
 }
 
-static EngineProfilerScopeSample* engine_profiler_find_scope(EngineProfilerFrame* frame, const char* name) {
-    size_t index = 0;
+static EngineProfilerScopeSample* engine_profiler_find_scope(EngineProfiler* profiler, const char* name) {
+    EngineProfilerFrame* frame;
+    uint32_t hash;
+    size_t slot;
 
-    if (frame == 0 || name == 0) {
+    if (profiler == NULL || name == NULL) {
         return 0;
     }
 
-    for (index = 0; index < frame->scope_count; ++index) {
-        if (strncmp(frame->scopes[index].name, name, ENGINE_PROFILER_NAME_CAPACITY) == 0) {
+    frame = &profiler->current_frame;
+    hash = engine_profiler_hash_string(name);
+    slot = (size_t)(hash % ENGINE_PROFILER_SCOPE_LOOKUP_CAPACITY);
+    for (;;) {
+        int index = profiler->scope_lookup[slot];
+
+        if (index < 0) {
+            break;
+        }
+        if ((size_t)index < frame->scope_count &&
+            strncmp(frame->scopes[index].name, name, ENGINE_PROFILER_NAME_CAPACITY) == 0) {
             return &frame->scopes[index];
         }
+
+        slot = (slot + 1U) % ENGINE_PROFILER_SCOPE_LOOKUP_CAPACITY;
     }
 
     if (frame->scope_count >= ENGINE_PROFILER_MAX_SCOPES_PER_FRAME) {
@@ -62,21 +91,35 @@ static EngineProfilerScopeSample* engine_profiler_find_scope(EngineProfilerFrame
     engine_profiler_copy_string(frame->scopes[frame->scope_count].name, ENGINE_PROFILER_NAME_CAPACITY, name);
     frame->scopes[frame->scope_count].total_ms = 0.0;
     frame->scopes[frame->scope_count].calls = 0;
+    profiler->scope_lookup[slot] = (int)frame->scope_count;
     frame->scope_count += 1;
     return &frame->scopes[frame->scope_count - 1];
 }
 
-static EngineProfilerMetadataItem* engine_profiler_find_metadata(EngineProfilerFrame* frame, const char* key) {
-    size_t index = 0;
+static EngineProfilerMetadataItem* engine_profiler_find_metadata(EngineProfiler* profiler, const char* key) {
+    EngineProfilerFrame* frame;
+    uint32_t hash;
+    size_t slot;
 
-    if (frame == 0 || key == 0) {
+    if (profiler == NULL || key == NULL) {
         return 0;
     }
 
-    for (index = 0; index < frame->metadata_count; ++index) {
-        if (strncmp(frame->metadata[index].key, key, ENGINE_PROFILER_NAME_CAPACITY) == 0) {
+    frame = &profiler->current_frame;
+    hash = engine_profiler_hash_string(key);
+    slot = (size_t)(hash % ENGINE_PROFILER_METADATA_LOOKUP_CAPACITY);
+    for (;;) {
+        int index = profiler->metadata_lookup[slot];
+
+        if (index < 0) {
+            break;
+        }
+        if ((size_t)index < frame->metadata_count &&
+            strncmp(frame->metadata[index].key, key, ENGINE_PROFILER_NAME_CAPACITY) == 0) {
             return &frame->metadata[index];
         }
+
+        slot = (slot + 1U) % ENGINE_PROFILER_METADATA_LOOKUP_CAPACITY;
     }
 
     if (frame->metadata_count >= ENGINE_PROFILER_MAX_METADATA_ITEMS) {
@@ -85,6 +128,7 @@ static EngineProfilerMetadataItem* engine_profiler_find_metadata(EngineProfilerF
 
     engine_profiler_copy_string(frame->metadata[frame->metadata_count].key, ENGINE_PROFILER_NAME_CAPACITY, key);
     frame->metadata[frame->metadata_count].value[0] = '\0';
+    profiler->metadata_lookup[slot] = (int)frame->metadata_count;
     frame->metadata_count += 1;
     return &frame->metadata[frame->metadata_count - 1];
 }
@@ -93,6 +137,8 @@ static void engine_profiler_reset_current_frame(EngineProfiler* profiler) {
     memset(&profiler->current_frame, 0, sizeof(profiler->current_frame));
     profiler->scope_stack_count = 0;
     profiler->has_current_frame = false;
+    engine_profiler_reset_lookup(profiler->scope_lookup, ENGINE_PROFILER_SCOPE_LOOKUP_CAPACITY);
+    engine_profiler_reset_lookup(profiler->metadata_lookup, ENGINE_PROFILER_METADATA_LOOKUP_CAPACITY);
 }
 
 static int engine_profiler_compare_scope_desc(const void* left, const void* right) {
@@ -117,6 +163,7 @@ static void engine_profiler_write_text_report(const EngineProfiler* profiler) {
         return;
     }
 
+    EnginePathResolver_ensure_parent_dirs(profiler->text_path);
     file = fopen(profiler->text_path, "w");
     if (file == 0) {
         return;
@@ -163,8 +210,8 @@ bool EngineProfiler_init(EngineProfiler* profiler, const EngineProfilerConfig* c
         return true;
     }
     frame_capacity = (config != 0 && config->max_frames > 0) ? config->max_frames : 180;
-    profiler->path = engine_profiler_strdup((config != 0 && config->path != 0) ? config->path : "logs/performance_profile.bin");
-    profiler->text_path = engine_profiler_strdup((config != 0 && config->text_path != 0) ? config->text_path : "logs/performance_profile.txt");
+    profiler->path = EnginePathResolver_resolve_relative_to_executable((config != 0 && config->path != 0) ? config->path : "logs/performance_profile.bin");
+    profiler->text_path = EnginePathResolver_resolve_relative_to_executable((config != 0 && config->text_path != 0) ? config->text_path : "logs/performance_profile.txt");
     profiler->flush_every = (config != 0 && config->flush_every > 0) ? config->flush_every : 15;
     profiler->max_frames = frame_capacity;
     profiler->frame_capacity = frame_capacity;
@@ -204,6 +251,8 @@ void EngineProfiler_begin_frame(EngineProfiler* profiler, const char* frame_name
     }
 
     memset(&profiler->current_frame, 0, sizeof(profiler->current_frame));
+    engine_profiler_reset_lookup(profiler->scope_lookup, ENGINE_PROFILER_SCOPE_LOOKUP_CAPACITY);
+    engine_profiler_reset_lookup(profiler->metadata_lookup, ENGINE_PROFILER_METADATA_LOOKUP_CAPACITY);
     profiler->scope_stack_count = 0;
     profiler->has_current_frame = true;
     engine_profiler_copy_string(profiler->current_frame.name, ENGINE_PROFILER_NAME_CAPACITY, frame_name != 0 ? frame_name : "frame");
@@ -241,7 +290,7 @@ void EngineProfiler_end_scope(EngineProfiler* profiler, const char* name) {
         duration_ms = 0.0;
     }
 
-    scope = engine_profiler_find_scope(&profiler->current_frame, scope_name);
+    scope = engine_profiler_find_scope(profiler, scope_name);
     if (scope == 0) {
         return;
     }
@@ -257,7 +306,7 @@ void EngineProfiler_set_metadata_string(EngineProfiler* profiler, const char* ke
         return;
     }
 
-    item = engine_profiler_find_metadata(&profiler->current_frame, key);
+    item = engine_profiler_find_metadata(profiler, key);
     if (item == 0) {
         return;
     }
@@ -314,12 +363,15 @@ void EngineProfiler_flush(EngineProfiler* profiler) {
     }
 
     profiler->flush_counter = 0;
+    EnginePathResolver_ensure_parent_dirs(profiler->path);
     file = fopen(profiler->path, "wb");
     if (file != 0) {
         fwrite(&profiler->frame_count, sizeof(profiler->frame_count), 1, file);
         fwrite(profiler->frame_history, sizeof(EngineProfilerFrame), profiler->frame_count, file);
         fclose(file);
     }
+
+    engine_profiler_write_text_report(profiler);
 }
 
 EngineProfilerSnapshot EngineProfiler_get_snapshot(EngineProfiler* profiler) {

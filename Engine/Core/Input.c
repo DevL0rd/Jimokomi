@@ -15,6 +15,13 @@ void EngineInputBindings_set_defaults(EngineInputBindings* bindings) {
     bindings->buttons[ENGINE_INPUT_ACTION_ACTION] = 5;
     bindings->buttons[ENGINE_INPUT_ACTION_CYCLE_TARGET] = 6;
     bindings->buttons[ENGINE_INPUT_ACTION_DEBUG_TOGGLE] = 7;
+    bindings->buttons[ENGINE_INPUT_ACTION_DEBUG_WORLD_TOGGLE] = 8;
+    bindings->buttons[ENGINE_INPUT_ACTION_PAN_LEFT] = 9;
+    bindings->buttons[ENGINE_INPUT_ACTION_PAN_RIGHT] = 10;
+    bindings->buttons[ENGINE_INPUT_ACTION_PAN_UP] = 11;
+    bindings->buttons[ENGINE_INPUT_ACTION_PAN_DOWN] = 12;
+    bindings->buttons[ENGINE_INPUT_ACTION_ZOOM_IN] = 13;
+    bindings->buttons[ENGINE_INPUT_ACTION_ZOOM_OUT] = 14;
 }
 
 void EngineInput_init(EngineInput* input, const EngineInputBindings* bindings) {
@@ -48,6 +55,7 @@ void EngineInput_capture(EngineInput* input, const EngineInputSnapshot* snapshot
     input->previous_mouse_buttons = input->mouse_buttons;
     input->mouse_x = snapshot->mouse_x;
     input->mouse_y = snapshot->mouse_y;
+    input->mouse_wheel_delta = snapshot->mouse_wheel_delta;
     input->mouse_buttons = snapshot->mouse_buttons;
 }
 

@@ -2,77 +2,55 @@
 #define JIMOKOMI_ENGINE_RENDERING_RENDERER_H
 
 #include "Camera.h"
-#include "DebugOverlay.h"
-#include "ResourceManager.h"
+#include "RendererConfig.h"
+#include "RenderTypes.h"
 #include "Target.h"
 
+typedef struct DebugOverlay DebugOverlay;
+typedef struct ResourceManager ResourceManager;
+typedef struct ResourceCommandQueue ResourceCommandQueue;
+typedef struct Renderer Renderer;
 struct Scene;
 
-typedef struct SpriteRenderable {
-    float x;
-    float y;
-    float angle_radians;
-    float anchor_x;
-    float anchor_y;
-    int layer;
-    bool visible;
-    ResourceHandle visual_source_handle;
-    ResourceHandle material_handle;
-    ResourceHandle shader_handle;
-    void* user_data;
-} SpriteRenderable;
+typedef struct RendererStatsSnapshot {
+    size_t render_item_count;
+    size_t sprite_draw_count;
+    size_t visible_item_count;
+    size_t overlay_draw_count;
+    size_t procedural_item_count;
+    size_t baked_surface_count;
+    size_t instanced_batch_count;
+    size_t instanced_draw_count;
+    double sort_ms;
+    double visibility_ms;
+    double body_draw_ms;
+    double overlay_draw_ms;
+    double instance_draw_ms;
+} RendererStatsSnapshot;
 
-typedef struct RendererConfig {
-    int view_width;
-    int view_height;
-    size_t prebake_budget_per_frame;
-    size_t prebake_admission_total_hits;
-    size_t prebake_admission_frame_hits;
-} RendererConfig;
+typedef enum RendererDirtyFlags {
+    RENDERER_DIRTY_NONE = 0,
+    RENDERER_DIRTY_FRAME_LIST = 1 << 0,
+    RENDERER_DIRTY_SORT = 1 << 1,
+    RENDERER_DIRTY_OVERLAY_LIST = 1 << 2,
+    RENDERER_DIRTY_INSTANCE_BATCH = 1 << 3,
+    RENDERER_DIRTY_BACKDROP = 1 << 4,
+    RENDERER_DIRTY_SNAPSHOT_METADATA = 1 << 5
+} RendererDirtyFlags;
 
-typedef void (*RendererBackdropDrawFn)(Target* target, const Camera* camera, void* user_data);
-
-typedef struct RendererFrame {
-    const SpriteRenderable *items;
-    size_t item_count;
-    RendererBackdropDrawFn backdrop_draw;
-    void* backdrop_user_data;
-    DebugEntityView *debug_entities;
-    size_t debug_entity_count;
-    DebugCollisionView *debug_collisions;
-    size_t debug_collision_count;
-    bool draw_sprites;
-    bool draw_debug;
-    uint64_t now_ms;
-} RendererFrame;
-
-typedef struct Renderer {
-    DebugOverlay debug_overlay;
-    Camera camera;
-    ResourceManager resource_manager;
-    int view_width;
-    int view_height;
-    SpriteRenderable* scratch_items;
-    size_t scratch_capacity;
-    SurfaceDrawInstance* scratch_instances;
-    size_t scratch_instance_capacity;
-    size_t last_render_item_count;
-    size_t last_sprite_draw_count;
-    size_t last_visible_item_count;
-    size_t last_overlay_draw_count;
-    size_t last_procedural_item_count;
-    size_t last_baked_surface_count;
-    size_t last_instanced_batch_count;
-    size_t last_instanced_draw_count;
-    double last_sort_ms;
-    double last_visibility_ms;
-    double last_body_draw_ms;
-    double last_overlay_draw_ms;
-    double last_instance_draw_ms;
-} Renderer;
-
+Renderer* renderer_create(RenderBackend *backend, const RendererConfig *config);
+void renderer_destroy(Renderer* renderer);
 void renderer_init(Renderer *renderer, RenderBackend *backend, const RendererConfig *config);
 void renderer_dispose(Renderer *renderer);
 void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFrame *frame);
+void renderer_get_stats_snapshot(const Renderer* renderer, RendererStatsSnapshot* out_snapshot);
+Camera* renderer_get_camera(Renderer* renderer);
+const Camera* renderer_get_camera_const(const Renderer* renderer);
+void renderer_get_viewport_size(const Renderer* renderer, int* out_width, int* out_height);
+ResourceManager* renderer_get_resource_manager(Renderer* renderer);
+const ResourceManager* renderer_get_resource_manager_const(const Renderer* renderer);
+DebugOverlay* renderer_get_debug_overlay(Renderer* renderer);
+const DebugOverlay* renderer_get_debug_overlay_const(const Renderer* renderer);
+size_t renderer_drain_resource_commands(Renderer* renderer, ResourceCommandQueue* queue);
 
 #endif

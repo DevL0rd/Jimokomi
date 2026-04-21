@@ -1,4 +1,4 @@
-#include "RuntimeConfig.h"
+#include "Engine/RuntimeConfig.h"
 
 #include <string.h>
 
@@ -17,11 +17,11 @@ void runtime_config_init_defaults(RuntimeConfig* config) {
     config->engine.logger.flush_every = 1;
     config->engine.logger.echo_to_console = true;
     config->engine.logger.minimum_level = ENGINE_LOG_LEVEL_TRACE;
-    config->engine.profiler.enabled = false;
+    config->engine.profiler.enabled = true;
     config->engine.profiler.path = "logs/performance_profile.bin";
     config->engine.profiler.text_path = "logs/performance_profile.txt";
     config->engine.profiler.max_frames = 180;
-    config->engine.profiler.flush_every = 15;
+    config->engine.profiler.flush_every = 120;
 
     config->renderer.view_width = 960;
     config->renderer.view_height = 540;
@@ -30,5 +30,6 @@ void runtime_config_init_defaults(RuntimeConfig* config) {
     config->renderer.prebake_admission_frame_hits = 1U;
 
     config->default_procedural_bake_policy = BAKE_POLICY_SHARED_FRAME;
+    config->default_prebake_required = true;
     config->default_bake_instance_invariant = true;
 }

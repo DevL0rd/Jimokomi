@@ -1,8 +1,9 @@
-#include "PhysicsWorld.h"
+#include "PhysicsWorldInternal.h"
+
 
 #include "../Core/TaskSystem.h"
-#include "../Scene/Scene.h"
-#include "../Scene/Entity.h"
+#include "../Scene/SceneInternal.h"
+#include "../Scene/EntityInternal.h"
 #include "../Scene/Components/ColliderComponent.h"
 #include "../Scene/Components/RigidBodyComponent.h"
 #include "../Scene/Components/TransformComponent.h"
@@ -10,6 +11,46 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
+void task_system_configure_box2d_world_def(const struct TaskSystem* system, b2WorldDef* world_def);
+static struct Entity* PhysicsWorld_GetEntityForBody(PhysicsWorld* world, b2BodyId body_id);
+
+static double PhysicsWorld_NowMs(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
+}
+
+static b2BodyId PhysicsWorld_LoadBodyHandle(PhysicsBodyHandle handle)
+{
+    return (b2BodyId){ handle.index1, handle.world0, handle.generation };
+}
+
+static PhysicsBodyHandle PhysicsWorld_StoreBodyHandle(b2BodyId body_id)
+{
+    return (PhysicsBodyHandle){ body_id.index1, body_id.world0, body_id.generation };
+}
+
+static PhysicsShapeHandle PhysicsWorld_StoreShapeHandle(b2ShapeId shape_id)
+{
+    return (PhysicsShapeHandle){ shape_id.index1, shape_id.world0, shape_id.generation };
+}
+
+static b2BodyType PhysicsWorld_ToBox2DType(RigidBodyType type)
+{
+    switch (type)
+    {
+        case RIGID_BODY_STATIC:
+            return b2_staticBody;
+        case RIGID_BODY_KINEMATIC:
+            return b2_kinematicBody;
+        case RIGID_BODY_DYNAMIC:
+        default:
+            return b2_dynamicBody;
+    }
+}
 
 typedef struct PhysicsQueryAccumulator
 {
@@ -31,6 +72,11 @@ static float PhysicsWorld_ClampFloat(float value, float min_value, float max_val
         return max_value;
     }
     return value;
+}
+
+static float PhysicsWorld_LerpFloat(float a, float b, float alpha)
+{
+    return a + ((b - a) * alpha);
 }
 
 static bool PhysicsWorld_ReserveTileBodies(PhysicsWorld* world, size_t required_capacity)
@@ -65,6 +111,54 @@ static bool PhysicsWorld_ReserveTileBodies(PhysicsWorld* world, size_t required_
     return true;
 }
 
+static bool PhysicsWorld_ReserveEntityPointerArray(struct Entity*** entities, size_t* capacity, size_t required_capacity)
+{
+    struct Entity** resized = NULL;
+    size_t new_capacity = 0U;
+
+    if (entities == NULL || capacity == NULL)
+    {
+        return false;
+    }
+
+    if (*capacity >= required_capacity)
+    {
+        return true;
+    }
+
+    new_capacity = *capacity == 0U ? 16U : *capacity;
+    while (new_capacity < required_capacity)
+    {
+        new_capacity *= 2U;
+    }
+
+    resized = (struct Entity**)realloc(*entities, sizeof(struct Entity*) * new_capacity);
+    if (resized == NULL)
+    {
+        return false;
+    }
+
+    *entities = resized;
+    *capacity = new_capacity;
+    return true;
+}
+
+static bool PhysicsWorld_AppendTrackedEntity(PhysicsWorld* world, struct Entity* entity)
+{
+    if (world == NULL || entity == NULL)
+    {
+        return false;
+    }
+
+    if (!PhysicsWorld_ReserveEntityPointerArray(&world->tracked_entities, &world->tracked_entity_capacity, world->tracked_entity_count + 1U))
+    {
+        return false;
+    }
+
+    world->tracked_entities[world->tracked_entity_count++] = entity;
+    return true;
+}
+
 static size_t PhysicsWorld_FindNearestLevelIndex(const PhysicsWorld* world, float target_hz)
 {
     size_t best_index = 0;
@@ -89,61 +183,24 @@ static size_t PhysicsWorld_FindNearestLevelIndex(const PhysicsWorld* world, floa
     return best_index;
 }
 
-static uint32_t PhysicsWorld_ComputeAdaptiveStepSubsteps(const PhysicsWorld* world, size_t level_index)
+static uint32_t PhysicsWorld_ComputeAdaptiveStepSubstepsForHz(const PhysicsWorld* world, float target_hz)
 {
-    float level_hz = 60.0f;
     uint32_t base_substeps = 4u;
 
     if (world != NULL)
     {
-        if (level_index < world->adaptive_level_count)
-        {
-            level_hz = world->adaptive_levels[level_index];
-        }
         base_substeps = world->base_step_substep_count > 0u ? world->base_step_substep_count : 4u;
     }
 
-    if (level_hz >= 50.0f)
+    if (target_hz >= 90.0f)
     {
         return base_substeps;
     }
-    if (level_hz >= 30.0f)
+    if (target_hz >= 45.0f)
     {
         return base_substeps > 2u ? 2u : base_substeps;
     }
     return 1u;
-}
-
-static void PhysicsWorld_ApplyAdaptiveLevel(PhysicsWorld* world, size_t level_index, const char* reason)
-{
-    if (world == NULL)
-    {
-        return;
-    }
-
-    if (world->adaptive_level_count == 0u)
-    {
-        level_index = 0u;
-    }
-    else if (level_index >= world->adaptive_level_count)
-    {
-        level_index = world->adaptive_level_count - 1u;
-    }
-
-    world->current_level_index = (uint32_t)level_index;
-    world->target_hz = world->adaptive_level_count > 0u ? world->adaptive_levels[level_index] : world->target_hz;
-    if (world->target_hz < 1.0f)
-    {
-        world->target_hz = 1.0f;
-    }
-    world->fixed_dt = 1.0f / world->target_hz;
-    world->step_substep_count = PhysicsWorld_ComputeAdaptiveStepSubsteps(world, level_index);
-    world->accumulator = fminf(world->accumulator, world->fixed_dt * (float)world->max_substeps);
-    if (reason != NULL)
-    {
-        memset(world->last_tuner_reason, 0, sizeof(world->last_tuner_reason));
-        strncpy(world->last_tuner_reason, reason, sizeof(world->last_tuner_reason) - 1);
-    }
 }
 
 static int PhysicsWorld_GetTileValue(const PhysicsWorld* world, int tile_x, int tile_y, int layer_index)
@@ -271,7 +328,7 @@ static b2BodyId PhysicsWorld_EnsureEntityBody(PhysicsWorld* world, struct Entity
     }
 
     transform = (TransformComponent*)Entity_GetComponent(entity, COMPONENT_TRANSFORM);
-    rigid_body = (RigidBodyComponent*)Entity_GetComponent(entity, COMPONENT_RIGID_BODY);
+    rigid_body = (RigidBodyComponent*)Entity_GetFixedComponent(entity, COMPONENT_RIGID_BODY);
     collider = (ColliderComponent*)Entity_GetComponent(entity, COMPONENT_COLLIDER);
     if (transform == NULL || rigid_body == NULL || collider == NULL)
     {
@@ -279,9 +336,9 @@ static b2BodyId PhysicsWorld_EnsureEntityBody(PhysicsWorld* world, struct Entity
         return b2_nullBodyId;
     }
 
-    if (rigid_body->has_body && b2Body_IsValid(rigid_body->body_id))
+    if (rigid_body->has_body && b2Body_IsValid(PhysicsWorld_LoadBodyHandle(rigid_body->body_id)))
     {
-        return rigid_body->body_id;
+        return PhysicsWorld_LoadBodyHandle(rigid_body->body_id);
     }
 
     {
@@ -289,7 +346,7 @@ static b2BodyId PhysicsWorld_EnsureEntityBody(PhysicsWorld* world, struct Entity
         b2ShapeDef shape_def = b2DefaultShapeDef();
         b2BodyId body_id;
 
-        body_def.type = RigidBodyComponent_ToBox2DType(rigid_body->body_type);
+        body_def.type = PhysicsWorld_ToBox2DType(rigid_body->body_type);
         body_def.position.x = transform->x;
         body_def.position.y = transform->y;
         body_def.rotation = b2MakeRot(transform->angle_radians);
@@ -312,20 +369,55 @@ static b2BodyId PhysicsWorld_EnsureEntityBody(PhysicsWorld* world, struct Entity
         if (collider->shape == COLLIDER_SHAPE_RECT)
         {
             b2Polygon box = b2MakeBox(collider->width * 0.5f, collider->height * 0.5f);
-            rigid_body->shape_id = b2CreatePolygonShape(body_id, &shape_def, &box);
+            rigid_body->shape_id = PhysicsWorld_StoreShapeHandle(b2CreatePolygonShape(body_id, &shape_def, &box));
         }
         else
         {
             b2Circle circle;
             circle.center = (b2Vec2){0.0f, 0.0f};
             circle.radius = collider->radius;
-            rigid_body->shape_id = b2CreateCircleShape(body_id, &shape_def, &circle);
+            rigid_body->shape_id = PhysicsWorld_StoreShapeHandle(b2CreateCircleShape(body_id, &shape_def, &circle));
         }
 
-        rigid_body->body_id = body_id;
+        rigid_body->body_id = PhysicsWorld_StoreBodyHandle(body_id);
         rigid_body->has_body = true;
+        RigidBodyComponent_ClearDirty(rigid_body, RIGID_BODY_DIRTY_DEFINITION);
+        ColliderComponent_ClearDirty(collider, COLLIDER_DIRTY_SHAPE | COLLIDER_DIRTY_BOUNDS);
         return body_id;
     }
+}
+
+static bool PhysicsWorld_GetEntityBody(
+    PhysicsWorld* world,
+    struct Entity* entity,
+    bool create_if_missing,
+    b2BodyId* out_body_id
+) {
+    RigidBodyComponent* rigid_body;
+    b2BodyId body_id;
+
+    if (out_body_id != NULL) {
+        *out_body_id = b2_nullBodyId;
+    }
+    if (world == NULL || entity == NULL || out_body_id == NULL) {
+        return false;
+    }
+
+    rigid_body = (RigidBodyComponent*)Entity_GetComponent(entity, COMPONENT_RIGID_BODY);
+    if (rigid_body == NULL) {
+        return false;
+    }
+
+    body_id = rigid_body->has_body ? PhysicsWorld_LoadBodyHandle(rigid_body->body_id) : b2_nullBodyId;
+    if (!b2Body_IsValid(body_id) && create_if_missing) {
+        body_id = PhysicsWorld_EnsureEntityBody(world, entity);
+    }
+    if (!b2Body_IsValid(body_id)) {
+        return false;
+    }
+
+    *out_body_id = body_id;
+    return true;
 }
 
 static void PhysicsWorld_SyncEntities(PhysicsWorld* world, struct Scene* scene)
@@ -337,72 +429,153 @@ static void PhysicsWorld_SyncEntities(PhysicsWorld* world, struct Scene* scene)
         return;
     }
 
-    for (index = 0; index < scene->entity_count; ++index)
+    world->active_entity_count = 0U;
+    world->dirty_entity_count = 0U;
+    world->collider_changed_entity_count = 0U;
+    world->body_create_count = 0U;
+    world->body_remove_count = 0U;
+    world->shape_change_count = 0U;
+
+    for (index = 0; index < world->tracked_entity_count; ++index)
     {
-        Entity* entity = scene->entities[index];
+        Entity* entity = world->tracked_entities[index];
         TransformComponent* transform = NULL;
         RigidBodyComponent* rigid_body = NULL;
         ColliderComponent* collider = NULL;
+        bool needs_body_rebuild = false;
+        bool has_valid_body = false;
 
-        if (entity == NULL || !entity->active)
+        if (!Entity_IsActive(entity))
         {
             continue;
         }
 
-        transform = (TransformComponent*)Entity_GetComponent(entity, COMPONENT_TRANSFORM);
-        rigid_body = (RigidBodyComponent*)Entity_GetComponent(entity, COMPONENT_RIGID_BODY);
-        collider = (ColliderComponent*)Entity_GetComponent(entity, COMPONENT_COLLIDER);
-        if (transform == NULL || rigid_body == NULL || collider == NULL)
+        transform = (TransformComponent*)Entity_GetFixedComponent(entity, COMPONENT_TRANSFORM);
+        rigid_body = (RigidBodyComponent*)Entity_GetFixedComponent(entity, COMPONENT_RIGID_BODY);
+        collider = (ColliderComponent*)Entity_GetFixedComponent(entity, COMPONENT_COLLIDER);
+        if (transform == NULL || rigid_body == NULL)
+        {
+            if (rigid_body != NULL && rigid_body->has_body && b2Body_IsValid(PhysicsWorld_LoadBodyHandle(rigid_body->body_id)))
+            {
+                PhysicsWorld_RemoveBodyForEntity(world, entity);
+                world->body_remove_count += 1U;
+            }
+            continue;
+        }
+
+        if (collider == NULL)
+        {
+            if (rigid_body->has_body && b2Body_IsValid(PhysicsWorld_LoadBodyHandle(rigid_body->body_id)))
+            {
+                PhysicsWorld_RemoveBodyForEntity(world, entity);
+                world->body_remove_count += 1U;
+            }
+            continue;
+        }
+
+        has_valid_body = rigid_body->has_body;
+        if (!has_valid_body)
+        {
+            world->body_create_count += 1U;
+            if (!b2Body_IsValid(PhysicsWorld_EnsureEntityBody(world, entity)))
+            {
+                continue;
+            }
+            has_valid_body = true;
+        }
+
+        if (collider->dirty_flags != COLLIDER_DIRTY_NONE)
+        {
+            world->collider_changed_entity_count += 1U;
+            world->shape_change_count += 1U;
+            needs_body_rebuild = true;
+        }
+
+        if (rigid_body->dirty_flags != RIGID_BODY_DIRTY_NONE)
+        {
+            needs_body_rebuild = true;
+        }
+
+        if (needs_body_rebuild)
         {
             PhysicsWorld_RemoveBodyForEntity(world, entity);
-            continue;
+            if (!b2Body_IsValid(PhysicsWorld_EnsureEntityBody(world, entity)))
+            {
+                continue;
+            }
+            has_valid_body = true;
+            world->dirty_entity_count += 1U;
         }
 
-        if (b2Body_IsValid(PhysicsWorld_EnsureEntityBody(world, entity)) && transform->dirty)
+        if (transform->dirty && has_valid_body)
         {
-            b2Body_SetTransform(rigid_body->body_id, (b2Vec2){transform->x, transform->y}, b2MakeRot(transform->angle_radians));
-            transform->dirty = false;
+            b2Body_SetTransform(PhysicsWorld_LoadBodyHandle(rigid_body->body_id), (b2Vec2){transform->x, transform->y}, b2MakeRot(transform->angle_radians));
+            TransformComponent_ClearDirty(
+                transform,
+                TRANSFORM_DIRTY_ROTATION | TRANSFORM_DIRTY_SCALE
+            );
+            world->dirty_entity_count += 1U;
+        }
+
+        if (has_valid_body)
+        {
+            world->active_entity_count += 1U;
         }
     }
 }
 
 static void PhysicsWorld_SyncBodiesToTransforms(PhysicsWorld* world, struct Scene* scene)
 {
-    size_t index = 0;
+    b2BodyEvents events;
+    int index = 0;
 
     if (world == NULL || scene == NULL)
     {
         return;
     }
 
-    for (index = 0; index < scene->entity_count; ++index)
+    if (!world->has_world)
     {
-        Entity* entity = scene->entities[index];
+        return;
+    }
+
+    world->moved_body_count = 0U;
+    world->awake_body_count = 0U;
+    world->sleeping_body_count = 0U;
+    events = b2World_GetBodyEvents(world->world_id);
+    for (index = 0; index < events.moveCount; ++index)
+    {
+        const b2BodyMoveEvent* event = events.moveEvents + index;
+        Entity* entity = (Entity*)event->userData;
         TransformComponent* transform = NULL;
         RigidBodyComponent* rigid_body = NULL;
 
-        if (entity == NULL || !entity->active)
+        if (!Entity_IsActive(entity))
         {
             continue;
         }
 
-        transform = (TransformComponent*)Entity_GetComponent(entity, COMPONENT_TRANSFORM);
-        rigid_body = (RigidBodyComponent*)Entity_GetComponent(entity, COMPONENT_RIGID_BODY);
-        if (transform == NULL || rigid_body == NULL || !rigid_body->has_body || !b2Body_IsValid(rigid_body->body_id))
+        transform = (TransformComponent*)Entity_GetFixedComponent(entity, COMPONENT_TRANSFORM);
+        rigid_body = (RigidBodyComponent*)Entity_GetFixedComponent(entity, COMPONENT_RIGID_BODY);
+        if (transform == NULL || rigid_body == NULL)
         {
             continue;
         }
 
-        {
-            b2Transform body_transform = b2Body_GetTransform(rigid_body->body_id);
-            transform->previous_x = transform->x;
-            transform->previous_y = transform->y;
-            transform->previous_angle_radians = transform->angle_radians;
-            transform->x = body_transform.p.x;
-            transform->y = body_transform.p.y;
-            transform->angle_radians = b2Rot_GetAngle(body_transform.q);
-        }
+        transform->previous_x = transform->x;
+        transform->previous_y = transform->y;
+        transform->previous_angle_radians = transform->angle_radians;
+        transform->x = event->transform.p.x;
+        transform->y = event->transform.p.y;
+        transform->angle_radians = b2Rot_GetAngle(event->transform.q);
+        TransformComponent_MarkDirty(transform, TRANSFORM_DIRTY_POSITION);
+        world->moved_body_count += 1U;
     }
+
+    world->awake_body_count = world->has_world ? (size_t)b2World_GetAwakeBodyCount(world->world_id) : 0U;
+    world->sleeping_body_count = world->active_entity_count > world->awake_body_count
+        ? world->active_entity_count - world->awake_body_count
+        : 0U;
 }
 
 static bool PhysicsWorld_OverlapCollector(b2ShapeId shape_id, void* context)
@@ -417,7 +590,11 @@ static bool PhysicsWorld_OverlapCollector(b2ShapeId shape_id, void* context)
 
     body_id = b2Shape_GetBody(shape_id);
     accumulator->results[accumulator->count++] = (PhysicsQueryResult){
-        body_id, shape_id, PhysicsWorld_GetEntityForBody(accumulator->world, body_id), {0.0f, 0.0f}, {0.0f, 0.0f}, 0.0f};
+        PhysicsWorld_GetEntityForBody(accumulator->world, body_id),
+        {0.0f, 0.0f},
+        {0.0f, 0.0f},
+        0.0f
+    };
     return true;
 }
 
@@ -433,14 +610,18 @@ static float PhysicsWorld_RayCollector(b2ShapeId shape_id, b2Vec2 point, b2Vec2 
 
     body_id = b2Shape_GetBody(shape_id);
     accumulator->results[accumulator->count++] = (PhysicsQueryResult){
-        body_id, shape_id, PhysicsWorld_GetEntityForBody(accumulator->world, body_id), point, normal, fraction};
+        PhysicsWorld_GetEntityForBody(accumulator->world, body_id),
+        { point.x, point.y },
+        { normal.x, normal.y },
+        fraction
+    };
     return 1.0f;
 }
 
 void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
 {
     b2WorldDef world_def;
-    float default_levels[] = {60.0f, 30.0f, 20.0f, 15.0f, 10.0f};
+    float default_levels[] = {120.0f, 90.0f, 75.0f, 60.0f, 45.0f, 30.0f, 20.0f, 15.0f};
     size_t index = 0;
 
     if (world == NULL)
@@ -458,9 +639,9 @@ void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
     world->base_step_substep_count = config != NULL && config->step_substep_count > 0 ? config->step_substep_count : 4u;
     world->step_substep_count = world->base_step_substep_count;
     world->adaptive_enabled = config != NULL && config->adaptive_enabled;
-    world->downshift_frame_ms = config != NULL && config->downshift_frame_ms > 0.0f ? config->downshift_frame_ms : 33.4f;
-    world->upshift_frame_ms = config != NULL && config->upshift_frame_ms > 0.0f ? config->upshift_frame_ms : 20.0f;
-    world->tuner_hold_frames = config != NULL && config->tuner_hold_frames > 0 ? config->tuner_hold_frames : 45u;
+    world->adaptive_budget_ms = config != NULL && config->downshift_frame_ms > 0.0f ? config->downshift_frame_ms : 40.0f;
+    world->adaptive_recovery_ms = config != NULL && config->upshift_frame_ms > 0.0f ? config->upshift_frame_ms : world->adaptive_budget_ms * 0.5f;
+    world->adaptive_blend_alpha = 0.24f;
     strncpy(world->last_tuner_reason, "init", sizeof(world->last_tuner_reason) - 1);
 
     if (config != NULL && config->adaptive_levels != NULL && config->adaptive_level_count > 0)
@@ -480,11 +661,28 @@ void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
         }
     }
 
-    world->current_level_index = (uint32_t)PhysicsWorld_FindNearestLevelIndex(world, world->target_hz);
-    if (world->adaptive_enabled)
+    world->adaptive_min_hz = world->target_hz;
+    world->adaptive_max_hz = world->target_hz;
+    if (world->adaptive_level_count > 0u)
     {
-        PhysicsWorld_ApplyAdaptiveLevel(world, world->current_level_index, "init");
+        world->adaptive_max_hz = world->adaptive_levels[0];
+        world->adaptive_min_hz = world->adaptive_levels[0];
+        for (index = 1; index < world->adaptive_level_count; ++index)
+        {
+            if (world->adaptive_levels[index] > world->adaptive_max_hz)
+            {
+                world->adaptive_max_hz = world->adaptive_levels[index];
+            }
+            if (world->adaptive_levels[index] < world->adaptive_min_hz)
+            {
+                world->adaptive_min_hz = world->adaptive_levels[index];
+            }
+        }
     }
+    world->target_hz = PhysicsWorld_ClampFloat(world->target_hz, world->adaptive_min_hz, world->adaptive_max_hz);
+    world->fixed_dt = 1.0f / world->target_hz;
+    world->step_substep_count = PhysicsWorld_ComputeAdaptiveStepSubstepsForHz(world, world->target_hz);
+    world->current_level_index = (uint32_t)PhysicsWorld_FindNearestLevelIndex(world, world->target_hz);
     world_def.gravity = (b2Vec2){world->gravity_x, world->gravity_y};
     world_def.enableSleep = true;
     if (config != NULL && config->task_system != NULL)
@@ -507,85 +705,119 @@ PhysicsWorld* PhysicsWorld_Create(const PhysicsWorldConfig* config)
     return world;
 }
 
+void PhysicsWorld_RegisterEntity(PhysicsWorld* world, struct Entity* entity)
+{
+    RigidBodyComponent* rigid_body = NULL;
+
+    if (world == NULL || entity == NULL)
+    {
+        return;
+    }
+
+    rigid_body = (RigidBodyComponent*)Entity_GetComponent(entity, COMPONENT_RIGID_BODY);
+    if (rigid_body == NULL)
+    {
+        return;
+    }
+
+    PhysicsWorld_AppendTrackedEntity(world, entity);
+}
+
+void PhysicsWorld_UnregisterEntity(PhysicsWorld* world, struct Entity* entity)
+{
+    size_t index = 0U;
+
+    if (world == NULL || entity == NULL)
+    {
+        return;
+    }
+
+    for (index = 0U; index < world->tracked_entity_count; ++index)
+    {
+        if (world->tracked_entities[index] == entity)
+        {
+            memmove(
+                &world->tracked_entities[index],
+                &world->tracked_entities[index + 1U],
+                sizeof(struct Entity*) * (world->tracked_entity_count - index - 1U)
+            );
+            world->tracked_entity_count -= 1U;
+            world->tracked_entities[world->tracked_entity_count] = NULL;
+            break;
+        }
+    }
+
+    PhysicsWorld_RemoveBodyForEntity(world, entity);
+}
+
 void PhysicsWorld_SetTargetHz(PhysicsWorld* world, float target_hz, const char* reason)
 {
-    size_t level_index = 0u;
-
     if (world == NULL)
     {
         return;
     }
 
-    world->target_hz = target_hz < 1.0f ? 1.0f : floorf(target_hz);
-    if (world->adaptive_enabled && world->adaptive_level_count > 0u)
+    if (world->adaptive_enabled)
     {
-        level_index = PhysicsWorld_FindNearestLevelIndex(world, world->target_hz);
-        PhysicsWorld_ApplyAdaptiveLevel(world, level_index, reason);
+        target_hz = PhysicsWorld_ClampFloat(target_hz, world->adaptive_min_hz, world->adaptive_max_hz);
     }
-    else
+
+    world->target_hz = target_hz < 1.0f ? 1.0f : target_hz;
+    world->fixed_dt = 1.0f / world->target_hz;
+    world->step_substep_count = PhysicsWorld_ComputeAdaptiveStepSubstepsForHz(world, world->target_hz);
+    world->current_level_index = (uint32_t)PhysicsWorld_FindNearestLevelIndex(world, world->target_hz);
+    if (reason != NULL)
     {
-        world->fixed_dt = 1.0f / world->target_hz;
-        world->accumulator = fminf(world->accumulator, world->fixed_dt * (float)world->max_substeps);
-        if (reason != NULL)
-        {
-            memset(world->last_tuner_reason, 0, sizeof(world->last_tuner_reason));
-            strncpy(world->last_tuner_reason, reason, sizeof(world->last_tuner_reason) - 1);
-        }
+        memset(world->last_tuner_reason, 0, sizeof(world->last_tuner_reason));
+        strncpy(world->last_tuner_reason, reason, sizeof(world->last_tuner_reason) - 1);
     }
 }
 
 void PhysicsWorld_UpdateAdaptiveBudget(PhysicsWorld* world, float frame_ms)
 {
-    uint32_t upshift_hold_frames = 0u;
+    float desired_hz = 0.0f;
+    float clamped_hz = 0.0f;
+    const char* reason = "hold";
 
-    if (world == NULL || !world->adaptive_enabled || world->adaptive_level_count == 0)
+    if (world == NULL || !world->adaptive_enabled || frame_ms <= 0.0f)
     {
         return;
     }
 
-    upshift_hold_frames = world->tuner_hold_frames * 4u;
-    if (upshift_hold_frames < world->tuner_hold_frames)
+    desired_hz = world->target_hz;
+    if (frame_ms > world->adaptive_budget_ms)
     {
-        upshift_hold_frames = world->tuner_hold_frames;
+        desired_hz = world->target_hz * (world->adaptive_budget_ms / frame_ms);
+        reason = "budget";
     }
-
-    if (frame_ms >= world->downshift_frame_ms * 3.0f)
+    else if (frame_ms < world->adaptive_recovery_ms)
     {
-        world->tuner_over_budget_frames = 0u;
-        world->tuner_under_budget_frames = 0u;
-        if (world->current_level_index + 1u < world->adaptive_level_count)
-        {
-            size_t emergency_index = world->adaptive_level_count - 1u;
-            PhysicsWorld_ApplyAdaptiveLevel(world, emergency_index, "emergency");
-        }
-        return;
-    }
-
-    if (frame_ms >= world->downshift_frame_ms)
-    {
-        world->tuner_over_budget_frames += 1u;
-        world->tuner_under_budget_frames = 0u;
-        if (world->tuner_over_budget_frames >= 2u &&
-            world->current_level_index + 1u < world->adaptive_level_count)
-        {
-            PhysicsWorld_ApplyAdaptiveLevel(world, world->current_level_index + 1u, "downshift");
-            world->tuner_over_budget_frames = 0u;
-        }
-    }
-    else if (frame_ms > 0.0f && frame_ms <= world->upshift_frame_ms)
-    {
-        world->tuner_under_budget_frames += 1u;
-        world->tuner_over_budget_frames = 0u;
-        if (world->tuner_under_budget_frames >= upshift_hold_frames && world->current_level_index > 0u)
-        {
-            PhysicsWorld_ApplyAdaptiveLevel(world, world->current_level_index - 1u, "upshift");
-            world->tuner_under_budget_frames = 0u;
-        }
+        float safe_frame_ms = frame_ms < 0.25f ? 0.25f : frame_ms;
+        desired_hz = world->target_hz * (world->adaptive_recovery_ms / safe_frame_ms);
+        reason = "recover";
     }
     else
     {
-        world->tuner_over_budget_frames = 0u;
-        world->tuner_under_budget_frames = 0u;
+        reason = "hold";
+    }
+
+    clamped_hz = PhysicsWorld_ClampFloat(desired_hz, world->adaptive_min_hz, world->adaptive_max_hz);
+    PhysicsWorld_SetTargetHz(
+        world,
+        PhysicsWorld_LerpFloat(world->target_hz, clamped_hz, world->adaptive_blend_alpha),
+        reason
+    );
+}
+
+void PhysicsWorld_GetStepConfig(const PhysicsWorld* world, float* out_fixed_dt, uint32_t* out_max_substeps)
+{
+    if (out_fixed_dt != NULL)
+    {
+        *out_fixed_dt = world != NULL && world->fixed_dt > 0.0f ? world->fixed_dt : 1.0f / 60.0f;
+    }
+    if (out_max_substeps != NULL)
+    {
+        *out_max_substeps = world != NULL && world->max_substeps > 0U ? world->max_substeps : 4U;
     }
 }
 
@@ -599,30 +831,33 @@ void PhysicsWorld_RemoveBodyForEntity(PhysicsWorld* world, struct Entity* entity
     }
 
     rigid_body = (RigidBodyComponent*)Entity_GetComponent(entity, COMPONENT_RIGID_BODY);
-    if (rigid_body == NULL || !rigid_body->has_body || !b2Body_IsValid(rigid_body->body_id))
+    if (rigid_body == NULL || !rigid_body->has_body || !b2Body_IsValid(PhysicsWorld_LoadBodyHandle(rigid_body->body_id)))
     {
         return;
     }
 
-    b2DestroyBody(rigid_body->body_id);
-    rigid_body->body_id = b2_nullBodyId;
-    rigid_body->shape_id = b2_nullShapeId;
+    b2DestroyBody(PhysicsWorld_LoadBodyHandle(rigid_body->body_id));
+    rigid_body->body_id = (PhysicsBodyHandle){ 0 };
+    rigid_body->shape_id = (PhysicsShapeHandle){ 0 };
     rigid_body->has_body = false;
+    RigidBodyComponent_MarkDefinitionDirty(rigid_body);
 }
 
 void PhysicsWorld_ClearEntityBodies(PhysicsWorld* world, struct Scene* scene)
 {
     size_t index = 0;
 
-    if (world == NULL || scene == NULL)
+    if (world == NULL)
     {
         return;
     }
 
-    for (index = 0; index < scene->entity_count; ++index)
+    for (index = 0; index < world->tracked_entity_count; ++index)
     {
-        PhysicsWorld_RemoveBodyForEntity(world, scene->entities[index]);
+        PhysicsWorld_RemoveBodyForEntity(world, world->tracked_entities[index]);
     }
+
+    (void)scene;
 }
 
 void PhysicsWorld_SetEntityPosition(PhysicsWorld* world, struct Entity* entity, float x, float y)
@@ -636,7 +871,7 @@ void PhysicsWorld_SetEntityPosition(PhysicsWorld* world, struct Entity* entity, 
         return;
     }
 
-    transform = (TransformComponent*)Entity_GetComponent(entity, COMPONENT_TRANSFORM);
+    transform = (TransformComponent*)Entity_GetFixedComponent(entity, COMPONENT_TRANSFORM);
     if (transform == NULL)
     {
         return;
@@ -645,30 +880,137 @@ void PhysicsWorld_SetEntityPosition(PhysicsWorld* world, struct Entity* entity, 
     transform->previous_x = x;
     transform->previous_y = y;
     transform->previous_angle_radians = transform->angle_radians;
-    transform->x = x;
-    transform->y = y;
+    TransformComponent_SetPosition(transform, x, y, true);
 
-    rigid_body = (RigidBodyComponent*)Entity_GetComponent(entity, COMPONENT_RIGID_BODY);
-    collider = (ColliderComponent*)Entity_GetComponent(entity, COMPONENT_COLLIDER);
+    rigid_body = (RigidBodyComponent*)Entity_GetFixedComponent(entity, COMPONENT_RIGID_BODY);
+    collider = (ColliderComponent*)Entity_GetFixedComponent(entity, COMPONENT_COLLIDER);
     if (world != NULL && rigid_body != NULL && collider != NULL)
     {
-        b2BodyId body_id = rigid_body->has_body ? rigid_body->body_id : PhysicsWorld_EnsureEntityBody(world, entity);
+        b2BodyId body_id = rigid_body->has_body ? PhysicsWorld_LoadBodyHandle(rigid_body->body_id) : PhysicsWorld_EnsureEntityBody(world, entity);
         if (b2Body_IsValid(body_id))
         {
             b2Body_SetTransform(body_id, (b2Vec2){x, y}, b2MakeRot(transform->angle_radians));
             b2Body_SetLinearVelocity(body_id, (b2Vec2){0.0f, 0.0f});
             b2Body_SetAngularVelocity(body_id, 0.0f);
-            transform->dirty = false;
             return;
         }
     }
 
-    transform->dirty = true;
+    TransformComponent_MarkDirty(transform, TRANSFORM_DIRTY_POSITION | TRANSFORM_DIRTY_TELEPORT);
+}
+
+bool PhysicsWorld_GetEntityLinearVelocity(PhysicsWorld* world, struct Entity* entity, Vec2* out_velocity)
+{
+    b2BodyId body_id;
+    b2Vec2 velocity;
+
+    if (out_velocity != NULL) {
+        out_velocity->x = 0.0f;
+        out_velocity->y = 0.0f;
+    }
+    if (out_velocity == NULL || !PhysicsWorld_GetEntityBody(world, entity, false, &body_id)) {
+        return false;
+    }
+
+    velocity = b2Body_GetLinearVelocity(body_id);
+    out_velocity->x = velocity.x;
+    out_velocity->y = velocity.y;
+    return true;
+}
+
+bool PhysicsWorld_SetEntityLinearVelocity(PhysicsWorld* world, struct Entity* entity, Vec2 velocity)
+{
+    b2BodyId body_id;
+
+    if (!PhysicsWorld_GetEntityBody(world, entity, false, &body_id)) {
+        return false;
+    }
+
+    b2Body_SetLinearVelocity(body_id, (b2Vec2){ velocity.x, velocity.y });
+    return true;
+}
+
+bool PhysicsWorld_SetEntityAngularVelocity(PhysicsWorld* world, struct Entity* entity, float angular_velocity)
+{
+    b2BodyId body_id;
+
+    if (!PhysicsWorld_GetEntityBody(world, entity, false, &body_id)) {
+        return false;
+    }
+
+    b2Body_SetAngularVelocity(body_id, angular_velocity);
+    return true;
+}
+
+bool PhysicsWorld_ApplyEntityForce(PhysicsWorld* world, struct Entity* entity, Vec2 force, bool wake)
+{
+    b2BodyId body_id;
+
+    if (!PhysicsWorld_GetEntityBody(world, entity, false, &body_id)) {
+        return false;
+    }
+
+    b2Body_ApplyForceToCenter(body_id, (b2Vec2){ force.x, force.y }, wake);
+    return true;
+}
+
+bool PhysicsWorld_ApplyEntityLinearImpulse(PhysicsWorld* world, struct Entity* entity, Vec2 impulse, bool wake)
+{
+    b2BodyId body_id;
+
+    if (!PhysicsWorld_GetEntityBody(world, entity, false, &body_id)) {
+        return false;
+    }
+
+    b2Body_ApplyLinearImpulseToCenter(body_id, (b2Vec2){ impulse.x, impulse.y }, wake);
+    return true;
+}
+
+bool PhysicsWorld_SetEntityAwake(PhysicsWorld* world, struct Entity* entity, bool awake)
+{
+    b2BodyId body_id;
+
+    if (!PhysicsWorld_GetEntityBody(world, entity, false, &body_id)) {
+        return false;
+    }
+
+    b2Body_SetAwake(body_id, awake);
+    return true;
+}
+
+bool PhysicsWorld_IsEntityAwake(PhysicsWorld* world, struct Entity* entity, bool* out_awake)
+{
+    b2BodyId body_id;
+
+    if (out_awake != NULL) {
+        *out_awake = false;
+    }
+    if (out_awake == NULL || !PhysicsWorld_GetEntityBody(world, entity, false, &body_id)) {
+        return false;
+    }
+
+    *out_awake = b2Body_IsAwake(body_id);
+    return true;
+}
+
+bool PhysicsWorld_GetEntityContactCapacity(PhysicsWorld* world, struct Entity* entity, int* out_contact_capacity)
+{
+    b2BodyId body_id;
+
+    if (out_contact_capacity != NULL) {
+        *out_contact_capacity = 0;
+    }
+    if (out_contact_capacity == NULL || !PhysicsWorld_GetEntityBody(world, entity, false, &body_id)) {
+        return false;
+    }
+
+    *out_contact_capacity = b2Body_GetContactCapacity(body_id);
+    return true;
 }
 
 void PhysicsWorld_Update(PhysicsWorld* world, struct Scene* scene, float dt_seconds)
 {
-    uint32_t substeps = 0;
+    double step_started_ms = 0.0;
 
     if (world == NULL || scene == NULL || !world->has_world)
     {
@@ -676,17 +1018,13 @@ void PhysicsWorld_Update(PhysicsWorld* world, struct Scene* scene, float dt_seco
     }
 
     PhysicsWorld_SyncEntities(world, scene);
-    world->accumulator =
-        PhysicsWorld_ClampFloat(world->accumulator + (dt_seconds > 0.0f ? dt_seconds : 0.0f), 0.0f, world->fixed_dt * world->max_substeps);
-
-    while (world->accumulator >= world->fixed_dt && substeps < world->max_substeps)
+    if (dt_seconds > 0.0f)
     {
-        b2World_Step(world->world_id, world->fixed_dt, (int)world->step_substep_count);
-        world->accumulator -= world->fixed_dt;
-        substeps += 1u;
+        step_started_ms = PhysicsWorld_NowMs();
+        b2World_Step(world->world_id, (float)dt_seconds, (int)world->step_substep_count);
+        world->last_box2d_step_wall_ms = PhysicsWorld_NowMs() - step_started_ms;
     }
-
-    scene->last_physics_substeps = substeps;
+    scene->last_physics_substeps = dt_seconds > 0.0f ? 1u : 0u;
     PhysicsWorld_SyncBodiesToTransforms(world, scene);
 }
 
@@ -767,7 +1105,35 @@ size_t PhysicsWorld_QueryRadius(PhysicsWorld* world, float x, float y, float rad
     return accumulator.count;
 }
 
-struct Entity* PhysicsWorld_GetEntityForBody(PhysicsWorld* world, b2BodyId body_id)
+size_t PhysicsWorld_GetContactHits(PhysicsWorld* world, PhysicsContactHit* hits, size_t capacity)
+{
+    b2ContactEvents contact_events;
+    size_t count = 0U;
+    int event_index;
+
+    if (world == NULL || !world->has_world || hits == NULL || capacity == 0U) {
+        return 0U;
+    }
+
+    contact_events = b2World_GetContactEvents(world->world_id);
+    for (event_index = 0; event_index < contact_events.hitCount && count < capacity; ++event_index) {
+        const b2ContactHitEvent* hit = &contact_events.hitEvents[event_index];
+        PhysicsContactHit* out_hit = &hits[count++];
+        b2BodyId body_a = b2Shape_GetBody(hit->shapeIdA);
+        b2BodyId body_b = b2Shape_GetBody(hit->shapeIdB);
+
+        out_hit->point.x = hit->point.x;
+        out_hit->point.y = hit->point.y;
+        out_hit->normal.x = hit->normal.x;
+        out_hit->normal.y = hit->normal.y;
+        out_hit->entity_a = PhysicsWorld_GetEntityForBody(world, body_a);
+        out_hit->entity_b = PhysicsWorld_GetEntityForBody(world, body_b);
+    }
+
+    return count;
+}
+
+static struct Entity* PhysicsWorld_GetEntityForBody(PhysicsWorld* world, b2BodyId body_id)
 {
     (void)world;
     if (!b2Body_IsValid(body_id))
@@ -776,30 +1142,6 @@ struct Entity* PhysicsWorld_GetEntityForBody(PhysicsWorld* world, b2BodyId body_
     }
 
     return (struct Entity*)b2Body_GetUserData(body_id);
-}
-
-void PhysicsWorld_GetSnapshot(const PhysicsWorld* world, PhysicsWorldSnapshot* snapshot)
-{
-    if (snapshot == NULL)
-    {
-        return;
-    }
-
-    memset(snapshot, 0, sizeof(*snapshot));
-    if (world == NULL)
-    {
-        return;
-    }
-
-    snapshot->body_count = world->has_world ? (uint32_t)b2World_GetAwakeBodyCount(world->world_id) : 0u;
-    snapshot->tile_body_count = (uint32_t)world->tile_body_count;
-    snapshot->collision_pair_count = world->has_world ? (uint32_t)b2World_GetContactEvents(world->world_id).beginCount : 0u;
-    snapshot->physics_hz = world->target_hz;
-    snapshot->physics_fixed_dt = world->fixed_dt;
-    snapshot->physics_accumulator = world->accumulator;
-    snapshot->physics_step_substeps = world->step_substep_count;
-    snapshot->adaptive_enabled = world->adaptive_enabled;
-    snapshot->tuner_level_index = world->current_level_index;
 }
 
 void PhysicsWorld_Destroy(PhysicsWorld* world)
@@ -819,5 +1161,6 @@ void PhysicsWorld_Destroy(PhysicsWorld* world)
     world->tile_bodies = NULL;
     world->tile_body_count = 0;
     world->tile_body_capacity = 0;
+    free(world->tracked_entities);
     free(world);
 }

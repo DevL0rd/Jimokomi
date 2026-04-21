@@ -48,7 +48,7 @@ target_include_directories(jimokomi PRIVATE
 target_link_libraries(jimokomi PRIVATE box2d raylib Threads::Threads)
 
 if(UNIX AND NOT APPLE)
-	target_compile_definitions(jimokomi PRIVATE _POSIX_C_SOURCE=199309L)
+	target_compile_definitions(jimokomi PRIVATE _POSIX_C_SOURCE=200809L)
 	target_link_libraries(jimokomi PRIVATE m)
 endif()
 

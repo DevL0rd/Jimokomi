@@ -1,4 +1,4 @@
-#include "Entity.h"
+#include "EntityInternal.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -44,8 +44,12 @@ void Entity_Init(Entity* entity, uint32_t id)
 
     entity->id = id;
     entity->active = true;
+    entity->dirty_flags = ENTITY_DIRTY_APPEARED | ENTITY_DIRTY_VISIBILITY | ENTITY_DIRTY_LAYER_SORT;
+    entity->spatial_grid_entry_index = -1;
     entity->scene = NULL;
+    entity->user_data = NULL;
     entity->components = NULL;
+    memset(entity->component_slots, 0, sizeof(entity->component_slots));
     entity->component_count = 0;
     entity->component_capacity = 0;
 }
@@ -86,7 +90,12 @@ bool Entity_AddComponent(Entity* entity, Component* component)
     }
 
     entity->components[entity->component_count++] = component;
+    if ((size_t)component->type < (sizeof(entity->component_slots) / sizeof(entity->component_slots[0])))
+    {
+        entity->component_slots[component->type] = component;
+    }
     component->entity = entity;
+    Entity_MarkDirty(entity, ENTITY_DIRTY_VISIBILITY | ENTITY_DIRTY_LAYER_SORT);
     return true;
 }
 
@@ -97,6 +106,11 @@ Component* Entity_GetComponent(const Entity* entity, ComponentType type)
     if (entity == NULL)
     {
         return NULL;
+    }
+
+    if ((size_t)type < (sizeof(entity->component_slots) / sizeof(entity->component_slots[0])))
+    {
+        return entity->component_slots[type];
     }
 
     for (index = 0; index < entity->component_count; ++index)
@@ -120,17 +134,31 @@ Component* Entity_RemoveComponent(Entity* entity, ComponentType type)
         return NULL;
     }
 
+    if ((size_t)type < (sizeof(entity->component_slots) / sizeof(entity->component_slots[0])))
+    {
+        component = entity->component_slots[type];
+    }
+
+    if (component == NULL)
+    {
+        return NULL;
+    }
+
     for (index = 0; index < entity->component_count; ++index)
     {
-        if (entity->components[index] != NULL && entity->components[index]->type == type)
+        if (entity->components[index] == component)
         {
-            component = entity->components[index];
             memmove(&entity->components[index],
                     &entity->components[index + 1],
                     sizeof(Component*) * (entity->component_count - index - 1));
             entity->component_count -= 1;
             entity->components[entity->component_count] = NULL;
+            if ((size_t)type < (sizeof(entity->component_slots) / sizeof(entity->component_slots[0])))
+            {
+                entity->component_slots[type] = NULL;
+            }
             component->entity = NULL;
+            Entity_MarkDirty(entity, ENTITY_DIRTY_VISIBILITY | ENTITY_DIRTY_LAYER_SORT);
             return component;
         }
     }
@@ -141,6 +169,75 @@ Component* Entity_RemoveComponent(Entity* entity, ComponentType type)
 bool Entity_HasComponent(const Entity* entity, ComponentType type)
 {
     return Entity_GetComponent(entity, type) != NULL;
+}
+
+uint32_t Entity_GetId(const Entity* entity)
+{
+    return entity != NULL ? entity->id : 0U;
+}
+
+bool Entity_IsActive(const Entity* entity)
+{
+    return entity != NULL && entity->active;
+}
+
+void* Entity_GetUserData(const Entity* entity)
+{
+    return entity != NULL ? entity->user_data : NULL;
+}
+
+void Entity_SetUserData(Entity* entity, void* user_data)
+{
+    if (entity == NULL)
+    {
+        return;
+    }
+
+    entity->user_data = user_data;
+}
+
+void Entity_SetActive(Entity* entity, bool active)
+{
+    if (entity == NULL || entity->active == active)
+    {
+        return;
+    }
+
+    entity->active = active;
+    Entity_MarkDirty(
+        entity,
+        ENTITY_DIRTY_VISIBILITY | (active ? ENTITY_DIRTY_ENABLED : ENTITY_DIRTY_DISABLED)
+    );
+}
+
+void Entity_MarkDirty(Entity* entity, uint32_t dirty_flags)
+{
+    if (entity == NULL)
+    {
+        return;
+    }
+
+    entity->dirty_flags |= dirty_flags;
+}
+
+void Entity_ClearDirty(Entity* entity, uint32_t dirty_flags)
+{
+    if (entity == NULL)
+    {
+        return;
+    }
+
+    entity->dirty_flags &= ~dirty_flags;
+}
+
+bool Entity_IsDirty(const Entity* entity, uint32_t dirty_flags)
+{
+    if (entity == NULL)
+    {
+        return false;
+    }
+
+    return (entity->dirty_flags & dirty_flags) != 0U;
 }
 
 void Entity_Destroy(Entity* entity)

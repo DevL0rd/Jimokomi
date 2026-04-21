@@ -1,11 +1,12 @@
 #include "PhysicsSyncSystem.h"
 
-#include "../Scene.h"
+#include "../SceneInternal.h"
 #include "../../Physics/PhysicsWorld.h"
 
 void PhysicsSyncSystem_Update(struct Scene* scene, float dt_seconds)
 {
-    if (scene == NULL || scene->physics_world == NULL || scene->physics_paused)
+    if (scene == NULL || scene->physics_world == NULL || scene->physics_paused || dt_seconds <= 0.0f ||
+        scene->dynamic_entity_count == 0U)
     {
         return;
     }

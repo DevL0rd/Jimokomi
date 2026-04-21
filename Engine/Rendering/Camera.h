@@ -8,6 +8,8 @@ typedef struct Camera {
     float y;
     float view_width;
     float view_height;
+    float viewport_width;
+    float viewport_height;
     float smoothing;
     Rect world_bounds;
 } Camera;
@@ -17,5 +19,6 @@ void camera_set_world_bounds(Camera *camera, Rect bounds);
 void camera_follow_position(Camera *camera, float target_x, float target_y, float dt_seconds, Vec2 lead, float smoothing_override);
 Vec2 camera_world_to_screen(const Camera *camera, Vec2 point);
 Vec2 camera_screen_to_world(const Camera *camera, Vec2 point);
+Vec2 camera_world_size_to_screen(const Camera *camera, Vec2 size);
 
 #endif

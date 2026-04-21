@@ -6,7 +6,9 @@
 
 #define ENGINE_PROFILER_MAX_SCOPES_PER_FRAME 128
 #define ENGINE_PROFILER_MAX_SCOPE_DEPTH 32
-#define ENGINE_PROFILER_MAX_METADATA_ITEMS 128
+#define ENGINE_PROFILER_MAX_METADATA_ITEMS 192
+#define ENGINE_PROFILER_SCOPE_LOOKUP_CAPACITY 257
+#define ENGINE_PROFILER_METADATA_LOOKUP_CAPACITY 389
 #define ENGINE_PROFILER_NAME_CAPACITY 64
 #define ENGINE_PROFILER_VALUE_CAPACITY 128
 
@@ -67,6 +69,8 @@ typedef struct EngineProfiler {
         double started_ms;
     } scope_stack[ENGINE_PROFILER_MAX_SCOPE_DEPTH];
     size_t scope_stack_count;
+    int scope_lookup[ENGINE_PROFILER_SCOPE_LOOKUP_CAPACITY];
+    int metadata_lookup[ENGINE_PROFILER_METADATA_LOOKUP_CAPACITY];
 } EngineProfiler;
 
 bool EngineProfiler_init(EngineProfiler* profiler, const EngineProfilerConfig* config);

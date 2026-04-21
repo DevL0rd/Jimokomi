@@ -8,6 +8,8 @@ void camera_init(Camera *camera, float x, float y, float view_width, float view_
     camera->y = y;
     camera->view_width = view_width;
     camera->view_height = view_height;
+    camera->viewport_width = view_width;
+    camera->viewport_height = view_height;
     camera->smoothing = smoothing;
     camera->world_bounds.x = 0.0f;
     camera->world_bounds.y = 0.0f;
@@ -56,8 +58,10 @@ void camera_follow_position(Camera *camera, float target_x, float target_y, floa
 Vec2 camera_world_to_screen(const Camera *camera, Vec2 point) {
     Vec2 result = point;
     if (camera != NULL) {
-        result.x -= camera->x;
-        result.y -= camera->y;
+        float scale_x = camera->view_width > 0.0f ? camera->viewport_width / camera->view_width : 1.0f;
+        float scale_y = camera->view_height > 0.0f ? camera->viewport_height / camera->view_height : 1.0f;
+        result.x = (result.x - camera->x) * scale_x;
+        result.y = (result.y - camera->y) * scale_y;
     }
     return result;
 }
@@ -65,8 +69,21 @@ Vec2 camera_world_to_screen(const Camera *camera, Vec2 point) {
 Vec2 camera_screen_to_world(const Camera *camera, Vec2 point) {
     Vec2 result = point;
     if (camera != NULL) {
-        result.x += camera->x;
-        result.y += camera->y;
+        float scale_x = camera->viewport_width > 0.0f ? camera->view_width / camera->viewport_width : 1.0f;
+        float scale_y = camera->viewport_height > 0.0f ? camera->view_height / camera->viewport_height : 1.0f;
+        result.x = result.x * scale_x + camera->x;
+        result.y = result.y * scale_y + camera->y;
+    }
+    return result;
+}
+
+Vec2 camera_world_size_to_screen(const Camera *camera, Vec2 size) {
+    Vec2 result = size;
+    if (camera != NULL) {
+        float scale_x = camera->view_width > 0.0f ? camera->viewport_width / camera->view_width : 1.0f;
+        float scale_y = camera->view_height > 0.0f ? camera->viewport_height / camera->view_height : 1.0f;
+        result.x *= scale_x;
+        result.y *= scale_y;
     }
     return result;
 }

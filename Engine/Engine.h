@@ -1,18 +1,9 @@
 #ifndef JIMOKOMI_ENGINE_ENGINE_H
 #define JIMOKOMI_ENGINE_ENGINE_H
 
-#include <stdbool.h>
-
+#include "Core/EngineConfig.h"
 #include "Core/Input.h"
-#include "Core/Logger.h"
-#include "Core/Profiler.h"
 #include "Core/Stats.h"
-
-typedef struct EngineConfig {
-    bool debug_stats;
-    EngineLoggerConfig logger;
-    EngineProfilerConfig profiler;
-} EngineConfig;
 
 typedef struct Engine {
     EngineConfig config;

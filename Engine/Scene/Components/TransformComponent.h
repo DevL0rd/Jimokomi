@@ -14,11 +14,26 @@ typedef struct TransformComponent
     float angle_radians;
     float scale_x;
     float scale_y;
+    uint32_t dirty_flags;
     bool dirty;
 } TransformComponent;
+
+typedef enum TransformDirtyFlags
+{
+    TRANSFORM_DIRTY_NONE = 0,
+    TRANSFORM_DIRTY_POSITION = 1 << 0,
+    TRANSFORM_DIRTY_ROTATION = 1 << 1,
+    TRANSFORM_DIRTY_SCALE = 1 << 2,
+    TRANSFORM_DIRTY_TELEPORT = 1 << 3
+} TransformDirtyFlags;
 
 void TransformComponent_Init(TransformComponent* component, float x, float y, float angle_radians);
 TransformComponent* TransformComponent_Create(float x, float y, float angle_radians);
 void TransformComponent_Destroy(TransformComponent* component);
+void TransformComponent_MarkDirty(TransformComponent* component, uint32_t dirty_flags);
+void TransformComponent_ClearDirty(TransformComponent* component, uint32_t dirty_flags);
+void TransformComponent_SetPosition(TransformComponent* component, float x, float y, bool teleported);
+void TransformComponent_SetRotation(TransformComponent* component, float angle_radians);
+void TransformComponent_SetScale(TransformComponent* component, float scale_x, float scale_y);
 
 #endif

@@ -1,12 +1,8 @@
 #ifndef JIMOKOMI_ENGINE_CORE_TASKSYSTEM_H
 #define JIMOKOMI_ENGINE_CORE_TASKSYSTEM_H
 
-#include "../../third_party/box2d/include/box2d/box2d.h"
-
 #include <stdbool.h>
 #include <stdint.h>
-
-struct b2WorldDef;
 
 typedef struct TaskSystem TaskSystem;
 typedef void TaskSystemRangeCallback(int start_index, int end_index, uint32_t worker_index, void* user_context);
@@ -33,7 +29,5 @@ bool task_system_parallel_for(
     TaskSystemRangeCallback* callback,
     void* user_context
 );
-
-void task_system_configure_box2d_world_def(const TaskSystem* system, b2WorldDef* world_def);
 
 #endif

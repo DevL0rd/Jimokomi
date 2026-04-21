@@ -1,5 +1,7 @@
 #include "TaskSystem.h"
 
+#include <box2d/box2d.h>
+
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdint.h>

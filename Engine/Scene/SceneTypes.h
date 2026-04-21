@@ -1,8 +1,7 @@
 #ifndef JIMOKOMI_ENGINE_SCENE_SCENETYPES_H
 #define JIMOKOMI_ENGINE_SCENE_SCENETYPES_H
 
-#include "../Physics/PhysicsWorld.h"
-#include "../Rendering/RenderCommon.h"
+#include "../Core/Geometry.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -40,6 +39,8 @@ typedef struct SceneView
 {
     float previous_x;
     float previous_y;
+    float previous_view_width;
+    float previous_view_height;
     float x;
     float y;
     float view_width;

@@ -1,5 +1,7 @@
 #include "RigidBodyComponent.h"
 
+#include "../Entity.h"
+
 #include <stdlib.h>
 
 static void RigidBodyComponent_DestroyBase(Component* component)
@@ -24,8 +26,9 @@ void RigidBodyComponent_Init(RigidBodyComponent* component)
     component->initial_velocity_x = 0.0f;
     component->initial_velocity_y = 0.0f;
     component->initial_angular_velocity = 0.0f;
-    component->body_id = b2_nullBodyId;
-    component->shape_id = b2_nullShapeId;
+    component->body_id = (PhysicsBodyHandle){ 0 };
+    component->shape_id = (PhysicsShapeHandle){ 0 };
+    component->dirty_flags = RIGID_BODY_DIRTY_DEFINITION;
     component->has_body = false;
 }
 
@@ -52,16 +55,26 @@ void RigidBodyComponent_Destroy(RigidBodyComponent* component)
     free(component);
 }
 
-b2BodyType RigidBodyComponent_ToBox2DType(RigidBodyType type)
+void RigidBodyComponent_MarkDefinitionDirty(RigidBodyComponent* component)
 {
-    switch (type)
+    if (component == NULL)
     {
-        case RIGID_BODY_STATIC:
-            return b2_staticBody;
-        case RIGID_BODY_KINEMATIC:
-            return b2_kinematicBody;
-        case RIGID_BODY_DYNAMIC:
-        default:
-            return b2_dynamicBody;
+        return;
     }
+
+    component->dirty_flags |= RIGID_BODY_DIRTY_DEFINITION;
+    if (component->base.entity != NULL)
+    {
+        Entity_MarkDirty(component->base.entity, ENTITY_DIRTY_VISIBILITY);
+    }
+}
+
+void RigidBodyComponent_ClearDirty(RigidBodyComponent* component, uint32_t dirty_flags)
+{
+    if (component == NULL)
+    {
+        return;
+    }
+
+    component->dirty_flags &= ~dirty_flags;
 }

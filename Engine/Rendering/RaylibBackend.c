@@ -126,8 +126,8 @@ static void raylib_backend_draw_surface_batch_fallback(
 
     for (index = 0U; index < instance_count; ++index) {
         Rectangle draw_dest = {
-            instances[index].dest.x,
-            instances[index].dest.y,
+            instances[index].dest.x + instances[index].origin.x,
+            instances[index].dest.y + instances[index].origin.y,
             instances[index].dest.w,
             instances[index].dest.h
         };
@@ -557,8 +557,8 @@ static void raylib_backend_draw_surface_ex(
     source.y = 0.0f;
     source.width = (float)raylib_surface->base.width;
     source.height = (float)-raylib_surface->base.height;
-    draw_dest.x = dest.x;
-    draw_dest.y = dest.y;
+    draw_dest.x = dest.x + origin.x;
+    draw_dest.y = dest.y + origin.y;
     draw_dest.width = dest.w;
     draw_dest.height = dest.h;
     draw_origin.x = origin.x;
@@ -796,7 +796,7 @@ bool raylib_backend_init(
     }
 
     memset(backend, 0, sizeof(*backend));
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(width, height, title != NULL ? title : "Jimokomi Native Experiment");
     if (!IsWindowReady()) {
         return false;
@@ -855,17 +855,25 @@ void raylib_backend_pump_events(RaylibBackend *backend) {
     }
     backend->should_close = WindowShouldClose();
 
-    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_LEFT] = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
-    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_RIGHT] = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
-    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_UP] = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
-    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_DOWN] = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
+    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_LEFT] = IsKeyDown(KEY_A);
+    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_RIGHT] = IsKeyDown(KEY_D);
+    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_UP] = IsKeyDown(KEY_W);
+    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_DOWN] = IsKeyDown(KEY_S);
     backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_JUMP] = IsKeyDown(KEY_SPACE);
     backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_ACTION] = IsKeyDown(KEY_E);
     backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_CYCLE_TARGET] = IsKeyDown(KEY_TAB);
-    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_DEBUG_TOGGLE] = IsKeyDown(KEY_F1);
+    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_DEBUG_TOGGLE] = IsKeyDown(KEY_ONE);
+    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_DEBUG_WORLD_TOGGLE] = IsKeyDown(KEY_TWO);
+    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_PAN_LEFT] = IsKeyDown(KEY_LEFT);
+    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_PAN_RIGHT] = IsKeyDown(KEY_RIGHT);
+    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_PAN_UP] = IsKeyDown(KEY_UP);
+    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_PAN_DOWN] = IsKeyDown(KEY_DOWN);
+    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_ZOOM_IN] = IsKeyDown(KEY_EQUAL) || IsKeyDown(KEY_KP_ADD);
+    backend->input_snapshot.buttons[ENGINE_INPUT_ACTION_ZOOM_OUT] = IsKeyDown(KEY_MINUS) || IsKeyDown(KEY_KP_SUBTRACT);
 
     backend->input_snapshot.repeated[ENGINE_INPUT_ACTION_CYCLE_TARGET] = IsKeyPressed(KEY_TAB);
-    backend->input_snapshot.repeated[ENGINE_INPUT_ACTION_DEBUG_TOGGLE] = IsKeyPressed(KEY_F1);
+    backend->input_snapshot.repeated[ENGINE_INPUT_ACTION_DEBUG_TOGGLE] = IsKeyPressed(KEY_ONE);
+    backend->input_snapshot.repeated[ENGINE_INPUT_ACTION_DEBUG_WORLD_TOGGLE] = IsKeyPressed(KEY_TWO);
     backend->input_snapshot.mouse_x = GetMouseX();
     backend->input_snapshot.mouse_y = GetMouseY();
     backend->input_snapshot.mouse_buttons = 0U;
@@ -878,6 +886,7 @@ void raylib_backend_pump_events(RaylibBackend *backend) {
     if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE)) {
         backend->input_snapshot.mouse_buttons |= 4U;
     }
+    backend->input_snapshot.mouse_wheel_delta = GetMouseWheelMove();
 }
 
 void raylib_backend_begin_frame(RaylibBackend *backend, Color32 clear_color) {

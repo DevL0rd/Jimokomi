@@ -1,4 +1,5 @@
 #include "Logger.h"
+#include "PathResolver.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -129,7 +130,7 @@ bool EngineLogger_init(EngineLogger* logger, const EngineLoggerConfig* config) {
     logger->flush_every = config != 0 && config->flush_every > 0 ? config->flush_every : defaults.flush_every;
     logger->echo_to_console = config != 0 ? config->echo_to_console : defaults.echo_to_console;
     logger->minimum_level = config != 0 ? config->minimum_level : defaults.minimum_level;
-    logger->path = engine_logger_strdup((config != 0 && config->path != 0) ? config->path : defaults.path);
+    logger->path = EnginePathResolver_resolve_relative_to_executable((config != 0 && config->path != 0) ? config->path : defaults.path);
 
     return logger->path != 0;
 }
@@ -154,6 +155,7 @@ void EngineLogger_flush(EngineLogger* logger) {
         return;
     }
 
+    EnginePathResolver_ensure_parent_dirs(logger->path);
     file = fopen(logger->path, "w");
     if (file == 0) {
         return;
