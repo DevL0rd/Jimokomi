@@ -1,10 +1,10 @@
 #ifndef JIMOKOMI_ENGINE_RUNTIME_APP_RENDER_LOOP_H
 #define JIMOKOMI_ENGINE_RUNTIME_APP_RENDER_LOOP_H
 
-#include "../AppInternal.h"
-#include "../Core/InputPacketStream.h"
-#include "../Rendering/RenderSnapshot.h"
-#include "../Settings.h"
+typedef struct EngineAppContext EngineAppContext;
+typedef struct EngineSettings EngineSettings;
+typedef struct InputPacketStream InputPacketStream;
+typedef struct RenderSnapshotExchange RenderSnapshotExchange;
 
 void engine_app_run_render_loop(
     EngineAppContext* app,

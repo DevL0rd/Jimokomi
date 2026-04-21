@@ -2,14 +2,16 @@
 
 #include "AppInternal.h"
 #include "Core/InputPacketStreamInternal.h"
+#include "Core/TaskSystem.h"
 #include "Runtime/AppRenderLoop.h"
-#include "Runtime/AppSimulation.h"
+#include "Runtime/AppSimulationInternal.h"
 #include "RuntimeInput.h"
 #include "RuntimeConfig.h"
 #include "Settings.h"
 #include "Rendering/RaylibBackend.h"
 #include "Rendering/Renderer.h"
 #include "Rendering/RenderSnapshot.h"
+#include "Rendering/RenderSnapshotExchange.h"
 #include "Scene/Scene.h"
 #include "Scene/SceneView.h"
 
@@ -35,7 +37,7 @@ Scene* EngineApp_GetScene(EngineAppContext* app)
 
 TaskSystem* EngineApp_GetTaskSystem(EngineAppContext* app)
 {
-    return app != NULL ? &app->task_system : NULL;
+    return app != NULL ? app->task_system : NULL;
 }
 
 void EngineAppDesc_InitDefaults(EngineAppDesc* desc)
@@ -83,7 +85,8 @@ int EngineApp_Run(const EngineAppDesc* desc)
     {
         goto cleanup;
     }
-    if (!raylib_backend_init(&app.backend, runtime_config.window_width, runtime_config.window_height, runtime_config.window_title))
+    app.backend = raylib_backend_create(runtime_config.window_width, runtime_config.window_height, runtime_config.window_title);
+    if (app.backend == NULL)
     {
         goto cleanup;
     }
@@ -93,12 +96,13 @@ int EngineApp_Run(const EngineAppDesc* desc)
     }
     memset(&task_system_config, 0, sizeof(task_system_config));
     task_system_config.requested_worker_count = 0;
-    if (!task_system_init(&app.task_system, &task_system_config))
+    app.task_system = task_system_create(&task_system_config);
+    if (app.task_system == NULL)
     {
         goto cleanup;
     }
 
-    app.renderer = renderer_create(&app.backend.render_backend, &renderer_config);
+    app.renderer = renderer_create(raylib_backend_get_render_backend(app.backend), &renderer_config);
     if (app.renderer == NULL)
     {
         goto cleanup;
@@ -170,9 +174,9 @@ cleanup:
     {
         renderer_destroy(app.renderer);
     }
-    task_system_dispose(&app.task_system);
+    task_system_destroy(app.task_system);
     Engine_dispose(&app.engine);
-    raylib_backend_dispose(&app.backend);
+    raylib_backend_destroy(app.backend);
     render_snapshot_exchange_destroy(render_snapshot_exchange);
     input_packet_stream_dispose(&input_stream);
     return exit_code;

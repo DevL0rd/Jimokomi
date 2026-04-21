@@ -1,6 +1,7 @@
 #include "RendererInternal.h"
 
-#include "ResourceManagerInternal.h"
+#include "ResourceManagerBake.h"
+#include "ResourceManagerRegistry.h"
 
 #include <math.h>
 #include <stdlib.h>

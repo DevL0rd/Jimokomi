@@ -2,6 +2,7 @@
 
 #include "../Settings.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 static uint64_t debug_history_push_interval_ms(void) {
@@ -26,6 +27,16 @@ void debug_overlay_init(DebugOverlay *overlay) {
     overlay->draw_ui_bounds = true;
     overlay->last_visible_entity_count = 0U;
     overlay->last_active_collision_count = 0U;
+}
+
+DebugOverlay* debug_overlay_create(void) {
+    DebugOverlay* overlay = (DebugOverlay*)calloc(1U, sizeof(*overlay));
+
+    if (overlay == NULL) {
+        return NULL;
+    }
+    debug_overlay_init(overlay);
+    return overlay;
 }
 
 void debug_overlay_dispose(DebugOverlay *overlay) {
@@ -57,6 +68,14 @@ void debug_overlay_dispose(DebugOverlay *overlay) {
         );
     }
     memset(overlay, 0, sizeof(*overlay));
+}
+
+void debug_overlay_destroy(DebugOverlay* overlay) {
+    if (overlay == NULL) {
+        return;
+    }
+    debug_overlay_dispose(overlay);
+    free(overlay);
 }
 
 static void debug_overlay_tick_dashboard_state(

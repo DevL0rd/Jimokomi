@@ -340,6 +340,19 @@ bool task_system_init(TaskSystem* system, const TaskSystemConfig* config) {
     return true;
 }
 
+TaskSystem* task_system_create(const TaskSystemConfig* config) {
+    TaskSystem* system = (TaskSystem*)calloc(1U, sizeof(*system));
+
+    if (system == NULL) {
+        return NULL;
+    }
+    if (!task_system_init(system, config)) {
+        free(system);
+        return NULL;
+    }
+    return system;
+}
+
 void task_system_dispose(TaskSystem* system) {
     TaskSystemImpl* implementation;
     TaskSystemTask* task;
@@ -376,6 +389,14 @@ void task_system_dispose(TaskSystem* system) {
     free(implementation);
 
     memset(system, 0, sizeof(*system));
+}
+
+void task_system_destroy(TaskSystem* system) {
+    if (system == NULL) {
+        return;
+    }
+    task_system_dispose(system);
+    free(system);
 }
 
 int task_system_get_online_core_count(const TaskSystem* system) {

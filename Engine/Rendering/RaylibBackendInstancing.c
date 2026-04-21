@@ -321,7 +321,7 @@ void raylib_backend_draw_surface_batch(
 
     if (state == NULL || !state->ready || !raylib_backend_reserve_instance_rects(state, instance_count))
     {
-        raylib_backend_draw_surface_batch_fallback(userdata, surface, instances, instance_count);
+        raylib_backend_draw_surface_batch_individual(userdata, surface, instances, instance_count);
         return;
     }
 
@@ -329,7 +329,7 @@ void raylib_backend_draw_surface_batch(
     {
         if (instances[index].tint.value != instances[0].tint.value)
         {
-            raylib_backend_draw_surface_batch_fallback(userdata, surface, instances, instance_count);
+            raylib_backend_draw_surface_batch_individual(userdata, surface, instances, instance_count);
             return;
         }
     }
@@ -350,7 +350,7 @@ void raylib_backend_draw_surface_batch(
 
     if (!raylib_backend_reserve_instance_vbo(state, instance_count))
     {
-        raylib_backend_draw_surface_batch_fallback(userdata, surface, instances, instance_count);
+        raylib_backend_draw_surface_batch_individual(userdata, surface, instances, instance_count);
         return;
     }
 
@@ -386,7 +386,7 @@ void raylib_backend_draw_surface_batch(
     texture_id = raylib_backend_surface_get_texture_id(surface);
     if (texture_id == 0U)
     {
-        raylib_backend_draw_surface_batch_fallback(userdata, surface, instances, instance_count);
+        raylib_backend_draw_surface_batch_individual(userdata, surface, instances, instance_count);
         return;
     }
     rlActiveTextureSlot(0);

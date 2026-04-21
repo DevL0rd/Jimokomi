@@ -56,7 +56,7 @@ unsigned int raylib_backend_surface_get_texture_id(const Surface *surface) {
     return raylib_surface != NULL ? raylib_surface->target.texture.id : 0U;
 }
 
-void raylib_backend_draw_surface_batch_fallback(
+void raylib_backend_draw_surface_batch_individual(
     void *userdata,
     const Surface *surface,
     const SurfaceDrawInstance *instances,
@@ -473,6 +473,19 @@ bool raylib_backend_init(
     return true;
 }
 
+RaylibBackend* raylib_backend_create(int width, int height, const char* title) {
+    RaylibBackend* backend = (RaylibBackend*)calloc(1U, sizeof(*backend));
+
+    if (backend == NULL) {
+        return NULL;
+    }
+    if (!raylib_backend_init(backend, width, height, title)) {
+        free(backend);
+        return NULL;
+    }
+    return backend;
+}
+
 void raylib_backend_dispose(RaylibBackend *backend) {
     if (backend == NULL) {
         return;
@@ -480,6 +493,14 @@ void raylib_backend_dispose(RaylibBackend *backend) {
     raylib_backend_release_instancing_state(backend);
     CloseWindow();
     memset(backend, 0, sizeof(*backend));
+}
+
+void raylib_backend_destroy(RaylibBackend* backend) {
+    if (backend == NULL) {
+        return;
+    }
+    raylib_backend_dispose(backend);
+    free(backend);
 }
 
 void raylib_backend_pump_events(RaylibBackend *backend) {
@@ -564,4 +585,21 @@ EngineInputSnapshot raylib_backend_snapshot_input(const RaylibBackend *backend) 
         snapshot = backend->input_snapshot;
     }
     return snapshot;
+}
+
+RenderBackend* raylib_backend_get_render_backend(RaylibBackend* backend) {
+    return backend != NULL ? &backend->render_backend : NULL;
+}
+
+const RenderBackend* raylib_backend_get_render_backend_const(const RaylibBackend* backend) {
+    return backend != NULL ? &backend->render_backend : NULL;
+}
+
+void raylib_backend_get_window_size(const RaylibBackend* backend, int* out_width, int* out_height) {
+    if (out_width != NULL) {
+        *out_width = backend != NULL ? backend->window_width : 0;
+    }
+    if (out_height != NULL) {
+        *out_height = backend != NULL ? backend->window_height : 0;
+    }
 }

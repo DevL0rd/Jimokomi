@@ -22,6 +22,19 @@ bool resource_manager_init(ResourceManager* manager, RenderBackend* backend) {
     return true;
 }
 
+ResourceManager* resource_manager_create(RenderBackend* backend) {
+    ResourceManager* manager = (ResourceManager*)calloc(1U, sizeof(*manager));
+
+    if (manager == NULL) {
+        return NULL;
+    }
+    if (!resource_manager_init(manager, backend)) {
+        free(manager);
+        return NULL;
+    }
+    return manager;
+}
+
 void resource_manager_dispose(ResourceManager* manager) {
     if (manager == NULL) {
         return;
@@ -59,6 +72,14 @@ void resource_manager_dispose(ResourceManager* manager) {
     free(manager->invalidation.dirty_baked_surface_keys);
     free(manager->bake_queue.visual_source_last_requested_frame_indices);
     memset(manager, 0, sizeof(*manager));
+}
+
+void resource_manager_destroy(ResourceManager* manager) {
+    if (manager == NULL) {
+        return;
+    }
+    resource_manager_dispose(manager);
+    free(manager);
 }
 
 void resource_manager_begin_frame(ResourceManager* manager) {

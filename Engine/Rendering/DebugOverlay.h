@@ -82,7 +82,9 @@ typedef struct DebugOverlayStatsSnapshot {
 } DebugOverlayStatsSnapshot;
 
 void debug_overlay_init(DebugOverlay *overlay);
+DebugOverlay* debug_overlay_create(void);
 void debug_overlay_dispose(DebugOverlay *overlay);
+void debug_overlay_destroy(DebugOverlay* overlay);
 void debug_overlay_get_stats_snapshot(
     const DebugOverlay* overlay,
     DebugOverlayStatsSnapshot* out_snapshot

@@ -1,7 +1,8 @@
-#include "AppSimulation.h"
+#include "AppSimulationInternal.h"
 
 #include "InteractionSystem.h"
 #include "../Rendering/Renderer.h"
+#include "../Rendering/RenderSnapshotExchange.h"
 #include "../Rendering/SceneRenderSnapshot.h"
 #include "../Scene/Scene.h"
 #include "../Scene/ScenePhysics.h"

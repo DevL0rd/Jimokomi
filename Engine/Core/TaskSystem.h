@@ -12,7 +12,9 @@ typedef struct TaskSystemConfig {
 } TaskSystemConfig;
 
 bool task_system_init(TaskSystem* system, const TaskSystemConfig* config);
+TaskSystem* task_system_create(const TaskSystemConfig* config);
 void task_system_dispose(TaskSystem* system);
+void task_system_destroy(TaskSystem* system);
 int task_system_detect_online_core_count(void);
 int task_system_get_online_core_count(const TaskSystem* system);
 int task_system_get_worker_count(const TaskSystem* system);

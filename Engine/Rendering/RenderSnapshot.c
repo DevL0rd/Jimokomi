@@ -1,4 +1,5 @@
 #include "RenderSnapshot.h"
+#include "RenderSnapshotExchange.h"
 #include "RenderSnapshotInternal.h"
 
 #include <stdatomic.h>

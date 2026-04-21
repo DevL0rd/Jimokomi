@@ -1,7 +1,10 @@
 #ifndef JIMOKOMI_ENGINE_SCENE_SCENE_STORAGE_H
 #define JIMOKOMI_ENGINE_SCENE_SCENE_STORAGE_H
 
-#include "SceneInternal.h"
+#include <stddef.h>
+
+struct Entity;
+typedef struct SceneStorage SceneStorage;
 
 bool Scene_AppendEntityToList(
     struct Entity*** entities,

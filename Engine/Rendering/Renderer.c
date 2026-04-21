@@ -1,7 +1,9 @@
 #include "RendererInternal.h"
 
-#include "DebugOverlayInternal.h"
-#include "ResourceManagerInternal.h"
+#include "DebugOverlay.h"
+#include "ResourceManagerBake.h"
+#include "ResourceManagerRegistry.h"
+#include "ResourceManagerStats.h"
 
 #include <time.h>
 #include <stdlib.h>
@@ -206,11 +208,11 @@ void renderer_init(Renderer *renderer, RenderBackend *backend, const RendererCon
         return;
     }
     memset(renderer, 0, sizeof(*renderer));
-    renderer->resource_manager = (ResourceManager*)calloc(1, sizeof(*renderer->resource_manager));
-    renderer->debug_overlay = (DebugOverlay*)calloc(1, sizeof(*renderer->debug_overlay));
+    renderer->resource_manager = resource_manager_create(backend);
+    renderer->debug_overlay = debug_overlay_create();
     if (renderer->resource_manager == NULL || renderer->debug_overlay == NULL) {
-        free(renderer->resource_manager);
-        free(renderer->debug_overlay);
+        resource_manager_destroy(renderer->resource_manager);
+        debug_overlay_destroy(renderer->debug_overlay);
         memset(renderer, 0, sizeof(*renderer));
         return;
     }
@@ -219,7 +221,6 @@ void renderer_init(Renderer *renderer, RenderBackend *backend, const RendererCon
     renderer->prebake_target_fps = config != NULL && config->prebake_target_fps > 0.0f
         ? config->prebake_target_fps
         : 60.0f;
-    resource_manager_init(renderer->resource_manager, backend);
     resource_manager_set_bake_time_budget(renderer->resource_manager, 1000.0 / (double)renderer->prebake_target_fps);
     if (config != NULL) {
         resource_manager_set_bake_admission_thresholds(
@@ -228,7 +229,6 @@ void renderer_init(Renderer *renderer, RenderBackend *backend, const RendererCon
             config->prebake_admission_frame_hits
         );
     }
-    debug_overlay_init(renderer->debug_overlay);
     camera_init(&renderer->camera, 0.0f, 0.0f, (float)renderer->view_width, (float)renderer->view_height, 0.12f);
 }
 
@@ -251,10 +251,8 @@ void renderer_dispose(Renderer *renderer) {
     if (renderer == NULL) {
         return;
     }
-    resource_manager_dispose(renderer->resource_manager);
-    debug_overlay_dispose(renderer->debug_overlay);
-    free(renderer->resource_manager);
-    free(renderer->debug_overlay);
+    resource_manager_destroy(renderer->resource_manager);
+    debug_overlay_destroy(renderer->debug_overlay);
     free(renderer->scratch_items);
     free(renderer->scratch_instances);
     memset(renderer, 0, sizeof(*renderer));

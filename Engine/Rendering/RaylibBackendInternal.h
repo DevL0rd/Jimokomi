@@ -25,7 +25,7 @@ bool raylib_backend_surface_get_dimensions(
     int *height
 );
 unsigned int raylib_backend_surface_get_texture_id(const Surface *surface);
-void raylib_backend_draw_surface_batch_fallback(
+void raylib_backend_draw_surface_batch_individual(
     void *userdata,
     const Surface *surface,
     const SurfaceDrawInstance *instances,

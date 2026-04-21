@@ -105,17 +105,6 @@ typedef struct RenderSnapshotBuffer {
     uint64_t published_at_ms;
 } RenderSnapshotBuffer;
 
-RenderSnapshotExchange* render_snapshot_exchange_create(void);
-void render_snapshot_exchange_destroy(RenderSnapshotExchange* exchange);
-RenderSnapshotBuffer* render_snapshot_exchange_begin_write(RenderSnapshotExchange* exchange);
-void render_snapshot_exchange_publish(RenderSnapshotExchange* exchange, RenderSnapshotBuffer* buffer);
-uint64_t render_snapshot_exchange_get_published_sequence(const RenderSnapshotExchange* exchange);
-const RenderSnapshotBuffer* render_snapshot_exchange_acquire_published(RenderSnapshotExchange* exchange);
-const RenderSnapshotBuffer* render_snapshot_exchange_acquire_if_new(
-    RenderSnapshotExchange* exchange,
-    uint64_t last_sequence
-);
-void render_snapshot_exchange_release_published(RenderSnapshotExchange* exchange, const RenderSnapshotBuffer* buffer);
 void render_world_snapshot_build_frame(const RenderWorldSnapshot* snapshot, RendererFrame* frame);
 
 #endif

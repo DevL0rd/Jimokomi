@@ -1,8 +1,12 @@
 #include "AppRenderLoop.h"
 
 #include "InteractionSystem.h"
-#include "../Rendering/RaylibBackendInternal.h"
+#include "../AppInternal.h"
+#include "../Core/InputPacketStream.h"
+#include "../Rendering/RaylibBackend.h"
 #include "../Rendering/Renderer.h"
+#include "../Rendering/RenderSnapshotExchange.h"
+#include "../Settings.h"
 
 #include <time.h>
 
@@ -65,7 +69,7 @@ void engine_app_run_render_loop(
         return;
     }
 
-    while (!raylib_backend_should_close(&app->backend))
+    while (!raylib_backend_should_close(app->backend))
     {
         const RenderSnapshotBuffer* render_snapshot;
         EngineRuntimeInputPacket* next_input_packet;
@@ -76,9 +80,12 @@ void engine_app_run_render_loop(
         const DebugEntityView* selected_entity;
         bool has_selection;
         bool pointer_over_ui;
+        int window_width = 0;
+        int window_height = 0;
 
-        raylib_backend_pump_events(&app->backend);
-        input_snapshot = raylib_backend_snapshot_input(&app->backend);
+        raylib_backend_pump_events(app->backend);
+        raylib_backend_get_window_size(app->backend, &window_width, &window_height);
+        input_snapshot = raylib_backend_snapshot_input(app->backend);
         Engine_update(&app->engine, 0.0, &input_snapshot);
         if (EngineInput_was_pressed(&app->engine.input, ENGINE_INPUT_ACTION_DEBUG_TOGGLE))
         {
@@ -108,16 +115,16 @@ void engine_app_run_render_loop(
             app->renderer,
             &app->engine.input,
             has_selection,
-            app->backend.window_width,
-            app->backend.window_height
+            window_width,
+            window_height
         );
         pointer_over_ui = renderer_debug_overlay_is_pointer_over_ui(
             app->renderer,
             has_selection,
             (float)input_snapshot.mouse_x,
             (float)input_snapshot.mouse_y,
-            app->backend.window_width,
-            app->backend.window_height
+            window_width,
+            window_height
         );
         InteractionSystem_UpdateRender(
             &app->interaction_state,
@@ -139,8 +146,8 @@ void engine_app_run_render_loop(
                 pointer_over_ui,
                 renderer_debug_overlay_is_ui_visible(app->renderer),
                 renderer_debug_overlay_is_world_gizmos_visible(app->renderer),
-                app->backend.window_width,
-                app->backend.window_height,
+                window_width,
+                window_height,
                 input_packet_stream_next_frame_id(input_stream),
                 next_input_packet
             );
@@ -159,20 +166,20 @@ void engine_app_run_render_loop(
                 : 0.0f;
 
         Engine_draw_begin(&app->engine);
-        raylib_backend_begin_frame(&app->backend, settings->app_clear_color);
+        raylib_backend_begin_frame(app->backend, settings->app_clear_color);
         frame.selected_debug_entity_id = selected_entity != NULL ? selected_entity->id : app->interaction_state.selected_entity_id;
         frame.hovered_debug_entity_id = app->interaction_state.hovered_entity_id;
-        renderer_draw(app->renderer, &app->backend.render_backend, &frame);
+        renderer_draw(app->renderer, raylib_backend_get_render_backend(app->backend), &frame);
         renderer_draw_debug_overlay_ui(
             app->renderer,
-            &app->backend.render_backend,
+            raylib_backend_get_render_backend(app->backend),
             &debug_overlay_snapshot,
             &engine_stats_snapshot,
             selected_entity,
-            app->backend.window_width,
-            app->backend.window_height
+            window_width,
+            window_height
         );
-        raylib_backend_end_frame(&app->backend);
+        raylib_backend_end_frame(app->backend);
         Engine_draw_end(&app->engine);
     }
 

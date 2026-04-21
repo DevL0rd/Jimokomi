@@ -7,7 +7,9 @@ typedef struct ResourceManager ResourceManager;
 typedef struct RenderBackend RenderBackend;
 
 bool resource_manager_init(ResourceManager* manager, RenderBackend* backend);
+ResourceManager* resource_manager_create(RenderBackend* backend);
 void resource_manager_dispose(ResourceManager* manager);
+void resource_manager_destroy(ResourceManager* manager);
 void resource_manager_begin_frame(ResourceManager* manager);
 
 #endif

@@ -1,6 +1,6 @@
 #include "RendererInternal.h"
 
-#include "ResourceManagerInternal.h"
+#include "ResourceManagerRegistry.h"
 
 bool renderer_is_item_visible(const Renderer* renderer, const SpriteRenderable* item)
 {
