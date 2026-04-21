@@ -47,4 +47,8 @@ struct SpatialGrid
     bool enabled;
 };
 
+bool spatial_grid_bounds_overlap(Aabb a, Aabb b);
+int spatial_grid_cell_x(const SpatialGrid* grid, float x);
+int spatial_grid_cell_y(const SpatialGrid* grid, float y);
+
 #endif

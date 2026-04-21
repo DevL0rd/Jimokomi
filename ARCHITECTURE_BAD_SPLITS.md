@@ -1,135 +1,23 @@
 # Architecture Bad Splits Audit
 
-This file lists existing files/subsystems that look split badly, incompletely,
-or in a way that can become the same kind of cosmetic breakdown we want to
-avoid. This is separate from the main cleanup plan: it is an audit of suspicious
-boundaries and files to revisit.
-
-## High Priority
-
-### `Engine/Rendering/ResourceManager.c`
-
-Problem:
-
-- Still one 1,500+ line implementation file.
-- `ResourceManagerStats.c` is split out, but the main file still owns registry,
-  bake cache, bake queues, dirty invalidation, admission policy, bake execution,
-  and lifecycle.
-- This is a partial split: stats moved, core responsibilities stayed tangled.
-
-Right fix:
-
-- Move registry, bake cache, bake queue, admission, and invalidation into real
-  compiled modules with private headers.
-- Keep `ResourceManager.c` as lifecycle and public API routing only.
-
-### `Engine/Rendering/DebugOverlay.c`
-
-Problem:
-
-- Still one 1,400+ line implementation file.
-- `DebugOverlayStats.c` exists, but the overlay still mixes input, layout,
-  history, dashboard drawing, inspector drawing, world gizmos, cached surfaces,
-  signatures, and draw dispatch.
-- `DebugOverlayInternal.h` exposes one large shared private struct instead of
-  grouped state.
-
-Right fix:
-
-- Split into real compiled modules: input, layout, history, dashboard,
-  inspector, world, and dispatch.
-- Group internal state by responsibility before moving behavior.
-
-### `Engine/Physics/PhysicsWorld.c`
-
-Problem:
-
-- Still one broad 1,000 line Box2D wrapper.
-- Owns world lifecycle, body creation/removal, shape sync, tilemap bodies,
-  queries, contacts, counters, and task callback integration.
-- `PhysicsWorldSnapshot.c` exists, but snapshot work is only one small piece of
-  the wrapper.
-
-Right fix:
-
-- Split bodies, shapes, queries, tilemap, task callbacks, and snapshots into
-  real modules.
-- Keep `PhysicsWorld.c` as public orchestration.
-
-### `Engine/Scene/Scene.c`
-
-Problem:
-
-- Still owns lifecycle, storage, component indexes, random-force component
-  insertion, world bounds, tilemap bounds sync, spatial-grid dirty update,
-  queries, and destruction.
-- `SceneAccess.c` and `SceneFactories.c` exist, but storage/index ownership is
-  still mostly in `Scene.c`.
-
-Right fix:
-
-- Split storage, component indexing, view/bounds, queries, stats/accessors, and
-  factories into real modules.
-- Make one indexing path responsible for add/remove membership.
+This file tracks architecture splits that are still valid in the current tree.
+Resolved or stale entries should be deleted instead of kept as historical noise.
 
 ## Medium Priority
-
-### `Engine/Rendering/RaylibBackend.c`
-
-Problem:
-
-- Large backend file at roughly 900+ lines.
-- It likely mixes window lifecycle, event/input capture, surface/render-target
-  management, drawing primitives, sprite drawing, and text rendering.
-
-Right fix:
-
-- Split backend input/window handling from render-target/surface management and
-  primitive drawing.
-- Keep the public backend API stable while reducing file responsibility.
-
-### `Engine/Rendering/Renderer.c`
-
-Problem:
-
-- Mid-large renderer file that likely owns frame building, sorting, visibility,
-  instancing, backdrop handling, and draw dispatch.
-- Related renderer internals may be clean enough for now, but this should be
-  watched before adding more rendering features.
-
-Right fix:
-
-- Split only when there is a clear owner: sorting, visibility, instancing, and
-  draw dispatch.
-- Avoid a vague renderer utilities bucket.
-
-### `Engine/Scene/SpatialGrid.c`
-
-Problem:
-
-- Large file at 1,100+ lines.
-- `SpatialGridDiagnostics.c` is already split out, but the main grid still
-  likely owns storage, dirty cell tracking, broadphase query implementations,
-  and rebuild/update paths.
-
-Right fix:
-
-- Split storage/rebuild, dirty tracking, and query implementations if the grid
-  keeps growing.
 
 ### `Engine/Runtime/InteractionSystem.c`
 
 Problem:
 
-- Correctly moved out of scene systems, but still one 400+ line file that spans
-  render-thread camera input, hover picking, packet writing, and sim-thread drag
-  application.
-- This is a better location, not a complete split.
+- Smaller now, but still mixes render-thread camera/input handling and hover
+  picking.
+- Packet serialization and sim-thread drag application are already split into
+  focused runtime modules.
 
 Right fix:
 
-- Split render update, input packet serialization, and sim application into
-  focused runtime modules.
+- Split hover picking into `InteractionPicking.c` if the interaction path grows.
+- Keep render-thread input collection in `InteractionSystem.c`.
 
 ## Public Header Concerns
 
@@ -139,7 +27,7 @@ Problem:
 
 - Public header exposes `RenderSnapshotExchange`, `RenderWorldSnapshot`, and
   detailed snapshot fields.
-- Game code does not currently need most of this.
+- Game code does not need most exchange/build internals.
 
 Right fix:
 
@@ -150,12 +38,13 @@ Right fix:
 
 Problem:
 
-- Public API exposes a broad resource surface.
-- Some getters may exist mainly because internals are not split cleanly.
+- Public API still exposes a broad resource surface.
+- Some getters may exist mainly because internals were previously not split
+  cleanly.
 
 Right fix:
 
-- Re-check public callers after the resource manager split.
+- Re-check public callers after resource manager cleanup.
 - Move implementation-only access behind private headers.
 
 ### `Engine/Physics/PhysicsWorld.h`
@@ -179,29 +68,32 @@ Problem:
 
 Right fix:
 
-- Split into `Scene.h`, `SceneFactory.h`, `SceneQueries.h`, and possibly
-  `ScenePhysics.h` if the public API keeps growing.
+- Split into focused public headers such as `Scene.h`, `SceneFactory.h`,
+  `SceneQueries.h`, and possibly `ScenePhysics.h` if the public API keeps
+  growing.
 
-## Build Structure
+## Resolved In Current Cleanup
 
-### Root `CMakeLists.txt`
-
-Problem:
-
-- Recursive globs make accidental files compile immediately.
-- This makes bad partial splits dangerous: copied source files can introduce
-  duplicate symbols or broken half-modules without an explicit source-list
-  decision.
-
-Right fix:
-
-- Replace recursive globs with explicit grouped source lists.
-- Make new source ownership intentional.
-
-## Current Worktree Warning
-
-The shortcut include-fragment split attempt was reverted. No `ResourceManager`
-or `DebugOverlay` include-fragment files should remain.
-
-Do not add new copied `.c` files unless the old source has been updated in the
-same change and the build source list is explicit.
+- `Engine/Rendering/ResourceManager.c` is no longer the old monolith; registry,
+  bake cache, bake queue, bake process, invalidation, lifecycle, and stats are
+  separate compiled modules.
+- `Engine/Rendering/DebugOverlay.c` is no longer the old monolith; input,
+  layout, history, dashboard, inspector, panels, world drawing, stats, and
+  common helpers are separate compiled modules.
+- `Engine/Physics/PhysicsWorld.c` is no longer the old monolith; bodies,
+  queries, tilemap, and snapshots are separate compiled modules.
+- `Engine/Scene/Scene.c` is no longer the old monolith; access, factories,
+  queries, storage, and view logic are separate compiled modules.
+- `Engine/Scene/SpatialGrid.c` no longer owns broadphase query implementations;
+  AABB, circle, and segment queries live in `SpatialGridQueries.c`.
+- `Engine/Rendering/Renderer.c` no longer owns frame/signature hashing;
+  signature bookkeeping lives in `RendererSignatures.c`.
+- `Engine/Rendering/Renderer.c` no longer owns visibility filtering; culling
+  logic lives in `RendererVisibility.c`.
+- `Engine/Rendering/Renderer.c` no longer owns baked surface batch preparation
+  or flush; batching lives in `RendererSurfaceBatch.c`.
+- `Engine/Rendering/RaylibBackend.c` no longer owns instanced surface batching;
+  instancing state, shader setup, and batch draw dispatch live in
+  `RaylibBackendInstancing.c`.
+- Root `CMakeLists.txt` uses an explicit source list; the old recursive-glob
+  warning is stale.
