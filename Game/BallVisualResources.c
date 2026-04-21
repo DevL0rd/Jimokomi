@@ -34,9 +34,9 @@ static void game_fill_ball_material(Material* material, size_t index) {
 }
 
 static void game_draw_ball_body(
-    Target *target,
-    const ProceduralTextureContext *context,
-    void *user_data
+    Target* target,
+    const ProceduralTextureContext* context,
+    void* user_data
 ) {
     float time_seconds = context != NULL ? context->time_seconds : 0.0f;
     const Material* material = context != NULL ? context->material : NULL;
@@ -73,7 +73,8 @@ static void game_draw_ball_body(
             BALL_RENDER_CENTER + cosf(orbit_angle) * (orbit_radius * BALL_RENDER_SCALE),
             BALL_RENDER_CENTER + sinf(orbit_angle) * (orbit_radius * BALL_RENDER_SCALE)
         };
-        float star_radius = (0.65f + 0.45f * (0.5f + 0.5f * sinf(swirl_phase * 2.3f + (float)index))) * BALL_RENDER_SCALE;
+        float star_radius = (0.65f + 0.45f * (0.5f + 0.5f * sinf(swirl_phase * 2.3f + (float)index))) *
+            BALL_RENDER_SCALE;
         target_circle_filled(target, center, star_radius, glow_color);
     }
 
