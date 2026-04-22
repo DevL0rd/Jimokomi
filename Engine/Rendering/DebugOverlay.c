@@ -165,6 +165,7 @@ static bool debug_overlay_should_redraw_panel(
 
 static uint64_t debug_overlay_compute_dashboard_signature(
     const DebugOverlay* overlay,
+    const DebugOverlaySnapshot* snapshot,
     int viewport_width,
     int viewport_height
 ) {
@@ -188,6 +189,20 @@ static uint64_t debug_overlay_compute_dashboard_signature(
     hash = debug_hash_u64(hash, (uint64_t)(overlay->history->display_total_body_count / 16.0f));
     hash = debug_hash_u64(hash, (uint64_t)(overlay->history->display_sleeping_body_count / 16.0f));
     hash = debug_hash_u64(hash, (uint64_t)(overlay->history->display_moved_body_count / 16.0f));
+    if (snapshot != NULL) {
+        hash = debug_hash_u64(hash, snapshot->particle_system_count);
+        hash = debug_hash_u64(hash, snapshot->particle_count);
+        hash = debug_hash_u64(hash, snapshot->particle_contact_count);
+        hash = debug_hash_u64(hash, snapshot->particle_body_contact_count);
+        hash = debug_hash_u64(hash, snapshot->particle_task_count);
+        hash = debug_hash_u64(hash, snapshot->particle_task_range_count);
+        hash = debug_hash_u64(hash, snapshot->particle_spatial_cell_count);
+        hash = debug_hash_u64(hash, snapshot->particle_occupied_cell_count);
+        hash = debug_hash_u64(hash, snapshot->particle_byte_count / 1024U);
+        hash = debug_hash_u64(hash, snapshot->particle_scratch_byte_count / 1024U);
+        hash = debug_hash_i32(hash, debug_round_quarters(snapshot->particle_profile_ms));
+        hash = debug_hash_i32(hash, debug_round_quarters(snapshot->particle_profile_collision_ms));
+    }
     hash = debug_hash_u64(hash, overlay->history->history_serial);
     hash = debug_hash_i32(hash, debug_round_tenths(overlay->ui->dashboard_panel.x));
     hash = debug_hash_i32(hash, debug_round_tenths(overlay->ui->dashboard_panel.y));
@@ -257,7 +272,7 @@ void debug_overlay_draw_ui(
     debug_overlay_ensure_layout(overlay, has_selection, viewport_width, viewport_height);
     overlay->ui->last_ui_layout_ms = debug_overlay_now_ms() - layout_started_ms;
     debug_overlay_tick_dashboard_state(overlay, snapshot, stats);
-    dashboard_signature = debug_overlay_compute_dashboard_signature(overlay, viewport_width, viewport_height);
+    dashboard_signature = debug_overlay_compute_dashboard_signature(overlay, snapshot, viewport_width, viewport_height);
     inspector_signature = debug_overlay_compute_inspector_signature(overlay, selected_entity, viewport_width, viewport_height);
     if (backend->create_surface != NULL &&
         backend->destroy_surface != NULL &&

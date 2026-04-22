@@ -38,6 +38,7 @@ set(SOURCES
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/TaskSystem.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Engine.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Physics/PhysicsBodies.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Physics/PhysicsParticles.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Physics/PhysicsQueries.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Physics/PhysicsTilemap.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Physics/PhysicsWorld.c"
@@ -105,6 +106,8 @@ set(SOURCES
 	"${CMAKE_CURRENT_SOURCE_DIR}/Game/BallVisualResources.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Game/Game.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Game/GameWorld.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Game/LiquidSourceSystem.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Game/LiquidVisualResources.c"
 )
 
 add_executable(jimokomi ${SOURCES})

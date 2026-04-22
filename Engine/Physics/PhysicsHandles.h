@@ -15,4 +15,10 @@ typedef struct PhysicsShapeHandle {
     uint16_t generation;
 } PhysicsShapeHandle;
 
+typedef struct PhysicsParticleSystemHandle {
+    int32_t index1;
+    uint16_t world0;
+    uint16_t generation;
+} PhysicsParticleSystemHandle;
+
 #endif

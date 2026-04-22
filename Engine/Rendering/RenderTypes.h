@@ -3,6 +3,7 @@
 
 #include "Camera.h"
 #include "DebugOverlay.h"
+#include "RenderCommon.h"
 #include "ResourceTypes.h"
 #include "Target.h"
 
@@ -17,6 +18,7 @@ typedef struct SpriteRenderable {
     ResourceHandle visual_source_handle;
     ResourceHandle material_handle;
     ResourceHandle shader_handle;
+    Color32 tint;
     void* user_data;
 } SpriteRenderable;
 

@@ -10,6 +10,7 @@ typedef struct PhysicsWorldLifecycleState PhysicsWorldLifecycleState;
 typedef struct PhysicsWorldTilemapState PhysicsWorldTilemapState;
 typedef struct PhysicsWorldEntityState PhysicsWorldEntityState;
 typedef struct PhysicsWorldStatsState PhysicsWorldStatsState;
+typedef struct PhysicsWorldParticleState PhysicsWorldParticleState;
 
 struct PhysicsWorld
 {
@@ -17,6 +18,7 @@ struct PhysicsWorld
     PhysicsWorldTilemapState* tilemap;
     PhysicsWorldEntityState* entities;
     PhysicsWorldStatsState* stats;
+    PhysicsWorldParticleState* particles;
 };
 
 b2BodyId PhysicsWorld_LoadBodyHandle(PhysicsBodyHandle handle);

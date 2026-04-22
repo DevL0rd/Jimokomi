@@ -58,6 +58,7 @@ bool renderer_prepare_batched_surface_draw(
     Vec2 screen_size;
     Vec2 screen;
     Rect dest;
+    Color32 item_tint;
 
     if (renderer == NULL || item == NULL || prepared == NULL)
     {
@@ -106,15 +107,18 @@ bool renderer_prepare_batched_surface_draw(
     dest.y = screen.y - screen_size.y * item->anchor_y;
     dest.w = screen_size.x;
     dest.h = screen_size.y;
+    item_tint = item->tint.value != 0U ? item->tint : (Color32){ 0xffffffffU };
+    if (source->bake_ignores_material && item_tint.value == 0xffffffffU)
+    {
+        item_tint = (Color32){ material->value.base_color != 0U ? material->value.base_color : 0xffffffffU };
+    }
 
     prepared->surface = baked_body;
     prepared->instance.dest = dest;
     prepared->instance.origin.x = screen_size.x * item->anchor_x;
     prepared->instance.origin.y = screen_size.y * item->anchor_y;
     prepared->instance.rotation_degrees = item->angle_radians * (180.0f / 3.14159265359f);
-    prepared->instance.tint = source->bake_ignores_material
-        ? (Color32){ material->value.base_color }
-        : (Color32){ 0xffffffffU };
+    prepared->instance.tint = item_tint;
     prepared->valid = true;
     return true;
 }

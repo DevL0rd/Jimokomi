@@ -7,6 +7,8 @@
 #include <raylib.h>
 #include <rlgl.h>
 
+#define RAYLIB_INSTANCE_FLOAT_COUNT 8U
+
 typedef struct RaylibInstancingState {
     Mesh quad_mesh;
     Shader shader;
@@ -14,6 +16,7 @@ typedef struct RaylibInstancingState {
     size_t instance_capacity;
     unsigned int instance_vbo;
     size_t instance_vbo_capacity;
+    int instance_color_location;
     bool ready;
 } RaylibInstancingState;
 
@@ -23,11 +26,12 @@ static const char* raylib_instancing_vs =
     "in vec2 vertexTexCoord;\n"
     "in vec4 vertexColor;\n"
     "in vec4 instanceTransform;\n"
+    "in vec4 instanceColor;\n"
     "out vec2 fragTexCoord;\n"
     "out vec4 fragColor;\n"
     "void main() {\n"
     "    fragTexCoord = vertexTexCoord;\n"
-    "    fragColor = vertexColor;\n"
+    "    fragColor = vertexColor*instanceColor;\n"
     "    vec2 clipPos = instanceTransform.xy + vertexPosition.xy*instanceTransform.zw;\n"
     "    gl_Position = vec4(clipPos, 0.0, 1.0);\n"
     "}\n";
@@ -113,7 +117,7 @@ static bool raylib_backend_reserve_instance_rects(
 
     next_values = (float*)realloc(
         state->instance_rect_data,
-        next_capacity * 4U * sizeof(*next_values)
+        next_capacity * RAYLIB_INSTANCE_FLOAT_COUNT * sizeof(*next_values)
     );
     if (next_values == NULL)
     {
@@ -157,7 +161,7 @@ static bool raylib_backend_reserve_instance_vbo(
 
     state->instance_vbo = rlLoadVertexBuffer(
         NULL,
-        (int)(next_capacity * 4U * sizeof(float)),
+        (int)(next_capacity * RAYLIB_INSTANCE_FLOAT_COUNT * sizeof(float)),
         true
     );
     if (state->instance_vbo == 0U)
@@ -288,6 +292,7 @@ static bool raylib_backend_init_instancing_state(RaylibBackend* backend)
     state->shader.locs[SHADER_LOC_VERTEX_TEXCOORD01] = RL_DEFAULT_SHADER_ATTRIB_LOCATION_TEXCOORD;
     state->shader.locs[SHADER_LOC_VERTEX_COLOR] = RL_DEFAULT_SHADER_ATTRIB_LOCATION_COLOR;
     state->shader.locs[SHADER_LOC_VERTEX_INSTANCETRANSFORM] = RL_DEFAULT_SHADER_ATTRIB_LOCATION_INSTANCETRANSFORM;
+    state->instance_color_location = GetShaderLocationAttrib(state->shader, "instanceColor");
     state->ready = true;
     backend->instancing_state = state;
     return true;
@@ -325,27 +330,26 @@ void raylib_backend_draw_surface_batch(
         return;
     }
 
-    for (index = 1U; index < instance_count; ++index)
-    {
-        if (instances[index].tint.value != instances[0].tint.value)
-        {
-            raylib_backend_draw_surface_batch_individual(userdata, surface, instances, instance_count);
-            return;
-        }
-    }
-
     for (index = 0U; index < instance_count; ++index)
     {
+        uint32_t tint = instances[index].tint.value != 0U ? instances[index].tint.value : 0xffffffffU;
         float center_x = instances[index].dest.x + instances[index].dest.w * 0.5f;
         float center_y = instances[index].dest.y + instances[index].dest.h * 0.5f;
         float clip_size_x = (instances[index].dest.w / (float)backend->target_width) * 2.0f;
         float clip_size_y = (instances[index].dest.h / (float)backend->target_height) * 2.0f;
         float clip_center_x = (center_x / (float)backend->target_width) * 2.0f - 1.0f;
         float clip_center_y = 1.0f - (center_y / (float)backend->target_height) * 2.0f;
-        state->instance_rect_data[index * 4U + 0U] = clip_center_x;
-        state->instance_rect_data[index * 4U + 1U] = clip_center_y;
-        state->instance_rect_data[index * 4U + 2U] = clip_size_x;
-        state->instance_rect_data[index * 4U + 3U] = clip_size_y;
+        size_t instance_offset = index * RAYLIB_INSTANCE_FLOAT_COUNT;
+        state->instance_rect_data[instance_offset + 0U] = clip_center_x;
+        state->instance_rect_data[instance_offset + 1U] = clip_center_y;
+        state->instance_rect_data[instance_offset + 2U] = clip_size_x;
+        state->instance_rect_data[instance_offset + 3U] = clip_size_y;
+        state->instance_rect_data[instance_offset + 4U] = (float)((tint >> 16U) & 0xffU) / 255.0f;
+        state->instance_rect_data[instance_offset + 5U] = (float)((tint >> 8U) & 0xffU) / 255.0f;
+        state->instance_rect_data[instance_offset + 6U] = (float)(tint & 0xffU) / 255.0f;
+        state->instance_rect_data[instance_offset + 7U] = (tint & 0xff000000U) != 0U
+            ? (float)((tint >> 24U) & 0xffU) / 255.0f
+            : 1.0f;
     }
 
     if (!raylib_backend_reserve_instance_vbo(state, instance_count))
@@ -358,24 +362,7 @@ void raylib_backend_draw_surface_batch(
     rlEnableShader(state->shader.id);
     if (state->shader.locs[SHADER_LOC_COLOR_DIFFUSE] != -1)
     {
-        Color tint_color;
-        tint_color.r = (unsigned char)((instances[0].tint.value >> 16U) & 0xffU);
-        tint_color.g = (unsigned char)((instances[0].tint.value >> 8U) & 0xffU);
-        tint_color.b = (unsigned char)(instances[0].tint.value & 0xffU);
-        if ((instances[0].tint.value & 0xff000000U) != 0U || instances[0].tint.value == 0U)
-        {
-            tint_color.a = (unsigned char)((instances[0].tint.value >> 24U) & 0xffU);
-        }
-        else
-        {
-            tint_color.a = 255U;
-        }
-        float tint_values[4] = {
-            (float)tint_color.r / 255.0f,
-            (float)tint_color.g / 255.0f,
-            (float)tint_color.b / 255.0f,
-            (float)tint_color.a / 255.0f
-        };
+        float tint_values[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
         rlSetUniform(state->shader.locs[SHADER_LOC_COLOR_DIFFUSE], tint_values, SHADER_UNIFORM_VEC4, 1);
     }
     if (state->shader.locs[SHADER_LOC_MAP_DIFFUSE] != -1)
@@ -438,7 +425,7 @@ void raylib_backend_draw_surface_batch(
     rlUpdateVertexBuffer(
         state->instance_vbo,
         state->instance_rect_data,
-        (int)(instance_count * 4U * sizeof(*state->instance_rect_data)),
+        (int)(instance_count * RAYLIB_INSTANCE_FLOAT_COUNT * sizeof(*state->instance_rect_data)),
         0
     );
 
@@ -448,13 +435,32 @@ void raylib_backend_draw_surface_batch(
         4,
         RL_FLOAT,
         0,
-        (int)(4U * sizeof(*state->instance_rect_data)),
+        (int)(RAYLIB_INSTANCE_FLOAT_COUNT * sizeof(*state->instance_rect_data)),
         0
     );
     raylib_backend_set_attribute_divisor((unsigned int)state->shader.locs[SHADER_LOC_VERTEX_INSTANCETRANSFORM], 1U);
 
+    if (state->instance_color_location != -1)
+    {
+        rlEnableVertexAttribute((unsigned int)state->instance_color_location);
+        rlSetVertexAttribute(
+            (unsigned int)state->instance_color_location,
+            4,
+            RL_FLOAT,
+            0,
+            (int)(RAYLIB_INSTANCE_FLOAT_COUNT * sizeof(*state->instance_rect_data)),
+            (int)(4U * sizeof(*state->instance_rect_data))
+        );
+        raylib_backend_set_attribute_divisor((unsigned int)state->instance_color_location, 1U);
+    }
+
     raylib_backend_draw_arrays_instanced(0, state->quad_mesh.vertexCount, (int)instance_count);
 
+    if (state->instance_color_location != -1)
+    {
+        raylib_backend_set_attribute_divisor((unsigned int)state->instance_color_location, 0U);
+        rlDisableVertexAttribute((unsigned int)state->instance_color_location);
+    }
     raylib_backend_set_attribute_divisor((unsigned int)state->shader.locs[SHADER_LOC_VERTEX_INSTANCETRANSFORM], 0U);
     rlDisableVertexAttribute((unsigned int)state->shader.locs[SHADER_LOC_VERTEX_INSTANCETRANSFORM]);
 

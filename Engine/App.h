@@ -13,6 +13,7 @@ typedef struct TaskSystem TaskSystem;
 typedef bool (*EngineAppRegisterResourcesFn)(EngineAppContext* app, void* user_data);
 typedef Scene* (*EngineAppCreateSceneFn)(EngineAppContext* app, void* user_data);
 typedef void (*EngineAppSimUpdateFn)(EngineAppContext* app, double dt_seconds, const EngineInput* input, void* user_data);
+typedef void (*EngineAppPostSimUpdateFn)(EngineAppContext* app, double dt_seconds, const EngineInput* input, void* user_data);
 
 typedef struct EngineAppDesc
 {
@@ -23,6 +24,7 @@ typedef struct EngineAppDesc
     EngineAppRegisterResourcesFn register_resources;
     EngineAppCreateSceneFn create_scene;
     EngineAppSimUpdateFn update_sim;
+    EngineAppPostSimUpdateFn post_update_sim;
 } EngineAppDesc;
 
 void EngineAppDesc_InitDefaults(EngineAppDesc* desc);

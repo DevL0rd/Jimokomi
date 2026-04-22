@@ -90,10 +90,12 @@ void renderer_compute_frame_signatures(
             frame_hash = renderer_hash_u64(frame_hash, item->visual_source_handle.id);
             frame_hash = renderer_hash_u64(frame_hash, item->material_handle.id);
             frame_hash = renderer_hash_u64(frame_hash, item->shader_handle.id);
+            frame_hash = renderer_hash_u64(frame_hash, item->tint.value);
             sort_hash = renderer_hash_u64(sort_hash, (uint64_t)(int64_t)item->layer);
             instance_hash = renderer_hash_u64(instance_hash, item->visual_source_handle.id);
             instance_hash = renderer_hash_u64(instance_hash, item->material_handle.id);
             instance_hash = renderer_hash_u64(instance_hash, item->shader_handle.id);
+            instance_hash = renderer_hash_u64(instance_hash, item->tint.value);
         }
     }
 

@@ -221,6 +221,7 @@ static uint32_t engine_app_sim_step_scene(
     context->accumulator_seconds = fmin(context->accumulator_seconds, fixed_dt * (double)max_substeps);
     if (context->accumulator_seconds < fixed_dt)
     {
+        Scene_FlushSpatialUpdates(context->app->scene);
         return 0U;
     }
 
@@ -348,6 +349,14 @@ void* engine_app_simulation_thread_main(void* user_data)
             InteractionSystem_ApplyDragPacket(app->scene, &latest_input);
         }
         drag_ms = engine_app_sim_now_ms() - drag_started_ms;
+
+        game_update_started_ms = engine_app_sim_now_ms();
+        if (context->desc->post_update_sim != NULL)
+        {
+            context->desc->post_update_sim(app, dt_seconds, &sim_input, context->desc->user_data);
+        }
+        game_update_ms += engine_app_sim_now_ms() - game_update_started_ms;
+        Scene_FlushSpatialUpdates(app->scene);
 
         snapshot_publish_due =
             input_changed ||

@@ -22,6 +22,7 @@ void RenderableComponent_Init(RenderableComponent* component)
     component->shader_handle = (ResourceHandle){ 0U };
     component->anchor_x = 0.5f;
     component->anchor_y = 0.5f;
+    component->tint = (Color32){ 0xffffffffU };
     component->layer = 0;
     component->visible = true;
 }
@@ -51,6 +52,7 @@ RenderableComponent* RenderableComponent_CreateWithDesc(const RenderableComponen
     component->shader_handle = desc->shader_handle;
     component->anchor_x = desc->anchor_x;
     component->anchor_y = desc->anchor_y;
+    component->tint = desc->tint.value != 0U ? desc->tint : (Color32){ 0xffffffffU };
     component->layer = desc->layer;
     component->visible = desc->visible;
     return component;

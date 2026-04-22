@@ -169,8 +169,8 @@ void debug_overlay_draw_dashboard_contents(
     float row_height;
     float stat_width;
     float stats_top;
-    DebugStatChip stat_chips[9];
-    char stat_text[9][24];
+    DebugStatChip stat_chips[15];
+    char stat_text[15][24];
     int stat_index;
 
     if (overlay == NULL || target == NULL || snapshot == NULL || stats == NULL) {
@@ -240,6 +240,47 @@ void debug_overlay_draw_dashboard_contents(
         snapshot->physics_task_worker_chunk_count,
         snapshot->physics_task_main_chunk_count
     );
+    snprintf(
+        stat_text[9],
+        sizeof(stat_text[9]),
+        "%u",
+        snapshot->particle_count
+    );
+    snprintf(
+        stat_text[10],
+        sizeof(stat_text[10]),
+        "%u/%u",
+        snapshot->particle_contact_count,
+        snapshot->particle_body_contact_count
+    );
+    snprintf(
+        stat_text[11],
+        sizeof(stat_text[11]),
+        "%u/%u",
+        snapshot->particle_task_count,
+        snapshot->particle_task_range_count
+    );
+    snprintf(
+        stat_text[12],
+        sizeof(stat_text[12]),
+        "%u/%u",
+        snapshot->particle_occupied_cell_count,
+        snapshot->particle_spatial_cell_count
+    );
+    snprintf(
+        stat_text[13],
+        sizeof(stat_text[13]),
+        "%u/%u K",
+        snapshot->particle_byte_count / 1024U,
+        snapshot->particle_scratch_byte_count / 1024U
+    );
+    snprintf(
+        stat_text[14],
+        sizeof(stat_text[14]),
+        "%.1f/%.1f",
+        snapshot->particle_profile_ms,
+        snapshot->particle_profile_collision_ms
+    );
     stat_chips[0] = (DebugStatChip){ "Hz", stat_text[0], clamp_f(overlay->history->display_physics_hz / 300.0f, 0.0f, 1.0f), (Color32){ 0xb896ffU } };
     stat_chips[1] = (DebugStatChip){ "Awake", stat_text[1], clamp_f(overlay->history->display_awake_body_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0xffd07aU } };
     stat_chips[2] = (DebugStatChip){ "Bodies", stat_text[2], clamp_f(overlay->history->display_total_body_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0x8fe8c4U } };
@@ -249,13 +290,19 @@ void debug_overlay_draw_dashboard_contents(
     stat_chips[6] = (DebugStatChip){ "Workers", stat_text[6], clamp_f((float)snapshot->physics_task_worker_count / 64.0f, 0.0f, 1.0f), (Color32){ 0x78e6ffU } };
     stat_chips[7] = (DebugStatChip){ "B2 Q/I", stat_text[7], snapshot->physics_task_enqueued_count > 0U ? 1.0f : 0.0f, (Color32){ 0x8fe8c4U } };
     stat_chips[8] = (DebugStatChip){ "W/M Ch", stat_text[8], snapshot->physics_task_worker_chunk_count > 0U ? 1.0f : 0.0f, (Color32){ 0xff8d7aU } };
+    stat_chips[9] = (DebugStatChip){ "Particles", stat_text[9], clamp_f((float)snapshot->particle_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0x78e6ffU } };
+    stat_chips[10] = (DebugStatChip){ "P Con", stat_text[10], snapshot->particle_contact_count > 0U ? 1.0f : 0.0f, (Color32){ 0x8fe8c4U } };
+    stat_chips[11] = (DebugStatChip){ "P Tasks", stat_text[11], snapshot->particle_task_count > 0U ? 1.0f : 0.0f, (Color32){ 0xff8d7aU } };
+    stat_chips[12] = (DebugStatChip){ "P Cells", stat_text[12], snapshot->particle_occupied_cell_count > 0U ? 1.0f : 0.0f, (Color32){ 0xb896ffU } };
+    stat_chips[13] = (DebugStatChip){ "P Mem", stat_text[13], snapshot->particle_byte_count > 0U ? 1.0f : 0.0f, (Color32){ 0xffd07aU } };
+    stat_chips[14] = (DebugStatChip){ "P ms", stat_text[14], clamp_f(snapshot->particle_profile_ms / 16.67f, 0.0f, 1.0f), (Color32){ 0x7ce2ffU } };
 
     stat_width = (overlay->ui->dashboard_panel.width - 24.0f - 10.0f) / 3.0f;
     stats_top = card_rect.y + row_height + 12.0f;
-    stat_rect = (Rect){ left, stats_top, stat_width, 28.0f };
-    for (stat_index = 0; stat_index < 9; ++stat_index) {
+    stat_rect = (Rect){ left, stats_top, stat_width, 23.0f };
+    for (stat_index = 0; stat_index < 15; ++stat_index) {
         stat_rect.x = left + (float)(stat_index % 3) * (stat_width + 5.0f);
-        stat_rect.y = stats_top + (float)(stat_index / 3) * 30.0f;
+        stat_rect.y = stats_top + (float)(stat_index / 3) * 24.0f;
         debug_draw_stat_chip(target, stat_rect, &stat_chips[stat_index]);
     }
 }

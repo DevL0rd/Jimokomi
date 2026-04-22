@@ -26,5 +26,6 @@ struct Entity* Scene_FindEntityById(Scene* scene, uint32_t entity_id);
 const struct Entity* Scene_FindEntityByIdConst(const Scene* scene, uint32_t entity_id);
 
 void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_state);
+void Scene_FlushSpatialUpdates(Scene* scene);
 
 #endif

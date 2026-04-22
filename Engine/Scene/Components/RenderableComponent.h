@@ -2,6 +2,7 @@
 #define JIMOKOMI_ENGINE_SCENE_COMPONENTS_RENDERABLECOMPONENT_H
 
 #include "../Component.h"
+#include "../../Rendering/RenderCommon.h"
 #include "../../Rendering/ResourceTypes.h"
 
 typedef struct RenderableComponent
@@ -12,6 +13,7 @@ typedef struct RenderableComponent
     ResourceHandle shader_handle;
     float anchor_x;
     float anchor_y;
+    Color32 tint;
     int layer;
     bool visible;
 } RenderableComponent;
@@ -23,6 +25,7 @@ typedef struct RenderableComponentDesc
     ResourceHandle shader_handle;
     float anchor_x;
     float anchor_y;
+    Color32 tint;
     int layer;
     bool visible;
 } RenderableComponentDesc;

@@ -1,6 +1,7 @@
 #include "Game/GameWorld.h"
 
 #include "BallVisualResources.h"
+#include "LiquidSourceSystem.h"
 #include "../Engine/Scene/SceneAccess.h"
 #include "../Engine/Scene/SceneFactories.h"
 #include "../Engine/Scene/ScenePhysics.h"
@@ -10,6 +11,7 @@
 #include <math.h>
 #include <stdlib.h>
 
+#if 0
 static float jimokomi_random_range(float min_value, float max_value)
 {
     float t = (float)rand() / (float)RAND_MAX;
@@ -24,9 +26,10 @@ static void jimokomi_ball_spawn_position(float* out_x, float* out_y)
     }
     if (out_y != NULL)
     {
-        *out_y = jimokomi_random_range(BALL_RADIUS, WORLD_HEIGHT - BALL_RADIUS);
+        *out_y = jimokomi_random_range(BALL_RADIUS, BALL_SPAWN_TOP_HEIGHT);
     }
 }
+#endif
 
 static bool jimokomi_player_is_grounded(const JimokomiGameState* game)
 {
@@ -82,6 +85,7 @@ static void jimokomi_scene_input(Scene* scene, const SceneInputState* input_stat
     }
 }
 
+#if 0
 static Entity* jimokomi_spawn_ball(JimokomiGameState* game, size_t index)
 {
     Entity* entity;
@@ -120,6 +124,7 @@ static Entity* jimokomi_spawn_ball(JimokomiGameState* game, size_t index)
     game->active_ball_count += 1U;
     return entity;
 }
+#endif
 
 bool jimokomi_game_register_resources(EngineAppContext* app, JimokomiGameState* game)
 {
@@ -147,7 +152,7 @@ bool jimokomi_game_register_resources(EngineAppContext* app, JimokomiGameState* 
         return false;
     }
     game->ball_material_handle = material_handles[0];
-    return true;
+    return game_liquid_sources_register_resources(renderer, &game->liquid_sources);
 }
 
 Scene* jimokomi_game_create_scene(EngineAppContext* app, JimokomiGameState* game)
@@ -162,16 +167,22 @@ Scene* jimokomi_game_create_scene(EngineAppContext* app, JimokomiGameState* game
     }
 
     physics_config.gravity_y = PHYSICS_EARTH_GRAVITY_MPS2 * PHYSICS_PIXELS_PER_METER;
-    physics_config.target_hz = PHYSICS_MAX_HZ;
-    physics_config.min_hz = PHYSICS_MIN_HZ;
-    physics_config.max_hz = PHYSICS_MAX_HZ;
-    physics_config.frame_budget_hz = PHYSICS_FRAME_BUDGET_HZ;
+    physics_config.target_hz = settings != NULL ? settings->physics_target_hz : PHYSICS_MAX_HZ;
+    physics_config.min_hz = settings != NULL ? settings->physics_min_hz : PHYSICS_MIN_HZ;
+    physics_config.max_hz = settings != NULL ? settings->physics_max_hz : PHYSICS_MAX_HZ;
+    physics_config.frame_budget_hz = settings != NULL ? settings->physics_frame_budget_hz : PHYSICS_FRAME_BUDGET_HZ;
+    physics_config.adaptive_hz_enabled = settings == NULL || settings->physics_adaptive_hz_enabled;
+    physics_config.has_adaptive_hz_setting = settings != NULL;
     physics_config.sleep_threshold = settings != NULL ? settings->physics_offscreen_sleep_threshold : 30.0f;
     physics_config.continuous_collision_enabled = false;
     physics_config.has_continuous_collision_setting = true;
     physics_config.has_sleep_threshold_setting = true;
-    physics_config.max_substeps = PHYSICS_MAX_SUBSTEPS;
-    physics_config.step_substep_count = 4U;
+    physics_config.max_substeps = settings != NULL && settings->physics_max_substeps > 0U
+        ? settings->physics_max_substeps
+        : PHYSICS_MAX_SUBSTEPS;
+    physics_config.step_substep_count = settings != NULL && settings->physics_step_substep_count > 0U
+        ? settings->physics_step_substep_count
+        : 4U;
     physics_config.task_system = EngineApp_GetTaskSystem(app);
 
     game->scene = Scene_Create("Main", &physics_config);
@@ -192,8 +203,19 @@ Scene* jimokomi_game_create_scene(EngineAppContext* app, JimokomiGameState* game
     Scene_AddBoundsColliders(game->scene, (Rect){ 0.0f, 0.0f, WORLD_WIDTH, WORLD_HEIGHT }, WORLD_WALL_THICKNESS);
     grid_backdrop_init(&game->backdrop, WORLD_WIDTH, WORLD_HEIGHT, GRID_CELL_SIZE);
 
+    if (!game_liquid_sources_create(game->scene, &game->liquid_sources))
+    {
+        Scene_Destroy(game->scene);
+        game->scene = NULL;
+        return NULL;
+    }
+
+    /*
     game->player = jimokomi_spawn_ball(game, PLAYER_INDEX);
     game->spawn_cursor = 1U;
+    */
+    game->player = NULL;
+    game->spawn_cursor = BALL_COUNT;
     return game->scene;
 }
 
@@ -202,11 +224,14 @@ void jimokomi_game_update_sim(EngineAppContext* app, double dt_seconds, const En
     (void)app;
     (void)input;
 
-    if (game == NULL || game->spawn_cursor >= BALL_COUNT)
+    if (game == NULL)
     {
         return;
     }
 
+    game_liquid_sources_update(game->scene, &game->liquid_sources, dt_seconds);
+
+    /*
     game->spawn_accumulator_seconds += dt_seconds;
     while (game->spawn_accumulator_seconds >= BALL_SPAWN_INTERVAL_SECONDS &&
            game->spawn_cursor < BALL_COUNT)
@@ -218,4 +243,19 @@ void jimokomi_game_update_sim(EngineAppContext* app, double dt_seconds, const En
         }
         game->spawn_cursor += 1U;
     }
+    */
+}
+
+void jimokomi_game_post_update_sim(EngineAppContext* app, double dt_seconds, const EngineInput* input, JimokomiGameState* game)
+{
+    (void)app;
+    (void)dt_seconds;
+    (void)input;
+
+    if (game == NULL)
+    {
+        return;
+    }
+
+    game_liquid_sources_sync_visuals(game->scene, &game->liquid_sources);
 }

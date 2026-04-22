@@ -2,6 +2,7 @@
 #define JIMOKOMI_GAME_STATE_H
 
 #include "GameConfig.h"
+#include "LiquidSourceSystem.h"
 
 #include "../Engine/Rendering/GridBackdrop.h"
 #include "../Engine/Rendering/ResourceTypes.h"
@@ -21,6 +22,7 @@ typedef struct JimokomiGameState
     size_t active_ball_count;
     size_t spawn_cursor;
     double spawn_accumulator_seconds;
+    LiquidSourceSystemState liquid_sources;
 } JimokomiGameState;
 
 #endif

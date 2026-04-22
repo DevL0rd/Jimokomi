@@ -44,6 +44,7 @@ struct Entity* Scene_CreateDynamicCircle(Scene* scene, const SceneDynamicCircleD
         .shader_handle = desc->shader_handle,
         .anchor_x = 0.5f,
         .anchor_y = 0.5f,
+        .tint = desc->tint.value != 0U ? desc->tint : (Color32){ 0xffffffffU },
         .layer = 0,
         .visible = true
     });
@@ -80,6 +81,52 @@ struct Entity* Scene_CreateDynamicCircle(Scene* scene, const SceneDynamicCircleD
     {
         Entity_AddComponent(entity, &draggable->base);
     }
+    if (!Scene_AddEntity(scene, entity))
+    {
+        Entity_Destroy(entity);
+        return NULL;
+    }
+
+    return entity;
+}
+
+struct Entity* Scene_CreateVisualCircle(Scene* scene, const SceneVisualCircleDesc* desc)
+{
+    Entity* entity = NULL;
+    TransformComponent* transform = NULL;
+    ColliderComponent* collider = NULL;
+    RenderableComponent* renderable = NULL;
+
+    if (scene == NULL || desc == NULL || desc->radius <= 0.0f)
+    {
+        return NULL;
+    }
+
+    entity = Entity_Create(0U);
+    transform = TransformComponent_Create(desc->x, desc->y, 0.0f);
+    collider = ColliderComponent_CreateCircle(desc->radius);
+    renderable = RenderableComponent_CreateWithDesc(&(RenderableComponentDesc){
+        .visual_source_handle = desc->visual_source_handle,
+        .material_handle = desc->material_handle,
+        .shader_handle = desc->shader_handle,
+        .anchor_x = 0.5f,
+        .anchor_y = 0.5f,
+        .tint = desc->tint.value != 0U ? desc->tint : (Color32){ 0xffffffffU },
+        .layer = desc->layer,
+        .visible = desc->visible
+    });
+    if (entity == NULL || transform == NULL || collider == NULL || renderable == NULL)
+    {
+        Entity_Destroy(entity);
+        TransformComponent_Destroy(transform);
+        ColliderComponent_Destroy(collider);
+        RenderableComponent_Destroy(renderable);
+        return NULL;
+    }
+
+    Entity_AddComponent(entity, &transform->base);
+    Entity_AddComponent(entity, &collider->base);
+    Entity_AddComponent(entity, &renderable->base);
     if (!Scene_AddEntity(scene, entity))
     {
         Entity_Destroy(entity);

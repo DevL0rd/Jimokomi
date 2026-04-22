@@ -46,9 +46,11 @@ struct RenderBackend {
 typedef struct Target {
     RenderBackend *backend;
     Vec2 origin;
+    Vec2 scale;
 } Target;
 
 void target_init(Target *target, RenderBackend *backend, float origin_x, float origin_y);
+void target_init_scaled(Target *target, RenderBackend *backend, float origin_x, float origin_y, float scale_x, float scale_y);
 void target_line(Target *target, float x0, float y0, float x1, float y1, Color32 color);
 void target_rect(Target *target, Rect rect, Color32 color);
 void target_rect_filled(Target *target, Rect rect, Color32 color);

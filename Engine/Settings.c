@@ -16,7 +16,14 @@ const EngineSettings* EngineSettings_GetDefaults(void)
         .scene_spatial_grid_cell_size = 64.0f,
 
         .physics_onscreen_sleep_threshold = 0.05f,
-        .physics_offscreen_sleep_threshold = 5.0f,
+        .physics_offscreen_sleep_threshold = 1.0f,
+        .physics_adaptive_hz_enabled = false,
+        .physics_target_hz = 60.0f,
+        .physics_min_hz = 60.0f,
+        .physics_max_hz = 300.0f,
+        .physics_frame_budget_hz = 30.0f,
+        .physics_max_substeps = 10U,
+        .physics_step_substep_count = 4U,
 
         .camera_pan_key_speed = 640.0f,
         .camera_zoom_step = 0.12f,

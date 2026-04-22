@@ -162,9 +162,47 @@ size_t Scene_GetSpatialGridDirtyCellSpans(const Scene* scene, SpatialGridCellSpa
     return SpatialGrid_GetDirtyCellSpans(&scene->spatial->spatial_grid, results, capacity);
 }
 
-void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_state)
+void Scene_FlushSpatialUpdates(Scene* scene)
 {
     size_t index = 0U;
+
+    if (scene == NULL)
+    {
+        return;
+    }
+
+    for (index = 0U; index < scene->storage->renderable_entity_count; ++index)
+    {
+        Entity* entity = scene->storage->renderable_entities[index];
+        TransformComponent* transform = NULL;
+        ColliderComponent* collider = NULL;
+
+        if (entity == NULL)
+        {
+            continue;
+        }
+
+        transform = (TransformComponent*)Entity_GetFixedComponent(entity, COMPONENT_TRANSFORM);
+        collider = (ColliderComponent*)Entity_GetFixedComponent(entity, COMPONENT_COLLIDER);
+        if (Entity_IsDirty(entity, ENTITY_DIRTY_VISIBILITY | ENTITY_DIRTY_APPEARED | ENTITY_DIRTY_REMOVED | ENTITY_DIRTY_ENABLED | ENTITY_DIRTY_DISABLED) ||
+            (transform != NULL && (transform->dirty_flags & (TRANSFORM_DIRTY_POSITION | TRANSFORM_DIRTY_TELEPORT)) != 0U) ||
+            (collider != NULL && collider->dirty_flags != COLLIDER_DIRTY_NONE))
+        {
+            SpatialGrid_UpdateEntity(&scene->spatial->spatial_grid, entity);
+            if (transform != NULL)
+            {
+                TransformComponent_ClearDirty(transform, TRANSFORM_DIRTY_POSITION | TRANSFORM_DIRTY_TELEPORT);
+            }
+            Entity_ClearDirty(
+                entity,
+                ENTITY_DIRTY_VISIBILITY | ENTITY_DIRTY_APPEARED | ENTITY_DIRTY_REMOVED | ENTITY_DIRTY_ENABLED | ENTITY_DIRTY_DISABLED
+            );
+        }
+    }
+}
+
+void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_state)
+{
     double phase_started_ms = 0.0;
 
     if (scene == NULL)
@@ -196,34 +234,7 @@ void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_s
     PhysicsSyncSystem_Update(scene, dt_seconds);
     scene->stats->last_physics_sync_ms = Scene_NowMs() - phase_started_ms;
 
-    for (index = 0U; index < scene->storage->renderable_entity_count; ++index)
-    {
-        Entity* entity = scene->storage->renderable_entities[index];
-        TransformComponent* transform = NULL;
-        ColliderComponent* collider = NULL;
-
-        if (entity == NULL)
-        {
-            continue;
-        }
-
-        transform = (TransformComponent*)Entity_GetFixedComponent(entity, COMPONENT_TRANSFORM);
-        collider = (ColliderComponent*)Entity_GetFixedComponent(entity, COMPONENT_COLLIDER);
-        if (Entity_IsDirty(entity, ENTITY_DIRTY_VISIBILITY | ENTITY_DIRTY_APPEARED | ENTITY_DIRTY_REMOVED | ENTITY_DIRTY_ENABLED | ENTITY_DIRTY_DISABLED) ||
-            (transform != NULL && (transform->dirty_flags & (TRANSFORM_DIRTY_POSITION | TRANSFORM_DIRTY_TELEPORT)) != 0U) ||
-            (collider != NULL && collider->dirty_flags != COLLIDER_DIRTY_NONE))
-        {
-            SpatialGrid_UpdateEntity(&scene->spatial->spatial_grid, entity);
-            if (transform != NULL)
-            {
-                TransformComponent_ClearDirty(transform, TRANSFORM_DIRTY_POSITION | TRANSFORM_DIRTY_TELEPORT);
-            }
-            Entity_ClearDirty(
-                entity,
-                ENTITY_DIRTY_VISIBILITY | ENTITY_DIRTY_APPEARED | ENTITY_DIRTY_REMOVED | ENTITY_DIRTY_ENABLED | ENTITY_DIRTY_DISABLED
-            );
-        }
-    }
+    Scene_FlushSpatialUpdates(scene);
 
     if (scene->camera_follow->camera_target_entity != NULL)
     {

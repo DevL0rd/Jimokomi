@@ -99,12 +99,13 @@ void resource_manager_process_pending_bakes(ResourceManager* manager, double tim
         return;
     }
 
-    effective_budget_ms = time_budget_ms > 0.0 ? time_budget_ms : manager->bake_queue->bake_time_budget_ms;
-    manager->bake_queue->bake_time_budget_ms = effective_budget_ms;
     manager->bake_queue->last_bake_process_ms = 0.0;
-    if (effective_budget_ms <= 0.0) {
+    if (time_budget_ms <= 0.0) {
         return;
     }
+
+    effective_budget_ms = time_budget_ms;
+    manager->bake_queue->bake_time_budget_ms = effective_budget_ms;
 
     started_ms = resource_manager_now_ms();
     while ((manager->bake_queue->static_pending_bake_request_head < manager->bake_queue->static_pending_bake_request_count ||
@@ -201,53 +202,6 @@ bool resource_manager_prewarm_procedural_source(
     }
 
     return true;
-}
-
-const Surface* resource_manager_get_or_create_baked_surface(
-    ResourceManager* manager,
-    ResourceHandle visual_source_handle,
-    ResourceHandle material_handle,
-    ResourceHandle shader_handle,
-    uint32_t frame_index,
-    BakedSurfacePass pass,
-    void* user_data
-) {
-    const VisualSourceResource* source;
-    const MaterialResource* material;
-    const ShaderResource* shader;
-    const Surface* baked_surface;
-    BakedSurfaceKey key;
-
-    if (manager == NULL || manager->backend == NULL ||
-        manager->backend->create_surface == NULL ||
-        manager->backend->set_target == NULL ||
-        manager->backend->reset_target == NULL ||
-        manager->backend->clear == NULL) {
-        return NULL;
-    }
-
-    source = resource_manager_get_visual_source(manager, visual_source_handle);
-    material = resource_manager_get_material(manager, material_handle);
-    shader = resource_manager_get_shader(manager, shader_handle);
-    if (source == NULL || !resource_manager_is_bake_eligible(source, pass)) {
-        return NULL;
-    }
-    if (!source->bake_ignores_material && material == NULL) {
-        return NULL;
-    }
-
-    key.visual_source_id = visual_source_handle.id;
-    key.material_id = source->bake_ignores_material ? 0U : material_handle.id;
-    key.shader_id = shader_handle.id;
-    key.frame_index = resource_manager_normalize_frame_index(source, frame_index);
-    key.pass = (uint8_t)pass;
-
-    baked_surface = resource_manager_find_baked_surface(manager, key);
-    if (baked_surface != NULL) {
-        return baked_surface;
-    }
-
-    return resource_manager_execute_baked_surface(manager, source, material, shader, key, user_data);
 }
 
 size_t resource_manager_queue_required_prebake(

@@ -1,5 +1,6 @@
 #include "PhysicsWorldEntitiesInternal.h"
 #include "PhysicsWorldLifecycleInternal.h"
+#include "PhysicsWorldParticlesInternal.h"
 #include "PhysicsWorldStatsInternal.h"
 #include "PhysicsWorldTilemapInternal.h"
 
@@ -225,6 +226,11 @@ void PhysicsWorld_UpdateAdaptiveStepRate(PhysicsWorld* world, float accumulator_
     }
 
     world->stats->last_accumulator_seconds = accumulator_seconds > 0.0f ? accumulator_seconds : 0.0f;
+    if (!world->lifecycle->adaptive_hz_enabled)
+    {
+        return;
+    }
+
     measured_step_seconds = (float)world->stats->last_corephys_step_wall_ms / 1000.0f;
     if (measured_step_seconds <= 0.0f)
     {
@@ -398,12 +404,18 @@ void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
     world->tilemap = (PhysicsWorldTilemapState*)calloc(1U, sizeof(*world->tilemap));
     world->entities = (PhysicsWorldEntityState*)calloc(1U, sizeof(*world->entities));
     world->stats = (PhysicsWorldStatsState*)calloc(1U, sizeof(*world->stats));
-    if (world->lifecycle == NULL || world->tilemap == NULL || world->entities == NULL || world->stats == NULL)
+    world->particles = (PhysicsWorldParticleState*)calloc(1U, sizeof(*world->particles));
+    if (world->lifecycle == NULL ||
+        world->tilemap == NULL ||
+        world->entities == NULL ||
+        world->stats == NULL ||
+        world->particles == NULL)
     {
         free(world->lifecycle);
         free(world->tilemap);
         free(world->entities);
         free(world->stats);
+        free(world->particles);
         memset(world, 0, sizeof(*world));
         return;
     }
@@ -417,6 +429,8 @@ void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
     world->lifecycle->frame_budget_hz = config != NULL && config->frame_budget_hz > 0.0f
         ? config->frame_budget_hz
         : PHYSICS_DEFAULT_FRAME_BUDGET_HZ;
+    world->lifecycle->adaptive_hz_enabled =
+        config == NULL || !config->has_adaptive_hz_setting || config->adaptive_hz_enabled;
     world->lifecycle->sleep_threshold = config != NULL && config->sleep_threshold >= 0.0f
         ? config->sleep_threshold
         : 0.0f;
@@ -452,7 +466,11 @@ PhysicsWorld* PhysicsWorld_Create(const PhysicsWorldConfig* config)
     }
 
     PhysicsWorld_Init(world, config);
-    if (world->lifecycle == NULL || world->tilemap == NULL || world->entities == NULL || world->stats == NULL)
+    if (world->lifecycle == NULL ||
+        world->tilemap == NULL ||
+        world->entities == NULL ||
+        world->stats == NULL ||
+        world->particles == NULL)
     {
         free(world);
         return NULL;
@@ -589,6 +607,7 @@ void PhysicsWorld_Destroy(PhysicsWorld* world)
     }
 
     PhysicsWorld_ClearTilemapBodies(world);
+    PhysicsWorld_DestroyParticleState(world);
     if (world->lifecycle != NULL && world->lifecycle->has_world)
     {
         b2DestroyWorld(world->lifecycle->world_id);
