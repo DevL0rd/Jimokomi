@@ -26,7 +26,7 @@ PhysicsShapeHandle PhysicsWorld_StoreShapeHandle(b2ShapeId shape_id)
     return (PhysicsShapeHandle){ shape_id.index1, shape_id.world0, shape_id.generation };
 }
 
-static b2BodyType PhysicsWorld_ToBox2DType(RigidBodyType type)
+static b2BodyType PhysicsWorld_ToCorePhysType(RigidBodyType type)
 {
     switch (type)
     {
@@ -70,7 +70,7 @@ b2BodyId PhysicsWorld_EnsureEntityBody(PhysicsWorld* world, struct Entity* entit
         b2ShapeDef shape_def = b2DefaultShapeDef();
         b2BodyId body_id;
 
-        body_def.type = PhysicsWorld_ToBox2DType(rigid_body->body_type);
+        body_def.type = PhysicsWorld_ToCorePhysType(rigid_body->body_type);
         body_def.position.x = transform->x;
         body_def.position.y = transform->y;
         body_def.rotation = b2MakeRot(transform->angle_radians);

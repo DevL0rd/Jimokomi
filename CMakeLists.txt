@@ -8,11 +8,11 @@ set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
-set(BOX2D_SAMPLES OFF CACHE BOOL "" FORCE)
-set(BOX2D_BENCHMARKS OFF CACHE BOOL "" FORCE)
-set(BOX2D_DOCS OFF CACHE BOOL "" FORCE)
-set(BOX2D_UNIT_TESTS OFF CACHE BOOL "" FORCE)
-set(BOX2D_VALIDATE OFF CACHE BOOL "" FORCE)
+set(COREPHYS_SAMPLES OFF CACHE BOOL "" FORCE)
+set(COREPHYS_BENCHMARKS OFF CACHE BOOL "" FORCE)
+set(COREPHYS_DOCS OFF CACHE BOOL "" FORCE)
+set(COREPHYS_UNIT_TESTS OFF CACHE BOOL "" FORCE)
+set(COREPHYS_VALIDATE OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
@@ -24,7 +24,7 @@ if(UNIX AND NOT APPLE)
 	set(GLFW_BUILD_WAYLAND ON CACHE BOOL "" FORCE)
 endif()
 
-add_subdirectory(third_party/box2d)
+add_subdirectory(third_party/corephys)
 add_subdirectory(third_party/raylib)
 
 set(SOURCES
@@ -111,10 +111,10 @@ add_executable(jimokomi ${SOURCES})
 
 target_include_directories(jimokomi PRIVATE
 	"${CMAKE_CURRENT_SOURCE_DIR}"
-	"${CMAKE_CURRENT_SOURCE_DIR}/third_party/box2d/include"
+	"${CMAKE_CURRENT_SOURCE_DIR}/third_party/corephys/include"
 )
 
-target_link_libraries(jimokomi PRIVATE box2d raylib Threads::Threads)
+target_link_libraries(jimokomi PRIVATE corephys raylib Threads::Threads)
 
 if(UNIX AND NOT APPLE)
 	target_compile_definitions(jimokomi PRIVATE _POSIX_C_SOURCE=200809L)

@@ -28,7 +28,7 @@ void PhysicsWorld_GetSnapshot(const PhysicsWorld* world, PhysicsWorldSnapshot* s
     snapshot->physics_accumulator = (float)world->stats->last_accumulator_seconds;
     snapshot->physics_max_substeps = world->lifecycle->max_substeps;
     snapshot->physics_step_substeps = world->lifecycle->step_substep_count;
-    snapshot->box2d_step_wall_ms = (float)world->stats->last_box2d_step_wall_ms;
+    snapshot->corephys_step_wall_ms = (float)world->stats->last_corephys_step_wall_ms;
     snapshot->active_entity_count = (uint32_t)world->stats->active_entity_count;
     snapshot->dirty_entity_count = (uint32_t)world->stats->dirty_entity_count;
     snapshot->collider_changed_entity_count = (uint32_t)world->stats->collider_changed_entity_count;
@@ -37,8 +37,8 @@ void PhysicsWorld_GetSnapshot(const PhysicsWorld* world, PhysicsWorldSnapshot* s
     snapshot->shape_change_count = (uint32_t)world->stats->shape_change_count;
     snapshot->task_worker_count = world->stats->task_worker_count;
     snapshot->task_background_thread_count = world->stats->task_background_thread_count;
-    snapshot->box2d_enqueued_task_count = world->stats->box2d_enqueued_task_count;
-    snapshot->box2d_inline_task_count = world->stats->box2d_inline_task_count;
-    snapshot->box2d_main_chunk_count = world->stats->box2d_main_chunk_count;
-    snapshot->box2d_worker_chunk_count = world->stats->box2d_worker_chunk_count;
+    snapshot->corephys_enqueued_task_count = world->stats->corephys_enqueued_task_count;
+    snapshot->corephys_inline_task_count = world->stats->corephys_inline_task_count;
+    snapshot->corephys_main_chunk_count = world->stats->corephys_main_chunk_count;
+    snapshot->corephys_worker_chunk_count = world->stats->corephys_worker_chunk_count;
 }

@@ -13,14 +13,14 @@ struct PhysicsWorldStatsState {
     size_t awake_body_count;
     size_t sleeping_body_count;
     size_t moved_body_count;
-    double last_box2d_step_wall_ms;
+    double last_corephys_step_wall_ms;
     double last_accumulator_seconds;
     uint32_t task_worker_count;
     uint32_t task_background_thread_count;
-    uint32_t box2d_enqueued_task_count;
-    uint32_t box2d_inline_task_count;
-    uint32_t box2d_main_chunk_count;
-    uint32_t box2d_worker_chunk_count;
+    uint32_t corephys_enqueued_task_count;
+    uint32_t corephys_inline_task_count;
+    uint32_t corephys_main_chunk_count;
+    uint32_t corephys_worker_chunk_count;
 };
 
 #endif

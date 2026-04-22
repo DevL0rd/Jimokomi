@@ -424,17 +424,17 @@ static bool scene_render_snapshot_build_desc(
     buffer->stats.overlay.physics_substeps = desc->physics_substeps;
     buffer->stats.overlay.visible_count = (uint32_t)Scene_GetEntityCount(desc->scene);
     buffer->stats.overlay.physics_hz = physics_snapshot->physics_hz;
-    buffer->stats.overlay.physics_ms = physics_snapshot->box2d_step_wall_ms;
+    buffer->stats.overlay.physics_ms = physics_snapshot->corephys_step_wall_ms;
     buffer->stats.overlay.awake_body_count = physics_snapshot->body_count;
     buffer->stats.overlay.total_body_count = physics_snapshot->total_body_count;
     buffer->stats.overlay.sleeping_body_count = physics_snapshot->sleeping_body_count;
     buffer->stats.overlay.moved_body_count = physics_snapshot->moved_body_count;
     buffer->stats.overlay.physics_task_worker_count = physics_snapshot->task_worker_count;
     buffer->stats.overlay.physics_task_background_thread_count = physics_snapshot->task_background_thread_count;
-    buffer->stats.overlay.physics_task_enqueued_count = physics_snapshot->box2d_enqueued_task_count;
-    buffer->stats.overlay.physics_task_inline_count = physics_snapshot->box2d_inline_task_count;
-    buffer->stats.overlay.physics_task_main_chunk_count = physics_snapshot->box2d_main_chunk_count;
-    buffer->stats.overlay.physics_task_worker_chunk_count = physics_snapshot->box2d_worker_chunk_count;
+    buffer->stats.overlay.physics_task_enqueued_count = physics_snapshot->corephys_enqueued_task_count;
+    buffer->stats.overlay.physics_task_inline_count = physics_snapshot->corephys_inline_task_count;
+    buffer->stats.overlay.physics_task_main_chunk_count = physics_snapshot->corephys_main_chunk_count;
+    buffer->stats.overlay.physics_task_worker_chunk_count = physics_snapshot->corephys_worker_chunk_count;
     buffer->stats.overlay.render_alpha = desc->render_alpha;
     buffer->stats.render.render_alpha = desc->render_alpha;
 
@@ -459,10 +459,10 @@ static bool scene_render_snapshot_build_desc(
     buffer->stats.physics.physics_shape_change_queue = physics_snapshot->shape_change_count;
     buffer->stats.physics.physics_task_worker_count = physics_snapshot->task_worker_count;
     buffer->stats.physics.physics_task_background_thread_count = physics_snapshot->task_background_thread_count;
-    buffer->stats.physics.physics_task_enqueued_count = physics_snapshot->box2d_enqueued_task_count;
-    buffer->stats.physics.physics_task_inline_count = physics_snapshot->box2d_inline_task_count;
-    buffer->stats.physics.physics_task_main_chunk_count = physics_snapshot->box2d_main_chunk_count;
-    buffer->stats.physics.physics_task_worker_chunk_count = physics_snapshot->box2d_worker_chunk_count;
+    buffer->stats.physics.physics_task_enqueued_count = physics_snapshot->corephys_enqueued_task_count;
+    buffer->stats.physics.physics_task_inline_count = physics_snapshot->corephys_inline_task_count;
+    buffer->stats.physics.physics_task_main_chunk_count = physics_snapshot->corephys_main_chunk_count;
+    buffer->stats.physics.physics_task_worker_chunk_count = physics_snapshot->corephys_worker_chunk_count;
     {
         SceneView scene_view = Scene_GetViewSnapshot(desc->scene);
         buffer->stats.camera.camera_x = scene_view.x;

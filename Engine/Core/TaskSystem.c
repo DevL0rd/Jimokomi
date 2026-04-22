@@ -1,6 +1,6 @@
 #include "TaskSystemInternal.h"
 
-#include <box2d/box2d.h>
+#include <corephys/corephys.h>
 
 #include "PlatformRuntimeInternal.h"
 
@@ -257,7 +257,7 @@ static void* task_system_enqueue_task_internal(
     return user_task;
 }
 
-static void* task_system_enqueue_box2d_task(
+static void* task_system_enqueue_corephys_task(
     b2TaskCallback* task,
     int item_count,
     int min_range,
@@ -532,13 +532,13 @@ bool task_system_parallel_for(
     return true;
 }
 
-void task_system_configure_box2d_world_def(const TaskSystem* system, b2WorldDef* world_def) {
+void task_system_configure_corephys_world_def(const TaskSystem* system, b2WorldDef* world_def) {
     if (system == NULL || world_def == NULL || system->implementation == NULL || system->worker_count < 1) {
         return;
     }
 
     world_def->workerCount = system->worker_count;
-    world_def->enqueueTask = task_system_enqueue_box2d_task;
+    world_def->enqueueTask = task_system_enqueue_corephys_task;
     world_def->finishTask = task_system_finish_task;
     world_def->userTaskContext = system->implementation;
 }

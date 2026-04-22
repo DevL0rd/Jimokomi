@@ -4,7 +4,7 @@
 #include "PhysicsWorld.h"
 #include "PhysicsHandles.h"
 
-#include <box2d/box2d.h>
+#include <corephys/corephys.h>
 
 typedef struct PhysicsWorldLifecycleState PhysicsWorldLifecycleState;
 typedef struct PhysicsWorldTilemapState PhysicsWorldTilemapState;

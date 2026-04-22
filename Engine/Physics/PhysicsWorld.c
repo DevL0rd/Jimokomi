@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void task_system_configure_box2d_world_def(const struct TaskSystem* system, b2WorldDef* world_def);
+void task_system_configure_corephys_world_def(const struct TaskSystem* system, b2WorldDef* world_def);
 
 #define PHYSICS_DEFAULT_MIN_HZ 15.0f
 #define PHYSICS_DEFAULT_MAX_HZ 300.0f
@@ -225,7 +225,7 @@ void PhysicsWorld_UpdateAdaptiveStepRate(PhysicsWorld* world, float accumulator_
     }
 
     world->stats->last_accumulator_seconds = accumulator_seconds > 0.0f ? accumulator_seconds : 0.0f;
-    measured_step_seconds = (float)world->stats->last_box2d_step_wall_ms / 1000.0f;
+    measured_step_seconds = (float)world->stats->last_corephys_step_wall_ms / 1000.0f;
     if (measured_step_seconds <= 0.0f)
     {
         return;
@@ -437,7 +437,7 @@ void PhysicsWorld_Init(PhysicsWorld* world, const PhysicsWorldConfig* config)
     world->lifecycle->task_system = config != NULL ? config->task_system : NULL;
     if (config != NULL && config->task_system != NULL)
     {
-        task_system_configure_box2d_world_def(config->task_system, &world_def);
+        task_system_configure_corephys_world_def(config->task_system, &world_def);
     }
     world->lifecycle->world_id = b2CreateWorld(&world_def);
     world->lifecycle->has_world = b2World_IsValid(world->lifecycle->world_id);
@@ -548,7 +548,7 @@ void PhysicsWorld_Update(PhysicsWorld* world, struct Scene* scene, float dt_seco
 
         step_started_ms = PhysicsWorld_NowMs();
         b2World_Step(world->lifecycle->world_id, (float)dt_seconds, (int)world->lifecycle->step_substep_count);
-        world->stats->last_box2d_step_wall_ms = PhysicsWorld_NowMs() - step_started_ms;
+        world->stats->last_corephys_step_wall_ms = PhysicsWorld_NowMs() - step_started_ms;
 
         if (has_task_stats)
         {
@@ -556,13 +556,13 @@ void PhysicsWorld_Update(PhysicsWorld* world, struct Scene* scene, float dt_seco
             world->stats->task_worker_count = task_stats_after.worker_count > 0 ? (uint32_t)task_stats_after.worker_count : 0U;
             world->stats->task_background_thread_count =
                 task_stats_after.background_thread_count > 0 ? (uint32_t)task_stats_after.background_thread_count : 0U;
-            world->stats->box2d_enqueued_task_count =
+            world->stats->corephys_enqueued_task_count =
                 PhysicsWorld_ClampTaskDelta(task_stats_after.enqueued_task_count, task_stats_before.enqueued_task_count);
-            world->stats->box2d_inline_task_count =
+            world->stats->corephys_inline_task_count =
                 PhysicsWorld_ClampTaskDelta(task_stats_after.inline_task_count, task_stats_before.inline_task_count);
-            world->stats->box2d_main_chunk_count =
+            world->stats->corephys_main_chunk_count =
                 PhysicsWorld_ClampTaskDelta(task_stats_after.main_chunk_count, task_stats_before.main_chunk_count);
-            world->stats->box2d_worker_chunk_count =
+            world->stats->corephys_worker_chunk_count =
                 PhysicsWorld_ClampTaskDelta(task_stats_after.worker_chunk_count, task_stats_before.worker_chunk_count);
         }
     }

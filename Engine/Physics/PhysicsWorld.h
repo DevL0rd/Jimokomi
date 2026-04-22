@@ -52,7 +52,7 @@ typedef struct PhysicsWorldSnapshot
     float physics_accumulator;
     uint32_t physics_max_substeps;
     uint32_t physics_step_substeps;
-    float box2d_step_wall_ms;
+    float corephys_step_wall_ms;
     uint32_t active_entity_count;
     uint32_t dirty_entity_count;
     uint32_t collider_changed_entity_count;
@@ -61,10 +61,10 @@ typedef struct PhysicsWorldSnapshot
     uint32_t shape_change_count;
     uint32_t task_worker_count;
     uint32_t task_background_thread_count;
-    uint32_t box2d_enqueued_task_count;
-    uint32_t box2d_inline_task_count;
-    uint32_t box2d_main_chunk_count;
-    uint32_t box2d_worker_chunk_count;
+    uint32_t corephys_enqueued_task_count;
+    uint32_t corephys_inline_task_count;
+    uint32_t corephys_main_chunk_count;
+    uint32_t corephys_worker_chunk_count;
 } PhysicsWorldSnapshot;
 
 typedef struct PhysicsContactHit

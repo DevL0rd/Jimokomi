@@ -5,7 +5,7 @@ Jimokomi now builds from the repository root as a C project while the Lua source
 Current layout:
 - `Engine/` contains the engine runtime, rendering, physics, and core systems
 - `Game/` contains the playable sandbox and scene wiring
-- `third_party/` vendors upstream dependencies such as Box2D and raylib
+- `third_party/` vendors upstream dependencies such as CorePhys and raylib
 
 Build:
 - `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release`
