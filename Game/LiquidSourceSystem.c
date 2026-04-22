@@ -191,8 +191,7 @@ static bool game_liquid_sources_emit_particle(
         return false;
     }
 
-    particle.flags = PHYSICS_PARTICLE_FLAG_VISCOUS |
-                     PHYSICS_PARTICLE_FLAG_TENSILE |
+    particle.flags = PHYSICS_PARTICLE_FLAG_LIQUID |
                      PHYSICS_PARTICLE_FLAG_COLOR_MIXING;
     particle.position = (Vec2){ x, y };
     particle.velocity = (Vec2){ velocity_x, LIQUID_SOURCE_SPEED_Y };
@@ -314,11 +313,11 @@ bool game_liquid_sources_create(Scene* scene, LiquidSourceSystemState* liquid)
     desc.radius = LIQUID_PARTICLE_RADIUS;
     desc.density = 1.0f;
     desc.gravity_scale = 1.0f;
-    desc.damping_strength = 0.95f;
-    desc.pressure_strength = 0.015f;
-    desc.viscous_strength = 0.65f;
-    desc.surface_tension_pressure_strength = 0.04f;
-    desc.surface_tension_normal_strength = 0.04f;
+    desc.damping_strength = 0.2f;
+    desc.pressure_strength = 0.05f;
+    desc.viscous_strength = 0.25f;
+    desc.surface_tension_pressure_strength = 0.2f;
+    desc.surface_tension_normal_strength = 0.2f;
     desc.iteration_count = 4;
     desc.destroy_by_age = false;
     desc.lifetime_granularity = 1.0f / 60.0f;

@@ -50,18 +50,11 @@ static int task_system_detect_online_cores(void) {
 }
 
 static int task_system_default_worker_count(int online_cores) {
-    int workers;
-
     if (online_cores < 1) {
         online_cores = 1;
     }
 
-    workers = online_cores - 1;
-    if (workers < 1) {
-        workers = 1;
-    }
-
-    return workers;
+    return online_cores;
 }
 
 static int task_system_compute_chunk_size(int item_count, int min_range, int worker_count) {
