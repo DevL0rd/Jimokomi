@@ -6,4 +6,4 @@
 	url = https://github.com/raysan5/raylib.git
 [submodule "third_party/corephys"]
 	path = third_party/corephys
-	url = git@github.com:DevL0rd/CorePhys.git
+	url = https://github.com/DevL0rd/CorePhys.git

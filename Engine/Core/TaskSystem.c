@@ -17,7 +17,7 @@ typedef struct TaskSystemTask {
     atomic_int next_index;
     atomic_int remaining_chunks;
     int active_worker_count;
-    bool completed;
+    atomic_bool completed;
     EnginePlatformMutex mutex;
     EnginePlatformConditionVariable completed_cond;
     struct TaskSystemTask* next;
@@ -84,7 +84,7 @@ static bool task_system_has_claimable_work_locked(const TaskSystemImpl* system) 
     const TaskSystemTask* task = system != NULL ? system->tasks_head : NULL;
 
     while (task != NULL) {
-        if (!task->completed && atomic_load(&task->next_index) < task->item_count) {
+        if (!atomic_load(&task->completed) && atomic_load(&task->next_index) < task->item_count) {
             return true;
         }
         task = task->next;
@@ -97,12 +97,13 @@ static TaskSystemTask* task_system_pick_task_locked(TaskSystemImpl* system) {
     TaskSystemTask* task = system != NULL ? system->tasks_head : NULL;
 
     while (task != NULL) {
-        if (!task->completed && atomic_load(&task->next_index) < task->item_count) {
-            engine_platform_mutex_lock(&task->mutex);
+        engine_platform_mutex_lock(&task->mutex);
+        if (!atomic_load(&task->completed) && atomic_load(&task->next_index) < task->item_count) {
             task->active_worker_count += 1;
             engine_platform_mutex_unlock(&task->mutex);
             return task;
         }
+        engine_platform_mutex_unlock(&task->mutex);
         task = task->next;
     }
 
@@ -118,7 +119,7 @@ static void task_system_release_task_worker(TaskSystemTask* task) {
     if (task->active_worker_count > 0) {
         task->active_worker_count -= 1;
     }
-    if (task->completed && task->active_worker_count == 0) {
+    if (atomic_load(&task->completed) && task->active_worker_count == 0) {
         engine_platform_condition_variable_broadcast(&task->completed_cond);
     }
     engine_platform_mutex_unlock(&task->mutex);
@@ -183,7 +184,7 @@ static void* task_system_worker_main(void* user_data) {
 
         if (atomic_fetch_sub(&task->remaining_chunks, 1) == 1) {
             engine_platform_mutex_lock(&task->mutex);
-            task->completed = true;
+            atomic_store(&task->completed, true);
             engine_platform_condition_variable_broadcast(&task->completed_cond);
             engine_platform_mutex_unlock(&task->mutex);
         }
@@ -232,6 +233,7 @@ static void* task_system_enqueue_task_internal(
     user_task->chunk_size = chunk_size;
     atomic_init(&user_task->next_index, 0);
     atomic_init(&user_task->remaining_chunks, chunk_count);
+    atomic_init(&user_task->completed, false);
     mutex_initialized = engine_platform_mutex_init(&user_task->mutex);
     condition_variable_initialized =
         mutex_initialized && engine_platform_condition_variable_init(&user_task->completed_cond);
@@ -294,7 +296,7 @@ static void task_system_finish_task(void* user_task, void* user_context) {
 
         if (atomic_fetch_sub(&task->remaining_chunks, 1) == 1) {
             engine_platform_mutex_lock(&task->mutex);
-            task->completed = true;
+            atomic_store(&task->completed, true);
             engine_platform_condition_variable_broadcast(&task->completed_cond);
             engine_platform_mutex_unlock(&task->mutex);
             break;
@@ -302,7 +304,7 @@ static void task_system_finish_task(void* user_task, void* user_context) {
     }
 
     engine_platform_mutex_lock(&task->mutex);
-    while (!task->completed || task->active_worker_count > 0) {
+    while (!atomic_load(&task->completed) || task->active_worker_count > 0) {
         engine_platform_condition_variable_wait(&task->completed_cond, &task->mutex);
     }
     engine_platform_mutex_unlock(&task->mutex);
