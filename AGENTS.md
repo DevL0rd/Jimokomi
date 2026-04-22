@@ -15,6 +15,9 @@
 - Group by subsystem, not convenience.
 - Keep APIs few and obvious.
 - Prefer explicit ownership and boundaries.
+- Do not add arbitrary preemptive limits, caps, throttles, thresholds, budgets, or fallback cutoffs.
+- Any limit must be required by a real invariant or exposed through centralized config/settings with a clear owner and default.
+- If a performance optimization needs a threshold, make it configurable or derive it from measured system state; do not bury magic numbers in subsystem code.
 - Prefer designs that make invalid states and failure paths impossible instead of relying on defensive fallbacks.
 - Do not keep backward-compatibility shims, legacy behavior, or rescue paths unless they are still intentionally required.
 - Prefer standard names and standard patterns.
