@@ -311,16 +311,7 @@ bool game_liquid_sources_create(Scene* scene, LiquidSourceSystemState* liquid)
     }
 
     desc.radius = LIQUID_PARTICLE_RADIUS;
-    desc.density = 1.0f;
-    desc.gravity_scale = 1.0f;
-    desc.damping_strength = 0.2f;
-    desc.pressure_strength = 0.05f;
-    desc.viscous_strength = 0.25f;
-    desc.surface_tension_pressure_strength = 0.2f;
-    desc.surface_tension_normal_strength = 0.2f;
-    desc.iteration_count = 4;
     desc.destroy_by_age = false;
-    desc.lifetime_granularity = 1.0f / 60.0f;
 
     liquid->particle_system_created = PhysicsWorld_CreateParticleSystem(
         physics_world,
