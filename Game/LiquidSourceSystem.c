@@ -311,6 +311,7 @@ bool game_liquid_sources_create(Scene* scene, LiquidSourceSystemState* liquid)
     }
 
     desc.radius = LIQUID_PARTICLE_RADIUS;
+    desc.iteration_count = LIQUID_PARTICLE_STEP_ITERATIONS;
     desc.destroy_by_age = false;
 
     liquid->particle_system_created = PhysicsWorld_CreateParticleSystem(
