@@ -11,8 +11,8 @@ typedef struct Renderer Renderer;
 bool game_register_ball_visuals(
     Renderer* renderer,
     ResourceHandle* shared_shader_handle,
-    ResourceHandle* source_handles,
-    size_t source_count,
+    ResourceHandle* procedural_texture_handles,
+    size_t procedural_texture_count,
     ResourceHandle* material_handles,
     size_t material_count
 );

@@ -39,7 +39,7 @@ struct Entity* Scene_CreateDynamicCircle(Scene* scene, const SceneDynamicCircleD
     });
     collider = ColliderComponent_CreateCircle(desc->radius);
     renderable = RenderableComponent_CreateWithDesc(&(RenderableComponentDesc){
-        .visual_source_handle = desc->visual_source_handle,
+        .procedural_texture_handle = desc->procedural_texture_handle,
         .material_handle = desc->material_handle,
         .shader_handle = desc->shader_handle,
         .anchor_x = 0.5f,
@@ -106,7 +106,7 @@ struct Entity* Scene_CreateVisualCircle(Scene* scene, const SceneVisualCircleDes
     transform = TransformComponent_Create(desc->x, desc->y, 0.0f);
     collider = ColliderComponent_CreateCircle(desc->radius);
     renderable = RenderableComponent_CreateWithDesc(&(RenderableComponentDesc){
-        .visual_source_handle = desc->visual_source_handle,
+        .procedural_texture_handle = desc->procedural_texture_handle,
         .material_handle = desc->material_handle,
         .shader_handle = desc->shader_handle,
         .anchor_x = 0.5f,
@@ -127,6 +127,50 @@ struct Entity* Scene_CreateVisualCircle(Scene* scene, const SceneVisualCircleDes
     Entity_AddComponent(entity, &transform->base);
     Entity_AddComponent(entity, &collider->base);
     Entity_AddComponent(entity, &renderable->base);
+    if (!Scene_AddEntity(scene, entity))
+    {
+        Entity_Destroy(entity);
+        return NULL;
+    }
+
+    return entity;
+}
+
+struct Entity* Scene_CreateKinematicBox(Scene* scene, float x, float y, float width, float height)
+{
+    Entity* entity = NULL;
+    TransformComponent* transform = NULL;
+    RigidBodyComponent* rigid_body = NULL;
+    ColliderComponent* collider = NULL;
+
+    if (scene == NULL || width <= 0.0f || height <= 0.0f)
+    {
+        return NULL;
+    }
+
+    entity = Entity_Create(0U);
+    transform = TransformComponent_Create(x, y, 0.0f);
+    rigid_body = RigidBodyComponent_CreateWithDesc(&(RigidBodyComponentDesc){
+        .body_type = RIGID_BODY_KINEMATIC,
+        .fixed_rotation = false,
+        .density = 0.001f,
+        .friction_air = 0.01f,
+        .friction = 0.1f,
+        .restitution = 0.0f
+    });
+    collider = ColliderComponent_CreateRect(width, height);
+    if (entity == NULL || transform == NULL || rigid_body == NULL || collider == NULL)
+    {
+        Entity_Destroy(entity);
+        TransformComponent_Destroy(transform);
+        RigidBodyComponent_Destroy(rigid_body);
+        ColliderComponent_Destroy(collider);
+        return NULL;
+    }
+
+    Entity_AddComponent(entity, &transform->base);
+    Entity_AddComponent(entity, &rigid_body->base);
+    Entity_AddComponent(entity, &collider->base);
     if (!Scene_AddEntity(scene, entity))
     {
         Entity_Destroy(entity);

@@ -32,10 +32,10 @@ void debug_overlay_get_stats_snapshot(
     out_snapshot->ui_layout_ms = overlay->ui->last_ui_layout_ms;
     out_snapshot->ui_draw_ms = overlay->ui->last_ui_draw_ms;
     out_snapshot->ui_composite_ms = overlay->ui->last_ui_composite_ms;
-    out_snapshot->surface_memory_bytes =
-        ((size_t)overlay->dashboard->surface_width * (size_t)overlay->dashboard->surface_height +
-         (size_t)overlay->inspector->surface_width * (size_t)overlay->inspector->surface_height +
-         (size_t)overlay->world->surface_width * (size_t)overlay->world->surface_height) * 4U;
+    out_snapshot->texture_memory_bytes =
+        ((size_t)overlay->dashboard->texture_width * (size_t)overlay->dashboard->texture_height +
+         (size_t)overlay->inspector->texture_width * (size_t)overlay->inspector->texture_height +
+         (size_t)overlay->world->texture_width * (size_t)overlay->world->texture_height) * 4U;
     out_snapshot->draw_ui = overlay->ui->draw_ui;
 }
 

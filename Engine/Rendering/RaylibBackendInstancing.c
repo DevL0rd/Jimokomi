@@ -4,7 +4,12 @@
 
 #include <stdlib.h>
 #include <string.h>
+#define Texture RaylibNativeTexture
+#define RenderTexture RaylibNativeRenderTexture
+#define Mesh RaylibNativeMesh
 #include <raylib.h>
+#undef RenderTexture
+#undef Texture
 #include <rlgl.h>
 
 #define RAYLIB_INSTANCE_FLOAT_COUNT 8U
@@ -298,10 +303,10 @@ static bool raylib_backend_init_instancing_state(RaylibBackend* backend)
     return true;
 }
 
-void raylib_backend_draw_surface_batch(
+void raylib_backend_draw_texture_batch(
     void *userdata,
-    const Surface *surface,
-    const SurfaceDrawInstance *instances,
+    const Texture *texture,
+    const TextureDrawInstance *instances,
     size_t instance_count
 )
 {
@@ -310,7 +315,7 @@ void raylib_backend_draw_surface_batch(
     unsigned int texture_id = 0U;
     size_t index = 0U;
 
-    if (surface == NULL || instances == NULL || instance_count == 0U)
+    if (texture == NULL || instances == NULL || instance_count == 0U)
     {
         return;
     }
@@ -326,7 +331,7 @@ void raylib_backend_draw_surface_batch(
 
     if (state == NULL || !state->ready || !raylib_backend_reserve_instance_rects(state, instance_count))
     {
-        raylib_backend_draw_surface_batch_individual(userdata, surface, instances, instance_count);
+        raylib_backend_draw_texture_batch_individual(userdata, texture, instances, instance_count);
         return;
     }
 
@@ -354,7 +359,7 @@ void raylib_backend_draw_surface_batch(
 
     if (!raylib_backend_reserve_instance_vbo(state, instance_count))
     {
-        raylib_backend_draw_surface_batch_individual(userdata, surface, instances, instance_count);
+        raylib_backend_draw_texture_batch_individual(userdata, texture, instances, instance_count);
         return;
     }
 
@@ -370,10 +375,10 @@ void raylib_backend_draw_surface_batch(
         int slot = 0;
         rlSetUniform(state->shader.locs[SHADER_LOC_MAP_DIFFUSE], &slot, SHADER_UNIFORM_INT, 1);
     }
-    texture_id = raylib_backend_surface_get_texture_id(surface);
+    texture_id = raylib_backend_texture_get_texture_id(texture);
     if (texture_id == 0U)
     {
-        raylib_backend_draw_surface_batch_individual(userdata, surface, instances, instance_count);
+        raylib_backend_draw_texture_batch_individual(userdata, texture, instances, instance_count);
         return;
     }
     rlActiveTextureSlot(0);

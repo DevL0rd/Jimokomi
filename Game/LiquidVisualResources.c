@@ -29,27 +29,21 @@ static void game_fill_liquid_material(Material* material)
     material->shader_style = SHADER_STYLE_UNLIT;
 }
 
-static void game_draw_liquid_particle_body(
-    Target* target,
-    const ProceduralTextureContext* context,
-    void* user_data
-) {
-    const Material* material = context != NULL ? context->material : NULL;
-    Color32 base_color = (Color32){ material != NULL ? material->base_color : 0xffffffffU };
-
+static void game_build_liquid_particle_texture(Target* target, void* user_data)
+{
     (void)user_data;
 
     target_circle_filled(
         target,
         (Vec2){ LIQUID_VISUAL_CENTER, LIQUID_VISUAL_CENTER },
         LIQUID_VISUAL_BODY_RADIUS,
-        base_color
+        (Color32){ 0xffffffffU }
     );
 }
 
 bool game_register_liquid_visuals(Renderer* renderer, LiquidVisualResourceHandles* handles)
 {
-    ProceduralSourceDesc source_desc;
+    ProceduralMeshDesc mesh_desc;
     Material material;
 
     if (renderer == NULL || handles == NULL)
@@ -58,26 +52,35 @@ bool game_register_liquid_visuals(Renderer* renderer, LiquidVisualResourceHandle
     }
 
     memset(handles, 0, sizeof(*handles));
-    memset(&source_desc, 0, sizeof(source_desc));
-    source_desc.width = LIQUID_VISUAL_SIZE;
-    source_desc.height = LIQUID_VISUAL_SIZE;
-    source_desc.animation_fps = 10.0f;
-    source_desc.bake_animation_fps = 10.0f;
-    source_desc.loop = true;
-    source_desc.bake_policy = RESOURCE_DEFAULT_PROCEDURAL_BAKE_POLICY;
-    source_desc.prebake_required = RESOURCE_DEFAULT_PREBAKE_REQUIRED;
-    source_desc.bake_instance_invariant = RESOURCE_DEFAULT_BAKE_INSTANCE_INVARIANT;
-    source_desc.bake_ignores_material = true;
-    source_desc.bake_frame_count = 1U;
-    source_desc.draw_body = game_draw_liquid_particle_body;
-    source_desc.draw_overlay = NULL;
-
-    handles->source_handle = renderer_register_procedural_source(
+    handles->texture_handle = renderer_register_texture_from_builder(
         renderer,
-        "procedural.liquid_particle.shared",
-        &source_desc
+        "texture.liquid_particle.shared",
+        LIQUID_VISUAL_SIZE,
+        LIQUID_VISUAL_SIZE,
+        game_build_liquid_particle_texture,
+        NULL
     );
-    if (handles->source_handle.id == 0U)
+    if (handles->texture_handle.id == 0U)
+    {
+        return false;
+    }
+
+    memset(&mesh_desc, 0, sizeof(mesh_desc));
+    mesh_desc.frames = (GeneratedFrameConfig){
+        .animation_fps = 0.0f,
+        .cache_fps = 0.0f,
+        .loop = false,
+        .cache_policy = BAKE_POLICY_DISABLED,
+        .prebake_enabled = false,
+        .instance_invariant = false,
+        .frame_count = 0U
+    };
+    handles->procedural_mesh_handle = renderer_register_procedural_mesh(
+        renderer,
+        "procedural_mesh.liquid_surface.live",
+        &mesh_desc
+    );
+    if (handles->procedural_mesh_handle.id == 0U)
     {
         return false;
     }

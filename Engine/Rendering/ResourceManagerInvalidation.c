@@ -31,11 +31,11 @@ static bool resource_manager_reserve_handles(
 }
 
 static bool resource_manager_reserve_baked_keys(
-    BakedSurfaceKey** keys,
+    BakedTextureKey** keys,
     size_t* capacity,
     size_t required
 ) {
-    BakedSurfaceKey* next_values;
+    BakedTextureKey* next_values;
     size_t next_capacity;
 
     if (*capacity >= required) {
@@ -47,7 +47,7 @@ static bool resource_manager_reserve_baked_keys(
         next_capacity *= 2U;
     }
 
-    next_values = (BakedSurfaceKey*)realloc(*keys, next_capacity * sizeof(*next_values));
+    next_values = (BakedTextureKey*)realloc(*keys, next_capacity * sizeof(*next_values));
     if (next_values == NULL) {
         return false;
     }
@@ -84,10 +84,10 @@ static bool resource_manager_append_unique_handle(
 }
 
 static bool resource_manager_append_unique_baked_key(
-    BakedSurfaceKey** keys,
+    BakedTextureKey** keys,
     size_t* count,
     size_t* capacity,
-    BakedSurfaceKey key
+    BakedTextureKey key
 ) {
     size_t index;
 
@@ -109,17 +109,17 @@ static bool resource_manager_append_unique_baked_key(
     return true;
 }
 
-void resource_manager_mark_dirty_visual_source(ResourceManager* manager, ResourceHandle handle) {
+void resource_manager_mark_dirty_procedural_texture(ResourceManager* manager, ResourceHandle handle) {
     if (manager == NULL || handle.id == 0U) {
         return;
     }
 
     if (resource_manager_append_unique_handle(
-            &manager->invalidation->dirty_visual_source_handles,
-            &manager->invalidation->dirty_visual_source_count,
-            &manager->invalidation->dirty_visual_source_capacity,
+            &manager->invalidation->dirty_procedural_texture_handles,
+            &manager->invalidation->dirty_procedural_texture_count,
+            &manager->invalidation->dirty_procedural_texture_capacity,
             handle)) {
-        manager->stats->bake_invalidation_visual_source_count += 1U;
+        manager->stats->bake_invalidation_procedural_texture_count += 1U;
     }
 }
 
@@ -151,15 +151,15 @@ void resource_manager_mark_dirty_shader(ResourceManager* manager, ResourceHandle
     }
 }
 
-void resource_manager_mark_dirty_baked_surface(ResourceManager* manager, BakedSurfaceKey key) {
+void resource_manager_mark_dirty_baked_texture(ResourceManager* manager, BakedTextureKey key) {
     if (manager == NULL) {
         return;
     }
 
     (void)resource_manager_append_unique_baked_key(
-        &manager->invalidation->dirty_baked_surface_keys,
-        &manager->invalidation->dirty_baked_surface_count,
-        &manager->invalidation->dirty_baked_surface_capacity,
+        &manager->invalidation->dirty_baked_texture_keys,
+        &manager->invalidation->dirty_baked_texture_count,
+        &manager->invalidation->dirty_baked_texture_capacity,
         key
     );
 }

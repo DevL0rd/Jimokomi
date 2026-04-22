@@ -61,13 +61,19 @@ void resource_manager_dispose(ResourceManager* manager) {
         resource_manager_dispose_entries(manager->registry->textures, manager->registry->texture_count);
         resource_manager_dispose_entries(manager->registry->materials, manager->registry->material_count);
         resource_manager_dispose_entries(manager->registry->shaders, manager->registry->shader_count);
-        resource_manager_dispose_entries(manager->registry->visual_sources, manager->registry->visual_source_count);
+        resource_manager_dispose_entries(manager->registry->procedural_textures, manager->registry->procedural_texture_count);
+        resource_manager_dispose_entries(manager->registry->procedural_meshes, manager->registry->procedural_mesh_count);
     }
 
-    if (manager->backend != NULL && manager->backend->destroy_surface != NULL && manager->bake_cache != NULL) {
+    if (manager->backend != NULL && manager->backend->destroy_texture != NULL && manager->bake_cache != NULL) {
         size_t index;
-        for (index = 0U; index < manager->bake_cache->baked_surface_count; ++index) {
-            manager->backend->destroy_surface(manager->backend->userdata, manager->bake_cache->baked_surfaces[index].surface);
+        if (manager->registry != NULL) {
+            for (index = 0U; index < manager->registry->texture_count; ++index) {
+                manager->backend->destroy_texture(manager->backend->userdata, manager->registry->texture_values[index].texture);
+            }
+        }
+        for (index = 0U; index < manager->bake_cache->baked_texture_count; ++index) {
+            manager->backend->destroy_texture(manager->backend->userdata, manager->bake_cache->baked_textures[index].texture);
         }
     }
 
@@ -78,25 +84,37 @@ void resource_manager_dispose(ResourceManager* manager) {
         free(manager->registry->material_values);
         free(manager->registry->shaders);
         free(manager->registry->shader_values);
-        free(manager->registry->visual_sources);
-        free(manager->registry->visual_source_values);
+        free(manager->registry->procedural_textures);
+        free(manager->registry->procedural_texture_values);
+        free(manager->registry->procedural_meshes);
+        free(manager->registry->procedural_mesh_values);
     }
     if (manager->bake_cache != NULL) {
-        free(manager->bake_cache->baked_surfaces);
-        free(manager->bake_cache->baked_surface_slots);
+        size_t index;
+        for (index = 0U; index < manager->bake_cache->baked_mesh_count; ++index) {
+            Mesh* mesh = manager->bake_cache->baked_meshes[index].mesh;
+            if (mesh != NULL) {
+                free(mesh->triangles);
+                free(mesh->lines);
+                free(mesh);
+            }
+        }
+        free(manager->bake_cache->baked_textures);
+        free(manager->bake_cache->baked_texture_slots);
+        free(manager->bake_cache->baked_meshes);
     }
     if (manager->bake_queue != NULL) {
         free(manager->bake_queue->static_pending_bake_requests);
         free(manager->bake_queue->transient_pending_bake_requests);
         free(manager->bake_queue->pending_bake_slots);
         free(manager->bake_queue->bake_interest_entries);
-        free(manager->bake_queue->visual_source_last_requested_frame_indices);
+        free(manager->bake_queue->procedural_texture_last_requested_frame_indices);
     }
     if (manager->invalidation != NULL) {
-        free(manager->invalidation->dirty_visual_source_handles);
+        free(manager->invalidation->dirty_procedural_texture_handles);
         free(manager->invalidation->dirty_material_handles);
         free(manager->invalidation->dirty_shader_handles);
-        free(manager->invalidation->dirty_baked_surface_keys);
+        free(manager->invalidation->dirty_baked_texture_keys);
     }
     free(manager->registry);
     free(manager->bake_cache);
@@ -120,10 +138,10 @@ void resource_manager_begin_frame(ResourceManager* manager) {
     }
     manager->bake_queue->frame_serial += 1U;
     manager->bake_queue->bake_requests_this_frame = 0U;
-    manager->invalidation->dirty_visual_source_count = 0U;
+    manager->invalidation->dirty_procedural_texture_count = 0U;
     manager->invalidation->dirty_material_count = 0U;
     manager->invalidation->dirty_shader_count = 0U;
-    manager->invalidation->dirty_baked_surface_count = 0U;
+    manager->invalidation->dirty_baked_texture_count = 0U;
     resource_manager_reset_empty_bake_queue(manager);
 }
 

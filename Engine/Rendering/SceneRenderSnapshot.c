@@ -2,7 +2,9 @@
 #include "RenderSnapshotInternal.h"
 
 #include "../Physics/PhysicsBodyControl.h"
+#include "../Physics/PhysicsParticles.h"
 #include "../Scene/Scene.h"
+#include "../Scene/SceneParticleVisualsInternal.h"
 #include "../Scene/ScenePhysics.h"
 #include "../Scene/SceneQueries.h"
 #include "../Scene/SceneStats.h"
@@ -22,8 +24,11 @@
 typedef struct SceneRenderSnapshotDesc
 {
     struct Scene* scene;
+    SceneRenderSnapshotBuilder* builder;
     struct Entity** scratch_entities;
     size_t scratch_entity_capacity;
+    PhysicsParticleRenderData* scratch_particles;
+    size_t scratch_particle_capacity;
     Aabb view_bounds;
     float render_alpha;
     uint64_t now_ms;
@@ -42,6 +47,14 @@ typedef struct SceneRenderSnapshotDesc
 struct SceneRenderSnapshotBuilder {
     Entity** scratch_entities;
     size_t scratch_entity_capacity;
+    PhysicsParticleRenderData* scratch_particles;
+    size_t scratch_particle_capacity;
+    float* scratch_mesh_values;
+    float* scratch_mesh_red;
+    float* scratch_mesh_green;
+    float* scratch_mesh_blue;
+    float* scratch_mesh_alpha;
+    size_t scratch_mesh_capacity;
 };
 
 static bool scene_render_snapshot_builder_reserve_entities(
@@ -88,7 +101,100 @@ void scene_render_snapshot_builder_destroy(SceneRenderSnapshotBuilder* builder) 
     }
 
     free(builder->scratch_entities);
+    free(builder->scratch_particles);
+    free(builder->scratch_mesh_values);
+    free(builder->scratch_mesh_red);
+    free(builder->scratch_mesh_green);
+    free(builder->scratch_mesh_blue);
+    free(builder->scratch_mesh_alpha);
     free(builder);
+}
+
+static bool scene_render_snapshot_builder_reserve_particles(
+    SceneRenderSnapshotBuilder* builder,
+    size_t required_capacity
+) {
+    PhysicsParticleRenderData* next_particles;
+    size_t next_capacity;
+
+    if (builder == NULL) {
+        return false;
+    }
+    if (builder->scratch_particle_capacity >= required_capacity) {
+        return true;
+    }
+
+    next_capacity = builder->scratch_particle_capacity > 0U
+        ? builder->scratch_particle_capacity
+        : 256U;
+    while (next_capacity < required_capacity) {
+        next_capacity *= 2U;
+    }
+
+    next_particles = (PhysicsParticleRenderData*)realloc(
+        builder->scratch_particles,
+        next_capacity * sizeof(*next_particles)
+    );
+    if (next_particles == NULL) {
+        return false;
+    }
+
+    builder->scratch_particles = next_particles;
+    builder->scratch_particle_capacity = next_capacity;
+    return true;
+}
+
+static bool scene_render_snapshot_builder_reserve_texture_field(
+    SceneRenderSnapshotBuilder* builder,
+    size_t required_capacity
+) {
+    float* next_values;
+    float* next_red;
+    float* next_green;
+    float* next_blue;
+    float* next_alpha;
+    size_t next_capacity;
+
+    if (builder == NULL) {
+        return false;
+    }
+    if (builder->scratch_mesh_capacity >= required_capacity) {
+        return true;
+    }
+
+    next_capacity = builder->scratch_mesh_capacity > 0U
+        ? builder->scratch_mesh_capacity
+        : 4096U;
+    while (next_capacity < required_capacity) {
+        next_capacity *= 2U;
+    }
+
+    next_values = (float*)malloc(next_capacity * sizeof(*next_values));
+    next_red = (float*)malloc(next_capacity * sizeof(*next_red));
+    next_green = (float*)malloc(next_capacity * sizeof(*next_green));
+    next_blue = (float*)malloc(next_capacity * sizeof(*next_blue));
+    next_alpha = (float*)malloc(next_capacity * sizeof(*next_alpha));
+    if (next_values == NULL || next_red == NULL || next_green == NULL || next_blue == NULL || next_alpha == NULL) {
+        free(next_values);
+        free(next_red);
+        free(next_green);
+        free(next_blue);
+        free(next_alpha);
+        return false;
+    }
+
+    free(builder->scratch_mesh_values);
+    free(builder->scratch_mesh_red);
+    free(builder->scratch_mesh_green);
+    free(builder->scratch_mesh_blue);
+    free(builder->scratch_mesh_alpha);
+    builder->scratch_mesh_values = next_values;
+    builder->scratch_mesh_red = next_red;
+    builder->scratch_mesh_green = next_green;
+    builder->scratch_mesh_blue = next_blue;
+    builder->scratch_mesh_alpha = next_alpha;
+    builder->scratch_mesh_capacity = next_capacity;
+    return true;
 }
 
 static float scene_render_snapshot_lerp(float a, float b, float alpha)
@@ -158,13 +264,13 @@ Aabb scene_render_snapshot_compute_view_bounds(
 
 static size_t scene_render_snapshot_collect_frame_data(
     const SceneRenderSnapshotDesc* desc,
-    SpriteRenderable* items,
+    ProceduralTextureRenderable* procedural_textures,
     DebugEntityView* entities,
-    size_t item_capacity,
-    uint64_t* out_item_frame_signature,
-    uint64_t* out_item_sort_signature,
-    uint64_t* out_item_instance_signature,
-    bool* out_items_sorted_by_layer,
+    size_t procedural_texture_capacity,
+    uint64_t* out_procedural_texture_frame_signature,
+    uint64_t* out_procedural_texture_sort_signature,
+    uint64_t* out_procedural_texture_instance_signature,
+    bool* out_procedural_textures_sorted_by_layer,
     DebugEntityView* out_selected_entity,
     bool* out_has_selected_entity,
     DebugEntityView* out_hovered_entity,
@@ -178,20 +284,20 @@ static size_t scene_render_snapshot_collect_frame_data(
     size_t visible_count = 0U;
     size_t candidate_count;
     size_t pick_target_count = 0U;
-    uint64_t item_frame_signature = 1469598103934665603ULL;
-    uint64_t item_sort_signature = 1099511628211ULL;
-    uint64_t item_instance_signature = 88172645463325252ULL;
+    uint64_t procedural_texture_frame_signature = 1469598103934665603ULL;
+    uint64_t procedural_texture_sort_signature = 1099511628211ULL;
+    uint64_t procedural_texture_instance_signature = 88172645463325252ULL;
     bool collect_debug;
 
-    if (desc == NULL || desc->scene == NULL || items == NULL || desc->scratch_entities == NULL)
+    if (desc == NULL || desc->scene == NULL || procedural_textures == NULL || desc->scratch_entities == NULL)
     {
         return 0U;
     }
 
-    if (out_item_frame_signature != NULL) *out_item_frame_signature = item_frame_signature;
-    if (out_item_sort_signature != NULL) *out_item_sort_signature = item_sort_signature;
-    if (out_item_instance_signature != NULL) *out_item_instance_signature = item_instance_signature;
-    if (out_items_sorted_by_layer != NULL) *out_items_sorted_by_layer = true;
+    if (out_procedural_texture_frame_signature != NULL) *out_procedural_texture_frame_signature = procedural_texture_frame_signature;
+    if (out_procedural_texture_sort_signature != NULL) *out_procedural_texture_sort_signature = procedural_texture_sort_signature;
+    if (out_procedural_texture_instance_signature != NULL) *out_procedural_texture_instance_signature = procedural_texture_instance_signature;
+    if (out_procedural_textures_sorted_by_layer != NULL) *out_procedural_textures_sorted_by_layer = true;
     if (out_has_selected_entity != NULL) *out_has_selected_entity = false;
     if (out_has_hovered_entity != NULL) *out_has_hovered_entity = false;
     if (out_pick_target_count != NULL) *out_pick_target_count = 0U;
@@ -204,13 +310,13 @@ static size_t scene_render_snapshot_collect_frame_data(
     );
 
     collect_debug = entities != NULL && desc->debug_overlay_enabled && desc->draw_debug_world;
-    for (index = 0U; index < candidate_count && visible_count < item_capacity; ++index)
+    for (index = 0U; index < candidate_count && visible_count < procedural_texture_capacity; ++index)
     {
         Entity* entity = desc->scratch_entities[index];
         TransformComponent* transform;
         RenderableComponent* renderable;
         ColliderComponent* collider;
-        SpriteRenderable* item;
+        ProceduralTextureRenderable* item;
         uint64_t entity_id;
 
         if (entity == NULL || !Entity_IsActive(entity))
@@ -225,7 +331,7 @@ static size_t scene_render_snapshot_collect_frame_data(
             continue;
         }
 
-        item = &items[visible_count];
+        item = &procedural_textures[visible_count];
         item->x = scene_render_snapshot_lerp(transform->previous_x, transform->x, desc->render_alpha);
         item->y = scene_render_snapshot_lerp(transform->previous_y, transform->y, desc->render_alpha);
         item->angle_radians = scene_render_snapshot_lerp_angle(
@@ -237,23 +343,24 @@ static size_t scene_render_snapshot_collect_frame_data(
         item->anchor_y = renderable->anchor_y;
         item->layer = renderable->layer;
         item->visible = renderable->visible;
-        item->visual_source_handle = renderable->visual_source_handle;
+        item->texture_handle = (ResourceHandle){ 0U };
+        item->procedural_texture_handle = renderable->procedural_texture_handle;
         item->material_handle = renderable->material_handle;
         item->shader_handle = renderable->shader_handle;
         item->tint = renderable->tint.value != 0U ? renderable->tint : (Color32){ 0xffffffffU };
         item->user_data = NULL;
 
         entity_id = (uint64_t)Entity_GetId(entity);
-        item_frame_signature = scene_render_snapshot_hash_u64(item_frame_signature, (uint64_t)(int64_t)item->layer);
-        item_frame_signature = scene_render_snapshot_hash_u64(item_frame_signature, item->visible ? 1U : 0U);
-        item_frame_signature = scene_render_snapshot_hash_u64(item_frame_signature, item->visual_source_handle.id);
-        item_frame_signature = scene_render_snapshot_hash_u64(item_frame_signature, item->material_handle.id);
-        item_frame_signature = scene_render_snapshot_hash_u64(item_frame_signature, item->shader_handle.id);
-        item_frame_signature = scene_render_snapshot_hash_u64(item_frame_signature, item->tint.value);
-        item_instance_signature = scene_render_snapshot_hash_u64(item_instance_signature, item->visual_source_handle.id);
-        item_instance_signature = scene_render_snapshot_hash_u64(item_instance_signature, item->material_handle.id);
-        item_instance_signature = scene_render_snapshot_hash_u64(item_instance_signature, item->shader_handle.id);
-        item_instance_signature = scene_render_snapshot_hash_u64(item_instance_signature, item->tint.value);
+        procedural_texture_frame_signature = scene_render_snapshot_hash_u64(procedural_texture_frame_signature, (uint64_t)(int64_t)item->layer);
+        procedural_texture_frame_signature = scene_render_snapshot_hash_u64(procedural_texture_frame_signature, item->visible ? 1U : 0U);
+        procedural_texture_frame_signature = scene_render_snapshot_hash_u64(procedural_texture_frame_signature, item->procedural_texture_handle.id);
+        procedural_texture_frame_signature = scene_render_snapshot_hash_u64(procedural_texture_frame_signature, item->material_handle.id);
+        procedural_texture_frame_signature = scene_render_snapshot_hash_u64(procedural_texture_frame_signature, item->shader_handle.id);
+        procedural_texture_frame_signature = scene_render_snapshot_hash_u64(procedural_texture_frame_signature, item->tint.value);
+        procedural_texture_instance_signature = scene_render_snapshot_hash_u64(procedural_texture_instance_signature, item->procedural_texture_handle.id);
+        procedural_texture_instance_signature = scene_render_snapshot_hash_u64(procedural_texture_instance_signature, item->material_handle.id);
+        procedural_texture_instance_signature = scene_render_snapshot_hash_u64(procedural_texture_instance_signature, item->shader_handle.id);
+        procedural_texture_instance_signature = scene_render_snapshot_hash_u64(procedural_texture_instance_signature, item->tint.value);
 
         collider = (ColliderComponent*)Entity_GetComponent(entity, COMPONENT_COLLIDER);
         if (pick_targets != NULL && pick_target_count < pick_target_capacity && collider != NULL)
@@ -326,12 +433,587 @@ static size_t scene_render_snapshot_collect_frame_data(
         visible_count += 1U;
     }
 
-    if (out_item_frame_signature != NULL) *out_item_frame_signature = item_frame_signature;
-    if (out_item_sort_signature != NULL) *out_item_sort_signature = scene_render_snapshot_hash_u64(item_sort_signature, visible_count);
-    if (out_item_instance_signature != NULL) *out_item_instance_signature = item_instance_signature;
-    if (out_items_sorted_by_layer != NULL) *out_items_sorted_by_layer = true;
+    if (out_procedural_texture_frame_signature != NULL) *out_procedural_texture_frame_signature = procedural_texture_frame_signature;
+    if (out_procedural_texture_sort_signature != NULL) *out_procedural_texture_sort_signature = scene_render_snapshot_hash_u64(procedural_texture_sort_signature, visible_count);
+    if (out_procedural_texture_instance_signature != NULL) *out_procedural_texture_instance_signature = procedural_texture_instance_signature;
+    if (out_procedural_textures_sorted_by_layer != NULL) *out_procedural_textures_sorted_by_layer = true;
     if (out_pick_target_count != NULL) *out_pick_target_count = pick_target_count;
     return visible_count;
+}
+
+static size_t scene_render_snapshot_get_particle_visual_texture_count(const Scene* scene)
+{
+    const SceneParticleVisualDesc* bindings = NULL;
+    const PhysicsWorld* physics_world = NULL;
+    size_t binding_count = 0U;
+    size_t index = 0U;
+    size_t procedural_texture_count = 0U;
+
+    if (scene == NULL)
+    {
+        return 0U;
+    }
+
+    physics_world = Scene_GetPhysicsWorldConst(scene);
+    bindings = Scene_GetParticleVisualBindings(scene, &binding_count);
+    if (physics_world == NULL || bindings == NULL)
+    {
+        return 0U;
+    }
+
+    for (index = 0U; index < binding_count; ++index)
+    {
+        if (!bindings[index].visible)
+        {
+            continue;
+        }
+        procedural_texture_count += PhysicsWorld_GetParticleSystemParticleCount(physics_world, bindings[index].particle_system);
+    }
+
+    return procedural_texture_count;
+}
+
+static size_t scene_render_snapshot_append_particle_visuals(
+    const SceneRenderSnapshotDesc* desc,
+    PhysicsParticleRenderData* scratch_particles,
+    size_t scratch_particle_capacity,
+    ProceduralTextureRenderable* procedural_textures,
+    size_t procedural_texture_capacity,
+    size_t procedural_texture_count,
+    uint64_t* procedural_texture_frame_signature,
+    uint64_t* procedural_texture_sort_signature,
+    uint64_t* procedural_texture_instance_signature
+)
+{
+    const SceneParticleVisualDesc* bindings = NULL;
+    const PhysicsWorld* physics_world = NULL;
+    size_t binding_count = 0U;
+    size_t binding_index = 0U;
+
+    if (desc == NULL || desc->scene == NULL || scratch_particles == NULL || procedural_textures == NULL)
+    {
+        return procedural_texture_count;
+    }
+
+    physics_world = Scene_GetPhysicsWorldConst(desc->scene);
+    bindings = Scene_GetParticleVisualBindings(desc->scene, &binding_count);
+    if (physics_world == NULL || bindings == NULL)
+    {
+        return procedural_texture_count;
+    }
+
+    for (binding_index = 0U; binding_index < binding_count && procedural_texture_count < procedural_texture_capacity; ++binding_index)
+    {
+        const SceneParticleVisualDesc* binding = &bindings[binding_index];
+        size_t capacity = procedural_texture_capacity - procedural_texture_count;
+        size_t particle_count;
+        size_t particle_index;
+
+        if (!binding->visible || capacity == 0U)
+        {
+            continue;
+        }
+
+        if (capacity > scratch_particle_capacity)
+        {
+            capacity = scratch_particle_capacity;
+        }
+        particle_count = PhysicsWorld_CopyParticleSystemRenderData(
+            physics_world,
+            binding->particle_system,
+            scratch_particles,
+            capacity
+        );
+
+        if (procedural_texture_frame_signature != NULL)
+        {
+            *procedural_texture_frame_signature = scene_render_snapshot_hash_u64(*procedural_texture_frame_signature, particle_count);
+            *procedural_texture_frame_signature = scene_render_snapshot_hash_u64(*procedural_texture_frame_signature, binding->texture_handle.id);
+            *procedural_texture_frame_signature = scene_render_snapshot_hash_u64(*procedural_texture_frame_signature, binding->procedural_texture_handle.id);
+            *procedural_texture_frame_signature = scene_render_snapshot_hash_u64(*procedural_texture_frame_signature, binding->material_handle.id);
+            *procedural_texture_frame_signature = scene_render_snapshot_hash_u64(*procedural_texture_frame_signature, binding->shader_handle.id);
+        }
+
+        for (particle_index = 0U; particle_index < particle_count && procedural_texture_count < procedural_texture_capacity; ++particle_index)
+        {
+            const PhysicsParticleRenderData* particle = &scratch_particles[particle_index];
+            ProceduralTextureRenderable* item = &procedural_textures[procedural_texture_count++];
+            Color32 tint = (Color32){
+                particle->color_argb != 0U
+                    ? particle->color_argb
+                    : binding->fallback_tint.value
+            };
+
+            item->x = particle->position.x;
+            item->y = particle->position.y;
+            item->angle_radians = 0.0f;
+            item->anchor_x = 0.5f;
+            item->anchor_y = 0.5f;
+            item->layer = binding->layer;
+            item->visible = true;
+            item->texture_handle = binding->texture_handle;
+            item->procedural_texture_handle = binding->procedural_texture_handle;
+            item->material_handle = binding->material_handle;
+            item->shader_handle = binding->shader_handle;
+            item->tint = tint;
+            item->user_data = NULL;
+
+            if (procedural_texture_sort_signature != NULL)
+            {
+                *procedural_texture_sort_signature = scene_render_snapshot_hash_u64(*procedural_texture_sort_signature, (uint64_t)(int64_t)item->layer);
+            }
+            if (procedural_texture_instance_signature != NULL)
+            {
+                *procedural_texture_instance_signature = scene_render_snapshot_hash_u64(*procedural_texture_instance_signature, item->texture_handle.id);
+                *procedural_texture_instance_signature = scene_render_snapshot_hash_u64(*procedural_texture_instance_signature, item->procedural_texture_handle.id);
+                *procedural_texture_instance_signature = scene_render_snapshot_hash_u64(*procedural_texture_instance_signature, item->material_handle.id);
+                *procedural_texture_instance_signature = scene_render_snapshot_hash_u64(*procedural_texture_instance_signature, item->shader_handle.id);
+                *procedural_texture_instance_signature = scene_render_snapshot_hash_u64(*procedural_texture_instance_signature, item->tint.value);
+            }
+        }
+    }
+
+    return procedural_texture_count;
+}
+
+static uint8_t scene_render_snapshot_color_channel(uint32_t argb, uint32_t shift)
+{
+    return (uint8_t)((argb >> shift) & 0xffU);
+}
+
+static Vec2 scene_render_snapshot_interp_texture_point(
+    Vec2 a,
+    Vec2 b,
+    float value_a,
+    float value_b,
+    float threshold
+) {
+    float span = value_b - value_a;
+    float t = fabsf(span) > 0.000001f ? (threshold - value_a) / span : 0.5f;
+    t = clamp_f(t, 0.0f, 1.0f);
+    return (Vec2){
+        a.x + (b.x - a.x) * t,
+        a.y + (b.y - a.y) * t
+    };
+}
+
+static Color32 scene_render_snapshot_texture_color(
+    const SceneParticleVisualDesc* binding,
+    const float* values,
+    const float* red,
+    const float* green,
+    const float* blue,
+    const float* alpha,
+    size_t a,
+    size_t b,
+    size_t c,
+    size_t d
+) {
+    float total = values[a] + values[b] + values[c] + values[d];
+    float tint_alpha = (float)scene_render_snapshot_color_channel(binding->mesh_tint.value, 24U);
+    float r;
+    float g;
+    float bl;
+    float al;
+
+    if (total <= 0.000001f)
+    {
+        return binding->mesh_tint;
+    }
+
+    r = (red[a] + red[b] + red[c] + red[d]) / total;
+    g = (green[a] + green[b] + green[c] + green[d]) / total;
+    bl = (blue[a] + blue[b] + blue[c] + blue[d]) / total;
+    al = (alpha[a] + alpha[b] + alpha[c] + alpha[d]) / total;
+    if (tint_alpha > 0.0f)
+    {
+        al = tint_alpha;
+    }
+
+    return color_rgba(
+        (uint8_t)clamp_f(r, 0.0f, 255.0f),
+        (uint8_t)clamp_f(g, 0.0f, 255.0f),
+        (uint8_t)clamp_f(bl, 0.0f, 255.0f),
+        (uint8_t)clamp_f(al, 0.0f, 255.0f)
+    );
+}
+
+static void scene_render_snapshot_sort_texture_points(Vec2* points, size_t count)
+{
+    Vec2 center = { 0.0f, 0.0f };
+    size_t index;
+
+    if (points == NULL || count < 3U)
+    {
+        return;
+    }
+
+    for (index = 0U; index < count; ++index)
+    {
+        center.x += points[index].x;
+        center.y += points[index].y;
+    }
+    center.x /= (float)count;
+    center.y /= (float)count;
+
+    for (index = 1U; index < count; ++index)
+    {
+        Vec2 point = points[index];
+        float angle = atan2f(point.y - center.y, point.x - center.x);
+        size_t insert = index;
+
+        while (insert > 0U)
+        {
+            float previous_angle = atan2f(points[insert - 1U].y - center.y, points[insert - 1U].x - center.x);
+            if (previous_angle <= angle)
+            {
+                break;
+            }
+            points[insert] = points[insert - 1U];
+            insert -= 1U;
+        }
+        points[insert] = point;
+    }
+}
+
+static bool scene_render_snapshot_add_texture_triangle(
+    RenderWorldSnapshot* world,
+    Vec2 a,
+    Vec2 b,
+    Vec2 c,
+    Color32 color,
+    int layer
+) {
+    TriangleRenderable* triangle;
+
+    if (world == NULL)
+    {
+        return false;
+    }
+    if (!render_world_snapshot_reserve_triangles(world, world->triangle_count + 1U))
+    {
+        return false;
+    }
+
+    triangle = &world->triangles[world->triangle_count++];
+    triangle->a = a;
+    triangle->b = b;
+    triangle->c = c;
+    triangle->color = color;
+    triangle->layer = layer;
+    triangle->visible = true;
+    return true;
+}
+
+static bool scene_render_snapshot_add_texture_line(
+    RenderWorldSnapshot* world,
+    Vec2 a,
+    Vec2 b,
+    Color32 color,
+    int layer
+) {
+    LineRenderable* line;
+
+    if (world == NULL)
+    {
+        return false;
+    }
+    if (!render_world_snapshot_reserve_lines(world, world->line_count + 1U))
+    {
+        return false;
+    }
+
+    line = &world->lines[world->line_count++];
+    line->a = a;
+    line->b = b;
+    line->color = color;
+    line->layer = layer;
+    line->visible = true;
+    return true;
+}
+
+static void scene_render_snapshot_append_particle_mesh(
+    const SceneRenderSnapshotDesc* desc,
+    RenderWorldSnapshot* world
+) {
+    const SceneParticleVisualDesc* bindings = NULL;
+    const PhysicsWorld* physics_world = NULL;
+    size_t binding_count = 0U;
+    size_t binding_index = 0U;
+
+    if (desc == NULL || desc->scene == NULL || world == NULL || desc->scratch_particles == NULL)
+    {
+        return;
+    }
+
+    physics_world = Scene_GetPhysicsWorldConst(desc->scene);
+    bindings = Scene_GetParticleVisualBindings(desc->scene, &binding_count);
+    if (physics_world == NULL || bindings == NULL)
+    {
+        return;
+    }
+
+    for (binding_index = 0U; binding_index < binding_count; ++binding_index)
+    {
+        const SceneParticleVisualDesc* binding = &bindings[binding_index];
+        size_t triangle_count_before = world->triangle_count;
+        size_t line_count_before = world->line_count;
+        ProceduralMeshRenderable* mesh = NULL;
+        size_t particle_count;
+        float min_x;
+        float min_y;
+        float max_x;
+        float max_y;
+        float cell_size;
+        float influence_radius;
+        float threshold;
+        size_t cell_count_x;
+        size_t cell_count_y;
+        size_t vertex_count_x;
+        size_t vertex_count_y;
+                size_t vertex_count;
+                float* mesh_values;
+                float* mesh_red;
+                float* mesh_green;
+                float* mesh_blue;
+                float* mesh_alpha;
+                size_t particle_index;
+                size_t cell_y;
+
+        if (!binding->mesh_visible ||
+            binding->procedural_mesh_handle.id == 0U ||
+            binding->mesh_cell_size <= 0.0f ||
+            binding->mesh_influence_radius <= 0.0f ||
+            binding->mesh_threshold <= 0.0f)
+        {
+            continue;
+        }
+
+        if (!render_world_snapshot_reserve_procedural_meshes(world, world->procedural_mesh_count + 1U))
+        {
+            continue;
+        }
+        mesh = &world->procedural_meshes[world->procedural_mesh_count++];
+        memset(mesh, 0, sizeof(*mesh));
+        mesh->procedural_mesh_handle = binding->procedural_mesh_handle;
+        mesh->triangle_start = triangle_count_before;
+        mesh->line_start = line_count_before;
+        mesh->layer = binding->mesh_layer;
+        mesh->visible = true;
+
+        particle_count = PhysicsWorld_CopyParticleSystemRenderData(
+            physics_world,
+            binding->particle_system,
+            desc->scratch_particles,
+            desc->scratch_particle_capacity
+        );
+        if (particle_count == 0U)
+        {
+            continue;
+        }
+
+        influence_radius = binding->mesh_influence_radius;
+        cell_size = binding->mesh_cell_size;
+        threshold = binding->mesh_threshold;
+        min_x = desc->scratch_particles[0].position.x - influence_radius;
+        min_y = desc->scratch_particles[0].position.y - influence_radius;
+        max_x = desc->scratch_particles[0].position.x + influence_radius;
+        max_y = desc->scratch_particles[0].position.y + influence_radius;
+        for (particle_index = 1U; particle_index < particle_count; ++particle_index)
+        {
+            const PhysicsParticleRenderData* particle = &desc->scratch_particles[particle_index];
+            min_x = fminf(min_x, particle->position.x - influence_radius);
+            min_y = fminf(min_y, particle->position.y - influence_radius);
+            max_x = fmaxf(max_x, particle->position.x + influence_radius);
+            max_y = fmaxf(max_y, particle->position.y + influence_radius);
+        }
+
+        cell_count_x = (size_t)ceilf((max_x - min_x) / cell_size);
+        cell_count_y = (size_t)ceilf((max_y - min_y) / cell_size);
+        if (cell_count_x == 0U || cell_count_y == 0U)
+        {
+            continue;
+        }
+        vertex_count_x = cell_count_x + 1U;
+        vertex_count_y = cell_count_y + 1U;
+        vertex_count = vertex_count_x * vertex_count_y;
+        if (!scene_render_snapshot_builder_reserve_texture_field(desc->builder, vertex_count))
+        {
+            continue;
+        }
+        mesh_values = desc->builder->scratch_mesh_values;
+        mesh_red = desc->builder->scratch_mesh_red;
+        mesh_green = desc->builder->scratch_mesh_green;
+        mesh_blue = desc->builder->scratch_mesh_blue;
+        mesh_alpha = desc->builder->scratch_mesh_alpha;
+
+        memset(mesh_values, 0, vertex_count * sizeof(*mesh_values));
+        memset(mesh_red, 0, vertex_count * sizeof(*mesh_red));
+        memset(mesh_green, 0, vertex_count * sizeof(*mesh_green));
+        memset(mesh_blue, 0, vertex_count * sizeof(*mesh_blue));
+        memset(mesh_alpha, 0, vertex_count * sizeof(*mesh_alpha));
+
+        for (particle_index = 0U; particle_index < particle_count; ++particle_index)
+        {
+            const PhysicsParticleRenderData* particle = &desc->scratch_particles[particle_index];
+            uint32_t color = particle->color_argb != 0U ? particle->color_argb : binding->fallback_tint.value;
+            int min_vertex_x = (int)floorf((particle->position.x - influence_radius - min_x) / cell_size);
+            int min_vertex_y = (int)floorf((particle->position.y - influence_radius - min_y) / cell_size);
+            int max_vertex_x = (int)ceilf((particle->position.x + influence_radius - min_x) / cell_size);
+            int max_vertex_y = (int)ceilf((particle->position.y + influence_radius - min_y) / cell_size);
+            int vertex_y;
+
+            if (min_vertex_x < 0) min_vertex_x = 0;
+            if (min_vertex_y < 0) min_vertex_y = 0;
+            if (max_vertex_x >= (int)vertex_count_x) max_vertex_x = (int)vertex_count_x - 1;
+            if (max_vertex_y >= (int)vertex_count_y) max_vertex_y = (int)vertex_count_y - 1;
+
+            for (vertex_y = min_vertex_y; vertex_y <= max_vertex_y; ++vertex_y)
+            {
+                int vertex_x;
+                float y = min_y + (float)vertex_y * cell_size;
+                for (vertex_x = min_vertex_x; vertex_x <= max_vertex_x; ++vertex_x)
+                {
+                    float x = min_x + (float)vertex_x * cell_size;
+                    float dx = x - particle->position.x;
+                    float dy = y - particle->position.y;
+                    float distance = sqrtf(dx * dx + dy * dy);
+                    float weight = 1.0f - (distance / influence_radius);
+                    if (weight > 0.0f)
+                    {
+                        size_t vertex_index = (size_t)vertex_y * vertex_count_x + (size_t)vertex_x;
+                        mesh_values[vertex_index] += weight;
+                        mesh_red[vertex_index] += weight * (float)scene_render_snapshot_color_channel(color, 16U);
+                        mesh_green[vertex_index] += weight * (float)scene_render_snapshot_color_channel(color, 8U);
+                        mesh_blue[vertex_index] += weight * (float)scene_render_snapshot_color_channel(color, 0U);
+                        mesh_alpha[vertex_index] += weight * (float)scene_render_snapshot_color_channel(color, 24U);
+                    }
+                }
+            }
+        }
+
+        for (cell_y = 0U; cell_y < cell_count_y; ++cell_y)
+        {
+            size_t cell_x;
+            for (cell_x = 0U; cell_x < cell_count_x; ++cell_x)
+            {
+                size_t v0 = cell_y * vertex_count_x + cell_x;
+                size_t v1 = v0 + 1U;
+                size_t v3 = v0 + vertex_count_x;
+                size_t v2 = v3 + 1U;
+                float value0 = mesh_values[v0];
+                float value1 = mesh_values[v1];
+                float value2 = mesh_values[v2];
+                float value3 = mesh_values[v3];
+                bool inside0 = value0 >= threshold;
+                bool inside1 = value1 >= threshold;
+                bool inside2 = value2 >= threshold;
+                bool inside3 = value3 >= threshold;
+                Vec2 p0 = { min_x + (float)cell_x * cell_size, min_y + (float)cell_y * cell_size };
+                Vec2 p1 = { p0.x + cell_size, p0.y };
+                Vec2 p2 = { p0.x + cell_size, p0.y + cell_size };
+                Vec2 p3 = { p0.x, p0.y + cell_size };
+                Vec2 points[8];
+                Vec2 edge_points[4];
+                size_t point_count = 0U;
+                size_t edge_point_count = 0U;
+                size_t point_index;
+                Color32 color;
+
+                if (!inside0 && !inside1 && !inside2 && !inside3)
+                {
+                    continue;
+                }
+
+                if (inside0) points[point_count++] = p0;
+                if (inside1) points[point_count++] = p1;
+                if (inside2) points[point_count++] = p2;
+                if (inside3) points[point_count++] = p3;
+                if (inside0 != inside1) {
+                    edge_points[edge_point_count] = scene_render_snapshot_interp_texture_point(p0, p1, value0, value1, threshold);
+                    points[point_count++] = edge_points[edge_point_count++];
+                }
+                if (inside1 != inside2) {
+                    edge_points[edge_point_count] = scene_render_snapshot_interp_texture_point(p1, p2, value1, value2, threshold);
+                    points[point_count++] = edge_points[edge_point_count++];
+                }
+                if (inside2 != inside3) {
+                    edge_points[edge_point_count] = scene_render_snapshot_interp_texture_point(p2, p3, value2, value3, threshold);
+                    points[point_count++] = edge_points[edge_point_count++];
+                }
+                if (inside3 != inside0) {
+                    edge_points[edge_point_count] = scene_render_snapshot_interp_texture_point(p3, p0, value3, value0, threshold);
+                    points[point_count++] = edge_points[edge_point_count++];
+                }
+                if (point_count < 3U)
+                {
+                    continue;
+                }
+                if (edge_point_count == 2U)
+                {
+                    (void)scene_render_snapshot_add_texture_line(
+                        world,
+                        edge_points[0],
+                        edge_points[1],
+                        (Color32){ 0xffff00ffU },
+                        binding->mesh_layer
+                    );
+                }
+                else if (edge_point_count == 4U)
+                {
+                    (void)scene_render_snapshot_add_texture_line(
+                        world,
+                        edge_points[0],
+                        edge_points[1],
+                        (Color32){ 0xffff00ffU },
+                        binding->mesh_layer
+                    );
+                    (void)scene_render_snapshot_add_texture_line(
+                        world,
+                        edge_points[2],
+                        edge_points[3],
+                        (Color32){ 0xffff00ffU },
+                        binding->mesh_layer
+                    );
+                }
+
+                scene_render_snapshot_sort_texture_points(points, point_count);
+                color = scene_render_snapshot_texture_color(
+                    binding,
+                    mesh_values,
+                    mesh_red,
+                    mesh_green,
+                    mesh_blue,
+                    mesh_alpha,
+                    v0,
+                    v1,
+                    v2,
+                    v3
+                );
+                for (point_index = 1U; point_index + 1U < point_count; ++point_index)
+                {
+                    if (!scene_render_snapshot_add_texture_triangle(
+                            world,
+                            points[0],
+                            points[point_index],
+                            points[point_index + 1U],
+                            color,
+                            binding->mesh_layer))
+                    {
+                        return;
+                    }
+                }
+            }
+        }
+
+        mesh->triangle_count = world->triangle_count - mesh->triangle_start;
+        mesh->line_count = world->line_count - mesh->line_start;
+        if (mesh->triangle_count == 0U && mesh->line_count == 0U)
+        {
+            world->procedural_mesh_count -= 1U;
+        }
+
+    }
 }
 
 static bool scene_render_snapshot_build_desc(
@@ -345,7 +1027,10 @@ static bool scene_render_snapshot_build_desc(
     uint64_t snapshot_metadata_signature;
     const PhysicsWorldSnapshot* physics_snapshot;
     size_t entity_capacity;
+    size_t particle_visual_capacity;
+    size_t procedural_texture_capacity;
     size_t contact_hit_capacity;
+    size_t entity_item_count;
 
     if (desc == NULL || desc->scene == NULL || buffer == NULL)
     {
@@ -357,7 +1042,9 @@ static bool scene_render_snapshot_build_desc(
     memset(&scene_stats, 0, sizeof(scene_stats));
     Scene_GetStatsSnapshot(desc->scene, &scene_stats);
     entity_capacity = Scene_GetEntityCount(desc->scene);
-    if (!render_world_snapshot_reserve_items(&buffer->world, entity_capacity))
+    particle_visual_capacity = scene_render_snapshot_get_particle_visual_texture_count(desc->scene);
+    procedural_texture_capacity = entity_capacity + particle_visual_capacity;
+    if (!render_world_snapshot_reserve_procedural_textures(&buffer->world, procedural_texture_capacity))
     {
         return false;
     }
@@ -374,18 +1061,19 @@ static bool scene_render_snapshot_build_desc(
     buffer->world.backdrop_draw = desc->backdrop_draw;
     buffer->world.backdrop_user_data = desc->backdrop_user_data;
     buffer->world.backdrop_signature = desc->backdrop_signature;
-    buffer->world.draw_sprites = true;
+    buffer->world.draw_scene_renderables = true;
     buffer->world.draw_debug_world = desc->debug_overlay_enabled && desc->draw_debug_world;
     buffer->world.now_ms = desc->now_ms;
-    buffer->world.item_count = scene_render_snapshot_collect_frame_data(
+    scene_render_snapshot_append_particle_mesh(desc, &buffer->world);
+    entity_item_count = scene_render_snapshot_collect_frame_data(
         desc,
-        buffer->world.items,
+        buffer->world.procedural_textures,
         buffer->world.debug_entities,
-        buffer->world.item_capacity,
-        &buffer->world.item_frame_signature,
-        &buffer->world.item_sort_signature,
-        &buffer->world.item_instance_signature,
-        &buffer->world.items_sorted_by_layer,
+        buffer->world.procedural_texture_capacity,
+        &buffer->world.procedural_texture_frame_signature,
+        &buffer->world.procedural_texture_sort_signature,
+        &buffer->world.procedural_texture_instance_signature,
+        &buffer->world.procedural_textures_sorted_by_layer,
         &buffer->world.selected_entity,
         &buffer->world.has_selected_entity,
         &buffer->world.hovered_entity,
@@ -394,8 +1082,27 @@ static bool scene_render_snapshot_build_desc(
         buffer->world.pick_target_capacity,
         &buffer->world.pick_target_count
     );
-    buffer->world.item_signatures_valid = true;
-    buffer->world.debug_entity_count = buffer->world.draw_debug_world ? buffer->world.item_count : 0U;
+    buffer->world.procedural_texture_count = scene_render_snapshot_append_particle_visuals(
+        desc,
+        desc->scratch_particles,
+        desc->scratch_particle_capacity,
+        buffer->world.procedural_textures,
+        buffer->world.procedural_texture_capacity,
+        entity_item_count,
+        &buffer->world.procedural_texture_frame_signature,
+        &buffer->world.procedural_texture_sort_signature,
+        &buffer->world.procedural_texture_instance_signature
+    );
+    if (buffer->world.procedural_texture_count > entity_item_count)
+    {
+        buffer->world.procedural_textures_sorted_by_layer = false;
+        buffer->world.procedural_texture_sort_signature = scene_render_snapshot_hash_u64(
+            buffer->world.procedural_texture_sort_signature,
+            buffer->world.procedural_texture_count
+        );
+    }
+    buffer->world.procedural_texture_signatures_valid = true;
+    buffer->world.debug_entity_count = buffer->world.draw_debug_world ? entity_item_count : 0U;
 
     {
         SpatialGridStatsSnapshot spatial_stats;
@@ -412,9 +1119,9 @@ static bool scene_render_snapshot_build_desc(
     }
 
     snapshot_metadata_signature = 1469598103934665603ULL;
-    snapshot_metadata_signature = scene_render_snapshot_hash_u64(snapshot_metadata_signature, buffer->world.item_count);
+    snapshot_metadata_signature = scene_render_snapshot_hash_u64(snapshot_metadata_signature, buffer->world.procedural_texture_count);
     snapshot_metadata_signature = scene_render_snapshot_hash_u64(snapshot_metadata_signature, buffer->world.debug_entity_count);
-    snapshot_metadata_signature = scene_render_snapshot_hash_u64(snapshot_metadata_signature, buffer->world.draw_sprites ? 1U : 0U);
+    snapshot_metadata_signature = scene_render_snapshot_hash_u64(snapshot_metadata_signature, buffer->world.draw_scene_renderables ? 1U : 0U);
     snapshot_metadata_signature = scene_render_snapshot_hash_u64(snapshot_metadata_signature, buffer->world.draw_debug_world ? 1U : 0U);
     snapshot_metadata_signature = scene_render_snapshot_hash_u64(snapshot_metadata_signature, buffer->world.backdrop_signature);
     snapshot_metadata_signature = scene_render_snapshot_hash_u64(snapshot_metadata_signature, desc->selected_entity_id);
@@ -595,11 +1302,17 @@ bool scene_render_snapshot_build(
     if (Scene_GetPhysicsWorld(scene) != NULL) {
         PhysicsWorld_GetSnapshot(Scene_GetPhysicsWorld(scene), &physics_snapshot);
     }
+    if (!scene_render_snapshot_builder_reserve_particles(builder, physics_snapshot.particle_count)) {
+        return false;
+    }
 
     memset(&desc, 0, sizeof(desc));
     desc.scene = scene;
+    desc.builder = builder;
     desc.scratch_entities = builder->scratch_entities;
     desc.scratch_entity_capacity = builder->scratch_entity_capacity;
+    desc.scratch_particles = builder->scratch_particles;
+    desc.scratch_particle_capacity = builder->scratch_particle_capacity;
     desc.view_bounds = view_bounds;
     desc.render_alpha = render_alpha;
     desc.now_ms = now_ms;

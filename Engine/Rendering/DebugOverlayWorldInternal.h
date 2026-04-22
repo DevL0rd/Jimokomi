@@ -4,10 +4,10 @@
 #include "DebugOverlayInternal.h"
 
 struct DebugOverlayWorldState {
-    RenderBackend* surface_backend;
-    Surface* surface;
-    int surface_width;
-    int surface_height;
+    RenderBackend* texture_backend;
+    Texture* texture;
+    int texture_width;
+    int texture_height;
     uint64_t last_signature;
     size_t last_visible_entity_count;
     size_t last_active_collision_count;

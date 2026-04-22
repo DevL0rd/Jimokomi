@@ -1,6 +1,7 @@
 #include "ResourceManagerBakeCacheInternal.h"
 #include "ResourceManagerBakeProcessInternal.h"
 #include "ResourceManagerBakeQueueInternal.h"
+#include "GeneratedFrame.h"
 #include "../Core/PlatformRuntimeInternal.h"
 
 #include <string.h>
@@ -9,49 +10,53 @@ static double resource_manager_now_ms(void) {
     return engine_platform_now_ms();
 }
 
-const Surface* resource_manager_execute_baked_surface(
+const Texture* resource_manager_execute_baked_texture(
     ResourceManager* manager,
-    const VisualSourceResource* source,
+    const ProceduralTextureResource* source,
     const MaterialResource* material,
     const ShaderResource* shader,
-    BakedSurfaceKey key,
+    BakedTextureKey key,
+    uint32_t source_frame_index,
     void* user_data
 ) {
-    Surface* surface;
+    Texture* texture;
     Target target;
     ProceduralTextureContext context;
     Material neutral_material;
     const Material* context_material;
+    bool created_texture;
 
     if (manager == NULL || source == NULL || manager->backend == NULL) {
         return NULL;
     }
-    if (manager->backend->create_surface == NULL ||
+    if (manager->backend->create_texture == NULL ||
         manager->backend->set_target == NULL ||
         manager->backend->reset_target == NULL ||
         manager->backend->clear == NULL) {
         return NULL;
     }
 
-    surface = manager->backend->create_surface(manager->backend->userdata, source->width, source->height);
-    if (surface == NULL) {
-        return NULL;
+    texture = source->frames.cache_policy == BAKE_POLICY_REFRESH_FRAME
+        ? resource_manager_find_mutable_baked_texture(manager, key)
+        : NULL;
+    created_texture = texture == NULL;
+    if (created_texture) {
+        texture = manager->backend->create_texture(manager->backend->userdata, source->width, source->height);
+        if (texture == NULL) {
+            return NULL;
+        }
     }
 
     manager->bake_queue->bake_requests_this_frame += 1U;
-    manager->backend->set_target(manager->backend->userdata, surface);
+    manager->backend->set_target(manager->backend->userdata, texture);
     manager->backend->clear(manager->backend->userdata, color_rgba(0U, 0U, 0U, 0U));
     target_init(&target, manager->backend, 0.0f, 0.0f);
 
     memset(&context, 0, sizeof(context));
-    context.now_ms = (uint64_t)(((source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps) > 0.0f)
-        ? ((double)key.frame_index / (source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps)) * 1000.0
-        : 0.0);
-    context.time_seconds = (source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps) > 0.0f
-        ? (float)key.frame_index / (source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps)
-        : 0.0f;
-    context.animation_fps = source->bake_animation_fps > 0.0f ? source->bake_animation_fps : source->animation_fps;
-    context.frame_index = key.frame_index;
+    context.time_seconds = generated_frame_cache_time_seconds(&source->frames, source_frame_index);
+    context.now_ms = (uint64_t)((double)context.time_seconds * 1000.0);
+    context.animation_fps = generated_frame_cache_fps(&source->frames);
+    context.frame_index = source_frame_index;
     context.angle_radians = 0.0f;
     memset(&neutral_material, 0, sizeof(neutral_material));
     neutral_material.base_color = 0xffffffU;
@@ -73,7 +78,7 @@ const Surface* resource_manager_execute_baked_surface(
         ? shader->style
         : (material != NULL ? material->value.shader_style : neutral_material.shader_style);
 
-    if (key.pass == BAKED_SURFACE_PASS_BODY) {
+    if (key.pass == BAKED_TEXTURE_PASS_BODY) {
         source->draw_body(&target, &context, user_data);
     } else {
         source->draw_overlay(&target, &context, user_data);
@@ -81,14 +86,70 @@ const Surface* resource_manager_execute_baked_surface(
 
     manager->backend->reset_target(manager->backend->userdata);
 
-    if (!resource_manager_store_baked_surface(manager, key, surface)) {
-        if (manager->backend->destroy_surface != NULL) {
-            manager->backend->destroy_surface(manager->backend->userdata, surface);
+    if (!resource_manager_store_baked_texture(manager, key, texture, source_frame_index)) {
+        if (created_texture && manager->backend->destroy_texture != NULL) {
+            manager->backend->destroy_texture(manager->backend->userdata, texture);
         }
         return NULL;
     }
 
-    return surface;
+    return texture;
+}
+
+const Texture* resource_manager_get_or_create_baked_texture(
+    ResourceManager* manager,
+    ResourceHandle procedural_texture_handle,
+    ResourceHandle material_handle,
+    ResourceHandle shader_handle,
+    uint32_t frame_index,
+    BakedTexturePass pass,
+    void* user_data
+) {
+    const ProceduralTextureResource* source;
+    const MaterialResource* material;
+    const ShaderResource* shader;
+    const Texture* texture;
+    BakedTextureKey key;
+
+    texture = resource_manager_get_baked_texture(
+        manager,
+        procedural_texture_handle,
+        material_handle,
+        shader_handle,
+        frame_index,
+        pass,
+        user_data
+    );
+    if (texture != NULL) {
+        return texture;
+    }
+
+    source = resource_manager_get_procedural_texture(manager, procedural_texture_handle);
+    material = resource_manager_get_material(manager, material_handle);
+    shader = resource_manager_get_shader(manager, shader_handle);
+    if (manager == NULL || source == NULL || !resource_manager_is_bake_eligible(source, pass)) {
+        return NULL;
+    }
+    if (!source->bake_ignores_material && material == NULL) {
+        return NULL;
+    }
+
+    key.procedural_texture_id = procedural_texture_handle.id;
+    key.material_id = source->bake_ignores_material ? 0U : material_handle.id;
+    key.shader_id = shader_handle.id;
+    key.frame_index = resource_manager_normalize_frame_index(source, frame_index);
+    key.pass = (uint8_t)pass;
+
+    resource_manager_remove_pending_bake_slot(manager, key);
+    return resource_manager_execute_baked_texture(
+        manager,
+        source,
+        material,
+        shader,
+        key,
+        generated_frame_bake_source_index(&source->frames, frame_index),
+        user_data
+    );
 }
 
 void resource_manager_process_pending_bakes(ResourceManager* manager, double time_budget_ms) {
@@ -112,8 +173,8 @@ void resource_manager_process_pending_bakes(ResourceManager* manager, double tim
             manager->bake_queue->transient_pending_bake_request_head < manager->bake_queue->transient_pending_bake_request_count) &&
            resource_manager_now_ms() - started_ms < effective_budget_ms) {
         PendingBakeRequest request;
-        BakedSurfaceKey key;
-        const VisualSourceResource* source;
+        BakedTextureKey key;
+        const ProceduralTextureResource* source;
         const MaterialResource* material;
         const ShaderResource* shader;
 
@@ -124,43 +185,43 @@ void resource_manager_process_pending_bakes(ResourceManager* manager, double tim
         }
 
         key = request.key;
-        source = resource_manager_get_visual_source(manager, resource_handle(key.visual_source_id));
+        source = resource_manager_get_procedural_texture(manager, resource_handle(key.procedural_texture_id));
         material = resource_manager_get_material(manager, resource_handle(key.material_id));
         shader = resource_manager_get_shader(manager, resource_handle(key.shader_id));
         resource_manager_remove_pending_bake_slot(manager, key);
 
-        if (source == NULL || !resource_manager_is_bake_eligible(source, (BakedSurfacePass)key.pass)) {
+        if (source == NULL || !resource_manager_is_bake_eligible(source, (BakedTexturePass)key.pass)) {
             continue;
         }
         if (!source->bake_ignores_material && material == NULL) {
             continue;
         }
-        if (resource_manager_find_baked_surface(manager, key) != NULL) {
+        if (resource_manager_find_baked_texture(manager, key) != NULL) {
             continue;
         }
 
-        (void)resource_manager_execute_baked_surface(manager, source, material, shader, key, NULL);
+        (void)resource_manager_execute_baked_texture(manager, source, material, shader, key, key.frame_index, NULL);
     }
     manager->bake_queue->last_bake_process_ms = resource_manager_now_ms() - started_ms;
 
     resource_manager_reset_empty_bake_queue(manager);
 }
 
-bool resource_manager_prewarm_procedural_source(
+bool resource_manager_prewarm_procedural_texture(
     ResourceManager* manager,
-    ResourceHandle visual_source_handle,
+    ResourceHandle procedural_texture_handle,
     ResourceHandle material_handle,
     ResourceHandle shader_handle,
     void* user_data
 ) {
-    const VisualSourceResource* source;
+    const ProceduralTextureResource* source;
     const MaterialResource* material;
     const ShaderResource* shader;
     uint32_t frame_count;
     uint32_t frame_index;
-    BakedSurfaceKey key;
+    BakedTextureKey key;
 
-    source = resource_manager_get_visual_source(manager, visual_source_handle);
+    source = resource_manager_get_procedural_texture(manager, procedural_texture_handle);
     material = resource_manager_get_material(manager, material_handle);
     shader = resource_manager_get_shader(manager, shader_handle);
     if (manager == NULL || source == NULL) {
@@ -169,8 +230,8 @@ bool resource_manager_prewarm_procedural_source(
     if (!source->bake_ignores_material && material == NULL) {
         return false;
     }
-    if (!resource_manager_is_bake_eligible(source, BAKED_SURFACE_PASS_BODY) &&
-        !resource_manager_is_bake_eligible(source, BAKED_SURFACE_PASS_OVERLAY)) {
+    if (!resource_manager_is_bake_eligible(source, BAKED_TEXTURE_PASS_BODY) &&
+        !resource_manager_is_bake_eligible(source, BAKED_TEXTURE_PASS_OVERLAY)) {
         return false;
     }
 
@@ -178,24 +239,24 @@ bool resource_manager_prewarm_procedural_source(
 
     for (frame_index = 0U; frame_index < frame_count; ++frame_index) {
         if (source->draw_body != NULL) {
-            key.visual_source_id = visual_source_handle.id;
+            key.procedural_texture_id = procedural_texture_handle.id;
             key.material_id = source->bake_ignores_material ? 0U : material_handle.id;
             key.shader_id = shader_handle.id;
             key.frame_index = frame_index;
-            key.pass = (uint8_t)BAKED_SURFACE_PASS_BODY;
-            if (resource_manager_find_baked_surface(manager, key) == NULL &&
-                resource_manager_execute_baked_surface(manager, source, material, shader, key, user_data) == NULL) {
+            key.pass = (uint8_t)BAKED_TEXTURE_PASS_BODY;
+            if (resource_manager_find_baked_texture(manager, key) == NULL &&
+                resource_manager_execute_baked_texture(manager, source, material, shader, key, frame_index, user_data) == NULL) {
                 return false;
             }
         }
         if (source->draw_overlay != NULL) {
-            key.visual_source_id = visual_source_handle.id;
+            key.procedural_texture_id = procedural_texture_handle.id;
             key.material_id = source->bake_ignores_material ? 0U : material_handle.id;
             key.shader_id = shader_handle.id;
             key.frame_index = frame_index;
-            key.pass = (uint8_t)BAKED_SURFACE_PASS_OVERLAY;
-            if (resource_manager_find_baked_surface(manager, key) == NULL &&
-                resource_manager_execute_baked_surface(manager, source, material, shader, key, user_data) == NULL) {
+            key.pass = (uint8_t)BAKED_TEXTURE_PASS_OVERLAY;
+            if (resource_manager_find_baked_texture(manager, key) == NULL &&
+                resource_manager_execute_baked_texture(manager, source, material, shader, key, frame_index, user_data) == NULL) {
                 return false;
             }
         }
@@ -206,18 +267,21 @@ bool resource_manager_prewarm_procedural_source(
 
 size_t resource_manager_queue_required_prebake(
     ResourceManager* manager,
-    ResourceHandle visual_source_handle,
+    ResourceHandle procedural_texture_handle,
     ResourceHandle material_handle,
     ResourceHandle shader_handle
 ) {
-    const VisualSourceResource* source;
+    const ProceduralTextureResource* source;
     uint32_t frame_count;
     uint32_t frame_index;
     size_t enqueued_count = 0U;
-    BakedSurfaceKey key;
+    BakedTextureKey key;
 
-    source = resource_manager_get_visual_source(manager, visual_source_handle);
-    if (manager == NULL || source == NULL || source->bake_policy == BAKE_POLICY_DISABLED || !source->prebake_required) {
+    source = resource_manager_get_procedural_texture(manager, procedural_texture_handle);
+    if (manager == NULL || source == NULL ||
+        source->frames.cache_policy == BAKE_POLICY_DISABLED ||
+        source->frames.cache_policy == BAKE_POLICY_REFRESH_FRAME ||
+        !source->frames.prebake_enabled) {
         return 0U;
     }
 
@@ -225,21 +289,21 @@ size_t resource_manager_queue_required_prebake(
 
     for (frame_index = 0U; frame_index < frame_count; ++frame_index) {
         if (source->draw_body != NULL) {
-            key.visual_source_id = visual_source_handle.id;
+            key.procedural_texture_id = procedural_texture_handle.id;
             key.material_id = source->bake_ignores_material ? 0U : material_handle.id;
             key.shader_id = shader_handle.id;
             key.frame_index = frame_index;
-            key.pass = (uint8_t)BAKED_SURFACE_PASS_BODY;
+            key.pass = (uint8_t)BAKED_TEXTURE_PASS_BODY;
             if (resource_manager_enqueue_baked_request(manager, key, true)) {
                 enqueued_count += 1U;
             }
         }
         if (source->draw_overlay != NULL) {
-            key.visual_source_id = visual_source_handle.id;
+            key.procedural_texture_id = procedural_texture_handle.id;
             key.material_id = source->bake_ignores_material ? 0U : material_handle.id;
             key.shader_id = shader_handle.id;
             key.frame_index = frame_index;
-            key.pass = (uint8_t)BAKED_SURFACE_PASS_OVERLAY;
+            key.pass = (uint8_t)BAKED_TEXTURE_PASS_OVERLAY;
             if (resource_manager_enqueue_baked_request(manager, key, true)) {
                 enqueued_count += 1U;
             }

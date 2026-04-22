@@ -75,30 +75,30 @@ void debug_overlay_dispose(DebugOverlay *overlay) {
         return;
     }
     if (overlay->dashboard != NULL &&
-        overlay->dashboard->surface != NULL &&
-        overlay->dashboard->surface_backend != NULL &&
-        overlay->dashboard->surface_backend->destroy_surface != NULL) {
-        overlay->dashboard->surface_backend->destroy_surface(
-            overlay->dashboard->surface_backend->userdata,
-            overlay->dashboard->surface
+        overlay->dashboard->texture != NULL &&
+        overlay->dashboard->texture_backend != NULL &&
+        overlay->dashboard->texture_backend->destroy_texture != NULL) {
+        overlay->dashboard->texture_backend->destroy_texture(
+            overlay->dashboard->texture_backend->userdata,
+            overlay->dashboard->texture
         );
     }
     if (overlay->inspector != NULL &&
-        overlay->inspector->surface != NULL &&
-        overlay->inspector->surface_backend != NULL &&
-        overlay->inspector->surface_backend->destroy_surface != NULL) {
-        overlay->inspector->surface_backend->destroy_surface(
-            overlay->inspector->surface_backend->userdata,
-            overlay->inspector->surface
+        overlay->inspector->texture != NULL &&
+        overlay->inspector->texture_backend != NULL &&
+        overlay->inspector->texture_backend->destroy_texture != NULL) {
+        overlay->inspector->texture_backend->destroy_texture(
+            overlay->inspector->texture_backend->userdata,
+            overlay->inspector->texture
         );
     }
     if (overlay->world != NULL &&
-        overlay->world->surface != NULL &&
-        overlay->world->surface_backend != NULL &&
-        overlay->world->surface_backend->destroy_surface != NULL) {
-        overlay->world->surface_backend->destroy_surface(
-            overlay->world->surface_backend->userdata,
-            overlay->world->surface
+        overlay->world->texture != NULL &&
+        overlay->world->texture_backend != NULL &&
+        overlay->world->texture_backend->destroy_texture != NULL) {
+        overlay->world->texture_backend->destroy_texture(
+            overlay->world->texture_backend->userdata,
+            overlay->world->texture
         );
     }
     free(overlay->ui);
@@ -274,47 +274,47 @@ void debug_overlay_draw_ui(
     debug_overlay_tick_dashboard_state(overlay, snapshot, stats);
     dashboard_signature = debug_overlay_compute_dashboard_signature(overlay, snapshot, viewport_width, viewport_height);
     inspector_signature = debug_overlay_compute_inspector_signature(overlay, selected_entity, viewport_width, viewport_height);
-    if (backend->create_surface != NULL &&
-        backend->destroy_surface != NULL &&
+    if (backend->create_texture != NULL &&
+        backend->destroy_texture != NULL &&
         backend->set_target != NULL &&
         backend->reset_target != NULL &&
         backend->clear != NULL) {
-        if (overlay->dashboard->surface == NULL ||
-            overlay->dashboard->surface_width != (int)overlay->ui->dashboard_panel.width ||
-            overlay->dashboard->surface_height != (int)overlay->ui->dashboard_panel.height) {
-            if (overlay->dashboard->surface != NULL) {
-                overlay->dashboard->surface_backend->destroy_surface(overlay->dashboard->surface_backend->userdata, overlay->dashboard->surface);
+        if (overlay->dashboard->texture == NULL ||
+            overlay->dashboard->texture_width != (int)overlay->ui->dashboard_panel.width ||
+            overlay->dashboard->texture_height != (int)overlay->ui->dashboard_panel.height) {
+            if (overlay->dashboard->texture != NULL) {
+                overlay->dashboard->texture_backend->destroy_texture(overlay->dashboard->texture_backend->userdata, overlay->dashboard->texture);
             }
-            overlay->dashboard->surface = backend->create_surface(
+            overlay->dashboard->texture = backend->create_texture(
                 backend->userdata,
                 (int)overlay->ui->dashboard_panel.width,
                 (int)overlay->ui->dashboard_panel.height
             );
-            overlay->dashboard->surface_backend = backend;
-            overlay->dashboard->surface_width = (int)overlay->ui->dashboard_panel.width;
-            overlay->dashboard->surface_height = (int)overlay->ui->dashboard_panel.height;
+            overlay->dashboard->texture_backend = backend;
+            overlay->dashboard->texture_width = (int)overlay->ui->dashboard_panel.width;
+            overlay->dashboard->texture_height = (int)overlay->ui->dashboard_panel.height;
             overlay->dashboard->last_signature = 0ULL;
         }
 
-        if (overlay->inspector->surface == NULL ||
-            overlay->inspector->surface_width != (int)(overlay->ui->inspector_collapsed ? debug_inspector_collapsed_width() : overlay->ui->inspector_panel.width) ||
-            overlay->inspector->surface_height != (int)overlay->ui->inspector_panel.height) {
-            if (overlay->inspector->surface != NULL) {
-                overlay->inspector->surface_backend->destroy_surface(overlay->inspector->surface_backend->userdata, overlay->inspector->surface);
+        if (overlay->inspector->texture == NULL ||
+            overlay->inspector->texture_width != (int)(overlay->ui->inspector_collapsed ? debug_inspector_collapsed_width() : overlay->ui->inspector_panel.width) ||
+            overlay->inspector->texture_height != (int)overlay->ui->inspector_panel.height) {
+            if (overlay->inspector->texture != NULL) {
+                overlay->inspector->texture_backend->destroy_texture(overlay->inspector->texture_backend->userdata, overlay->inspector->texture);
             }
-            overlay->inspector->surface = backend->create_surface(
+            overlay->inspector->texture = backend->create_texture(
                 backend->userdata,
                 (int)(overlay->ui->inspector_collapsed ? debug_inspector_collapsed_width() : overlay->ui->inspector_panel.width),
                 (int)overlay->ui->inspector_panel.height
             );
-            overlay->inspector->surface_backend = backend;
-            overlay->inspector->surface_width = (int)(overlay->ui->inspector_collapsed ? debug_inspector_collapsed_width() : overlay->ui->inspector_panel.width);
-            overlay->inspector->surface_height = (int)overlay->ui->inspector_panel.height;
+            overlay->inspector->texture_backend = backend;
+            overlay->inspector->texture_width = (int)(overlay->ui->inspector_collapsed ? debug_inspector_collapsed_width() : overlay->ui->inspector_panel.width);
+            overlay->inspector->texture_height = (int)overlay->ui->inspector_panel.height;
             overlay->inspector->last_signature = 0ULL;
         }
 
         overlay->ui->last_ui_draw_ms = 0.0;
-        if (overlay->dashboard->surface != NULL && debug_overlay_should_redraw_panel(
+        if (overlay->dashboard->texture != NULL && debug_overlay_should_redraw_panel(
                 overlay->dashboard->last_signature,
                 dashboard_signature,
                 overlay->dashboard->last_redraw_at_ms,
@@ -322,7 +322,7 @@ void debug_overlay_draw_ui(
                 debug_dashboard_redraw_interval_ms(),
                 overlay->ui->dashboard_panel.dragging)) {
             double redraw_started_ms = debug_overlay_now_ms();
-            backend->set_target(backend->userdata, overlay->dashboard->surface);
+            backend->set_target(backend->userdata, overlay->dashboard->texture);
             backend->clear(backend->userdata, (Color32){ 0x00000000U });
             target_init(&target, backend, -overlay->ui->dashboard_panel.x, -overlay->ui->dashboard_panel.y);
             debug_overlay_draw_dashboard_contents(overlay, &target, snapshot, stats, viewport_width, viewport_height);
@@ -336,7 +336,7 @@ void debug_overlay_draw_ui(
             overlay->dashboard->redraw_skip_count += 1U;
         }
 
-        if (overlay->inspector->surface != NULL && debug_overlay_should_redraw_panel(
+        if (overlay->inspector->texture != NULL && debug_overlay_should_redraw_panel(
                 overlay->inspector->last_signature,
                 inspector_signature,
                 overlay->inspector->last_redraw_at_ms,
@@ -344,7 +344,7 @@ void debug_overlay_draw_ui(
                 debug_inspector_redraw_interval_ms(),
                 overlay->ui->inspector_panel.dragging)) {
             double redraw_started_ms = debug_overlay_now_ms();
-            backend->set_target(backend->userdata, overlay->inspector->surface);
+            backend->set_target(backend->userdata, overlay->inspector->texture);
             backend->clear(backend->userdata, (Color32){ 0x00000000U });
             target_init(&target, backend, -overlay->ui->inspector_panel.x, -overlay->ui->inspector_panel.y);
             if (selected_entity != NULL) {
@@ -360,12 +360,12 @@ void debug_overlay_draw_ui(
             overlay->inspector->redraw_skip_count += 1U;
         }
 
-        if (overlay->dashboard->surface != NULL) {
+        if (overlay->dashboard->texture != NULL) {
             composite_started_ms = debug_overlay_now_ms();
             target_init(&target, backend, 0.0f, 0.0f);
-            target_surface(&target, overlay->dashboard->surface, overlay->ui->dashboard_panel.x, overlay->ui->dashboard_panel.y);
-            if (selected_entity != NULL && overlay->inspector->surface != NULL) {
-                target_surface(&target, overlay->inspector->surface, overlay->ui->inspector_panel.x, overlay->ui->inspector_panel.y);
+            target_texture(&target, overlay->dashboard->texture, overlay->ui->dashboard_panel.x, overlay->ui->dashboard_panel.y);
+            if (selected_entity != NULL && overlay->inspector->texture != NULL) {
+                target_texture(&target, overlay->inspector->texture, overlay->ui->inspector_panel.x, overlay->ui->inspector_panel.y);
             }
             overlay->ui->last_ui_composite_ms = debug_overlay_now_ms() - composite_started_ms;
             return;

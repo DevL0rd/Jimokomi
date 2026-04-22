@@ -13,13 +13,13 @@ enum {
     SLOT_STATE_TOMBSTONE = 2
 };
 
-typedef struct BakedSurfaceKey {
-    uint32_t visual_source_id;
+typedef struct BakedTextureKey {
+    uint32_t procedural_texture_id;
     uint32_t material_id;
     uint32_t shader_id;
     uint32_t frame_index;
     uint8_t pass;
-} BakedSurfaceKey;
+} BakedTextureKey;
 
 typedef struct ResourceRegistryState ResourceRegistryState;
 typedef struct ResourceBakeCacheState ResourceBakeCacheState;
@@ -37,16 +37,33 @@ typedef struct ResourceManager {
 } ResourceManager;
 
 ResourceHandle resource_handle(uint32_t id);
-void resource_manager_mark_dirty_baked_surface(ResourceManager* manager, BakedSurfaceKey key);
-uint64_t resource_manager_hash_baked_key(BakedSurfaceKey key);
-bool resource_manager_baked_key_equals(BakedSurfaceKey a, BakedSurfaceKey b);
-const Surface* resource_manager_find_baked_surface(const ResourceManager* manager, BakedSurfaceKey key);
-bool resource_manager_store_baked_surface(ResourceManager* manager, BakedSurfaceKey key, Surface* surface);
-uint32_t resource_manager_normalize_frame_index(const VisualSourceResource* source, uint32_t frame_index);
-bool resource_manager_is_bake_eligible(const VisualSourceResource* source, BakedSurfacePass pass);
-uint32_t resource_manager_get_bake_frame_count(const VisualSourceResource* source);
-bool resource_manager_enqueue_baked_request(ResourceManager* manager, BakedSurfaceKey key, bool bypass_admission);
-void resource_manager_remove_pending_bake_slot(ResourceManager* manager, BakedSurfaceKey key);
+void resource_manager_mark_dirty_baked_texture(ResourceManager* manager, BakedTextureKey key);
+uint64_t resource_manager_hash_baked_key(BakedTextureKey key);
+bool resource_manager_baked_key_equals(BakedTextureKey a, BakedTextureKey b);
+const Texture* resource_manager_find_baked_texture(const ResourceManager* manager, BakedTextureKey key);
+Texture* resource_manager_find_mutable_baked_texture(ResourceManager* manager, BakedTextureKey key);
+const Texture* resource_manager_find_baked_texture_for_source_frame(
+    const ResourceManager* manager,
+    BakedTextureKey key,
+    uint32_t source_frame_index
+);
+bool resource_manager_store_baked_texture(
+    ResourceManager* manager,
+    BakedTextureKey key,
+    Texture* texture,
+    uint32_t source_frame_index
+);
+const Mesh* resource_manager_get_or_create_baked_mesh(
+    ResourceManager* manager,
+    ResourceHandle procedural_mesh_handle,
+    uint32_t frame_index,
+    void* user_data
+);
+uint32_t resource_manager_normalize_frame_index(const ProceduralTextureResource* source, uint32_t frame_index);
+bool resource_manager_is_bake_eligible(const ProceduralTextureResource* source, BakedTexturePass pass);
+uint32_t resource_manager_get_bake_frame_count(const ProceduralTextureResource* source);
+bool resource_manager_enqueue_baked_request(ResourceManager* manager, BakedTextureKey key, bool bypass_admission);
+void resource_manager_remove_pending_bake_slot(ResourceManager* manager, BakedTextureKey key);
 void resource_manager_reset_empty_bake_queue(ResourceManager* manager);
 
 #endif

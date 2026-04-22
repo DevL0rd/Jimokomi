@@ -3,9 +3,10 @@
 #include "RendererLifecycleInternal.h"
 #include "ResourceManagerRegistry.h"
 
-bool renderer_is_item_visible(const Renderer* renderer, const SpriteRenderable* item)
+bool renderer_is_procedural_texture_visible(const Renderer* renderer, const ProceduralTextureRenderable* item)
 {
-    const VisualSourceResource* source = NULL;
+    const ProceduralTextureResource* source = NULL;
+    const TextureResource* texture = NULL;
     float left = 0.0f;
     float top = 0.0f;
     float right = 0.0f;
@@ -18,14 +19,23 @@ bool renderer_is_item_visible(const Renderer* renderer, const SpriteRenderable* 
         return false;
     }
 
-    source = resource_manager_get_visual_source(renderer->lifecycle->resource_manager, item->visual_source_handle);
-    if (source == NULL)
+    texture = resource_manager_get_texture(renderer->lifecycle->resource_manager, item->texture_handle);
+    if (texture != NULL && texture->texture != NULL)
     {
-        return false;
+        width = (float)texture->texture->width;
+        height = (float)texture->texture->height;
     }
+    else
+    {
+        source = resource_manager_get_procedural_texture(renderer->lifecycle->resource_manager, item->procedural_texture_handle);
+        if (source == NULL)
+        {
+            return false;
+        }
 
-    width = (float)source->width;
-    height = (float)source->height;
+        width = (float)source->width;
+        height = (float)source->height;
+    }
     left = item->x - width * item->anchor_x;
     top = item->y - height * item->anchor_y;
     right = left + width;

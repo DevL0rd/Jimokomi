@@ -12,12 +12,12 @@ typedef struct Renderer Renderer;
 struct Scene;
 
 typedef struct RendererStatsSnapshot {
-    size_t render_item_count;
-    size_t sprite_draw_count;
-    size_t visible_item_count;
+    size_t procedural_texture_count;
+    size_t procedural_texture_draw_count;
+    size_t visible_procedural_texture_count;
     size_t overlay_draw_count;
-    size_t procedural_item_count;
-    size_t baked_surface_count;
+    size_t procedural_texture_item_count;
+    size_t baked_texture_count;
     size_t instanced_batch_count;
     size_t instanced_draw_count;
     double sort_ms;

@@ -233,31 +233,31 @@ void debug_overlay_draw_world(
         return;
     }
 
-    if (backend->create_surface == NULL ||
-        backend->destroy_surface == NULL ||
+    if (backend->create_texture == NULL ||
+        backend->destroy_texture == NULL ||
         backend->set_target == NULL ||
         backend->reset_target == NULL ||
         backend->clear == NULL) {
         return;
     }
 
-    if (overlay->world->surface == NULL ||
-        overlay->world->surface_width != (int)camera->viewport_width ||
-        overlay->world->surface_height != (int)camera->viewport_height) {
-        if (overlay->world->surface != NULL) {
-            backend->destroy_surface(backend->userdata, overlay->world->surface);
+    if (overlay->world->texture == NULL ||
+        overlay->world->texture_width != (int)camera->viewport_width ||
+        overlay->world->texture_height != (int)camera->viewport_height) {
+        if (overlay->world->texture != NULL) {
+            backend->destroy_texture(backend->userdata, overlay->world->texture);
         }
-        overlay->world->surface = backend->create_surface(
+        overlay->world->texture = backend->create_texture(
             backend->userdata,
             (int)camera->viewport_width,
             (int)camera->viewport_height
         );
-        overlay->world->surface_backend = backend;
-        overlay->world->surface_width = (int)camera->viewport_width;
-        overlay->world->surface_height = (int)camera->viewport_height;
+        overlay->world->texture_backend = backend;
+        overlay->world->texture_width = (int)camera->viewport_width;
+        overlay->world->texture_height = (int)camera->viewport_height;
     }
 
-    if (overlay->world->surface == NULL) {
+    if (overlay->world->texture == NULL) {
         return;
     }
 
@@ -279,7 +279,7 @@ void debug_overlay_draw_world(
 
     if (overlay->world->last_signature != world_signature) {
         redraw_started_ms = debug_overlay_now_ms();
-        backend->set_target(backend->userdata, overlay->world->surface);
+        backend->set_target(backend->userdata, overlay->world->texture);
         backend->clear(backend->userdata, (Color32){ 0x00000000U });
         target_init(&target, backend, 0.0f, 0.0f);
 
@@ -327,5 +327,5 @@ void debug_overlay_draw_world(
     }
 
     target_init(&target, backend, 0.0f, 0.0f);
-    target_surface(&target, overlay->world->surface, 0.0f, 0.0f);
+    target_texture(&target, overlay->world->texture, 0.0f, 0.0f);
 }

@@ -97,7 +97,7 @@ typedef struct DebugOverlayStatsSnapshot {
     double ui_layout_ms;
     double ui_draw_ms;
     double ui_composite_ms;
-    size_t surface_memory_bytes;
+    size_t texture_memory_bytes;
     bool draw_ui;
 } DebugOverlayStatsSnapshot;
 

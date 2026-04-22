@@ -135,15 +135,15 @@ static void debug_draw_stat_chip(
         return;
     }
 
-    label_rect = (Rect){ rect.x + 14.0f, rect.y + 3.0f, rect.w - 20.0f, 10.0f };
-    value_rect = (Rect){ rect.x + 14.0f, rect.y + 15.0f, rect.w - 20.0f, 10.0f };
-    bar_rect = (Rect){ rect.x + 6.0f, rect.y + rect.h - 5.0f, rect.w - 12.0f, 2.0f };
+    label_rect = (Rect){ rect.x + 14.0f, rect.y + 5.0f, rect.w - 20.0f, 10.0f };
+    value_rect = (Rect){ rect.x + 14.0f, rect.y + 22.0f, rect.w - 20.0f, 10.0f };
+    bar_rect = (Rect){ rect.x + 6.0f, rect.y + rect.h - 7.0f, rect.w - 12.0f, 2.0f };
     fill_rect = bar_rect;
     fill_rect.w *= clamp_f(chip->ratio, 0.0f, 1.0f);
 
     target_rect_filled(target, rect, (Color32){ 0x0b1722U });
     target_rect(target, rect, (Color32){ 0x152737U });
-    target_rect_filled(target, (Rect){ rect.x + 6.0f, rect.y + 6.0f, 4.0f, 4.0f }, chip->accent);
+    target_rect_filled(target, (Rect){ rect.x + 6.0f, rect.y + 8.0f, 4.0f, 4.0f }, chip->accent);
     target_text(target, label_rect.x, label_rect.y, chip->label, (Color32){ 0x7f99adU });
     target_text(target, value_rect.x, value_rect.y, chip->value_text, (Color32){ 0xdce7efU });
     target_rect_filled(target, bar_rect, (Color32){ 0x132333U });
@@ -169,8 +169,8 @@ void debug_overlay_draw_dashboard_contents(
     float row_height;
     float stat_width;
     float stats_top;
-    DebugStatChip stat_chips[15];
-    char stat_text[15][24];
+    DebugStatChip stat_chips[5];
+    char stat_text[5][24];
     int stat_index;
 
     if (overlay == NULL || target == NULL || snapshot == NULL || stats == NULL) {
@@ -215,94 +215,21 @@ void debug_overlay_draw_dashboard_contents(
 
     snprintf(stat_text[0], sizeof(stat_text[0]), "%.0f", overlay->history->display_physics_hz);
     snprintf(stat_text[1], sizeof(stat_text[1]), "%.0f", overlay->history->display_awake_body_count);
-    snprintf(stat_text[2], sizeof(stat_text[2]), "%.0f", overlay->history->display_total_body_count);
-    snprintf(stat_text[3], sizeof(stat_text[3]), "%.0f", overlay->history->display_sleeping_body_count);
-    snprintf(stat_text[4], sizeof(stat_text[4]), "%.0f", overlay->history->display_moved_body_count);
-    snprintf(stat_text[5], sizeof(stat_text[5]), "%.1f ms", overlay->history->display_snapshot_age_ms);
-    snprintf(
-        stat_text[6],
-        sizeof(stat_text[6]),
-        "%u/%u",
-        snapshot->physics_task_worker_count,
-        snapshot->physics_task_background_thread_count
-    );
-    snprintf(
-        stat_text[7],
-        sizeof(stat_text[7]),
-        "%u/%u",
-        snapshot->physics_task_enqueued_count,
-        snapshot->physics_task_inline_count
-    );
-    snprintf(
-        stat_text[8],
-        sizeof(stat_text[8]),
-        "%u/%u",
-        snapshot->physics_task_worker_chunk_count,
-        snapshot->physics_task_main_chunk_count
-    );
-    snprintf(
-        stat_text[9],
-        sizeof(stat_text[9]),
-        "%u",
-        snapshot->particle_count
-    );
-    snprintf(
-        stat_text[10],
-        sizeof(stat_text[10]),
-        "%u/%u",
-        snapshot->particle_contact_count,
-        snapshot->particle_body_contact_count
-    );
-    snprintf(
-        stat_text[11],
-        sizeof(stat_text[11]),
-        "%u/%u",
-        snapshot->particle_task_count,
-        snapshot->particle_task_range_count
-    );
-    snprintf(
-        stat_text[12],
-        sizeof(stat_text[12]),
-        "%u/%u",
-        snapshot->particle_occupied_cell_count,
-        snapshot->particle_spatial_cell_count
-    );
-    snprintf(
-        stat_text[13],
-        sizeof(stat_text[13]),
-        "%u/%u K",
-        snapshot->particle_byte_count / 1024U,
-        snapshot->particle_scratch_byte_count / 1024U
-    );
-    snprintf(
-        stat_text[14],
-        sizeof(stat_text[14]),
-        "%.1f/%.1f",
-        snapshot->particle_profile_ms,
-        snapshot->particle_profile_collision_ms
-    );
+    snprintf(stat_text[2], sizeof(stat_text[2]), "%.0f", overlay->history->display_sleeping_body_count);
+    snprintf(stat_text[3], sizeof(stat_text[3]), "%.0f", overlay->history->display_total_body_count);
+    snprintf(stat_text[4], sizeof(stat_text[4]), "%u", snapshot->particle_count);
     stat_chips[0] = (DebugStatChip){ "Hz", stat_text[0], clamp_f(overlay->history->display_physics_hz / 300.0f, 0.0f, 1.0f), (Color32){ 0xb896ffU } };
     stat_chips[1] = (DebugStatChip){ "Awake", stat_text[1], clamp_f(overlay->history->display_awake_body_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0xffd07aU } };
-    stat_chips[2] = (DebugStatChip){ "Bodies", stat_text[2], clamp_f(overlay->history->display_total_body_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0x8fe8c4U } };
-    stat_chips[3] = (DebugStatChip){ "Sleep", stat_text[3], clamp_f(overlay->history->display_sleeping_body_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0x7f99adU } };
-    stat_chips[4] = (DebugStatChip){ "Moved", stat_text[4], clamp_f(overlay->history->display_moved_body_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0x7ce2ffU } };
-    stat_chips[5] = (DebugStatChip){ "Age", stat_text[5], clamp_f(overlay->history->display_snapshot_age_ms / 33.33f, 0.0f, 1.0f), (Color32){ 0xd8d08fU } };
-    stat_chips[6] = (DebugStatChip){ "Workers", stat_text[6], clamp_f((float)snapshot->physics_task_worker_count / 64.0f, 0.0f, 1.0f), (Color32){ 0x78e6ffU } };
-    stat_chips[7] = (DebugStatChip){ "B2 Q/I", stat_text[7], snapshot->physics_task_enqueued_count > 0U ? 1.0f : 0.0f, (Color32){ 0x8fe8c4U } };
-    stat_chips[8] = (DebugStatChip){ "W/M Ch", stat_text[8], snapshot->physics_task_worker_chunk_count > 0U ? 1.0f : 0.0f, (Color32){ 0xff8d7aU } };
-    stat_chips[9] = (DebugStatChip){ "Particles", stat_text[9], clamp_f((float)snapshot->particle_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0x78e6ffU } };
-    stat_chips[10] = (DebugStatChip){ "P Con", stat_text[10], snapshot->particle_contact_count > 0U ? 1.0f : 0.0f, (Color32){ 0x8fe8c4U } };
-    stat_chips[11] = (DebugStatChip){ "P Tasks", stat_text[11], snapshot->particle_task_count > 0U ? 1.0f : 0.0f, (Color32){ 0xff8d7aU } };
-    stat_chips[12] = (DebugStatChip){ "P Cells", stat_text[12], snapshot->particle_occupied_cell_count > 0U ? 1.0f : 0.0f, (Color32){ 0xb896ffU } };
-    stat_chips[13] = (DebugStatChip){ "P Mem", stat_text[13], snapshot->particle_byte_count > 0U ? 1.0f : 0.0f, (Color32){ 0xffd07aU } };
-    stat_chips[14] = (DebugStatChip){ "P ms", stat_text[14], clamp_f(snapshot->particle_profile_ms / 16.67f, 0.0f, 1.0f), (Color32){ 0x7ce2ffU } };
+    stat_chips[2] = (DebugStatChip){ "Sleeping", stat_text[2], clamp_f(overlay->history->display_sleeping_body_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0x7f99adU } };
+    stat_chips[3] = (DebugStatChip){ "Bodies", stat_text[3], clamp_f(overlay->history->display_total_body_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0x8fe8c4U } };
+    stat_chips[4] = (DebugStatChip){ "Particles", stat_text[4], clamp_f((float)snapshot->particle_count / 100000.0f, 0.0f, 1.0f), (Color32){ 0x78e6ffU } };
 
     stat_width = (overlay->ui->dashboard_panel.width - 24.0f - 10.0f) / 3.0f;
     stats_top = card_rect.y + row_height + 12.0f;
-    stat_rect = (Rect){ left, stats_top, stat_width, 23.0f };
-    for (stat_index = 0; stat_index < 15; ++stat_index) {
+    stat_rect = (Rect){ left, stats_top, stat_width, 38.0f };
+    for (stat_index = 0; stat_index < 5; ++stat_index) {
         stat_rect.x = left + (float)(stat_index % 3) * (stat_width + 5.0f);
-        stat_rect.y = stats_top + (float)(stat_index / 3) * 24.0f;
+        stat_rect.y = stats_top + (float)(stat_index / 3) * 40.0f;
         debug_draw_stat_chip(target, stat_rect, &stat_chips[stat_index]);
     }
 }

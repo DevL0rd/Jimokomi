@@ -3,12 +3,13 @@
 
 #include "ResourceManagerInternal.h"
 
-const Surface* resource_manager_execute_baked_surface(
+const Texture* resource_manager_execute_baked_texture(
     ResourceManager* manager,
-    const VisualSourceResource* source,
+    const ProceduralTextureResource* source,
     const MaterialResource* material,
     const ShaderResource* shader,
-    BakedSurfaceKey key,
+    BakedTextureKey key,
+    uint32_t source_frame_index,
     void* user_data
 );
 

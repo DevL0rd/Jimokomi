@@ -15,13 +15,15 @@ typedef struct JimokomiGameState
 {
     Scene* scene;
     Entity* player;
+    Entity* wave_paddle;
     GridBackdropConfig backdrop;
     ResourceHandle shared_ball_shader_handle;
-    ResourceHandle ball_source_handles[SOURCE_VARIANT_COUNT];
+    ResourceHandle ball_procedural_texture_handles[SOURCE_VARIANT_COUNT];
     ResourceHandle ball_material_handle;
     size_t active_ball_count;
     size_t spawn_cursor;
     double spawn_accumulator_seconds;
+    double wave_paddle_time_seconds;
     LiquidSourceSystemState liquid_sources;
 } JimokomiGameState;
 

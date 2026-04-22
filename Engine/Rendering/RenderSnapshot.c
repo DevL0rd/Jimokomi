@@ -32,7 +32,10 @@ static void render_snapshot_exchange_free_world(RenderWorldSnapshot* world) {
         return;
     }
 
-    free(world->items);
+    free(world->procedural_textures);
+    free(world->procedural_meshes);
+    free(world->triangles);
+    free(world->lines);
     free(world->debug_entities);
     free(world->debug_collisions);
     free(world->pick_targets);
@@ -63,8 +66,8 @@ static bool render_snapshot_exchange_init(RenderSnapshotExchange* exchange) {
     return true;
 }
 
-bool render_world_snapshot_reserve_items(RenderWorldSnapshot* snapshot, size_t required_capacity) {
-    SpriteRenderable* next_items;
+bool render_world_snapshot_reserve_procedural_textures(RenderWorldSnapshot* snapshot, size_t required_capacity) {
+    ProceduralTextureRenderable* next_items;
     DebugEntityView* next_debug_entities;
     PickTargetView* next_pick_targets;
     size_t next_capacity;
@@ -72,23 +75,23 @@ bool render_world_snapshot_reserve_items(RenderWorldSnapshot* snapshot, size_t r
     if (snapshot == NULL) {
         return false;
     }
-    if (snapshot->item_capacity >= required_capacity &&
+    if (snapshot->procedural_texture_capacity >= required_capacity &&
         snapshot->debug_entity_capacity >= required_capacity &&
         snapshot->pick_target_capacity >= required_capacity) {
         return true;
     }
 
-    next_capacity = snapshot->item_capacity > 0U ? snapshot->item_capacity : 64U;
+    next_capacity = snapshot->procedural_texture_capacity > 0U ? snapshot->procedural_texture_capacity : 64U;
     while (next_capacity < required_capacity) {
         next_capacity *= 2U;
     }
 
-    next_items = (SpriteRenderable*)realloc(snapshot->items, next_capacity * sizeof(*next_items));
+    next_items = (ProceduralTextureRenderable*)realloc(snapshot->procedural_textures, next_capacity * sizeof(*next_items));
     if (next_items == NULL) {
         return false;
     }
-    snapshot->items = next_items;
-    snapshot->item_capacity = next_capacity;
+    snapshot->procedural_textures = next_items;
+    snapshot->procedural_texture_capacity = next_capacity;
 
     next_debug_entities = (DebugEntityView*)realloc(snapshot->debug_entities, next_capacity * sizeof(*next_debug_entities));
     if (next_debug_entities == NULL) {
@@ -103,6 +106,90 @@ bool render_world_snapshot_reserve_items(RenderWorldSnapshot* snapshot, size_t r
     }
     snapshot->pick_targets = next_pick_targets;
     snapshot->pick_target_capacity = next_capacity;
+    return true;
+}
+
+bool render_world_snapshot_reserve_procedural_meshes(RenderWorldSnapshot* snapshot, size_t required_capacity) {
+    ProceduralMeshRenderable* next_meshes;
+    size_t next_capacity;
+
+    if (snapshot == NULL) {
+        return false;
+    }
+    if (snapshot->procedural_mesh_capacity >= required_capacity) {
+        return true;
+    }
+
+    next_capacity = snapshot->procedural_mesh_capacity > 0U ? snapshot->procedural_mesh_capacity : 8U;
+    while (next_capacity < required_capacity) {
+        next_capacity *= 2U;
+    }
+
+    next_meshes = (ProceduralMeshRenderable*)realloc(
+        snapshot->procedural_meshes,
+        next_capacity * sizeof(*next_meshes)
+    );
+    if (next_meshes == NULL) {
+        return false;
+    }
+
+    snapshot->procedural_meshes = next_meshes;
+    snapshot->procedural_mesh_capacity = next_capacity;
+    return true;
+}
+
+bool render_world_snapshot_reserve_triangles(RenderWorldSnapshot* snapshot, size_t required_capacity) {
+    TriangleRenderable* next_triangles;
+    size_t next_capacity;
+
+    if (snapshot == NULL) {
+        return false;
+    }
+    if (snapshot->triangle_capacity >= required_capacity) {
+        return true;
+    }
+
+    next_capacity = snapshot->triangle_capacity > 0U ? snapshot->triangle_capacity : 256U;
+    while (next_capacity < required_capacity) {
+        next_capacity *= 2U;
+    }
+
+    next_triangles = (TriangleRenderable*)realloc(
+        snapshot->triangles,
+        next_capacity * sizeof(*next_triangles)
+    );
+    if (next_triangles == NULL) {
+        return false;
+    }
+
+    snapshot->triangles = next_triangles;
+    snapshot->triangle_capacity = next_capacity;
+    return true;
+}
+
+bool render_world_snapshot_reserve_lines(RenderWorldSnapshot* snapshot, size_t required_capacity) {
+    LineRenderable* next_lines;
+    size_t next_capacity;
+
+    if (snapshot == NULL) {
+        return false;
+    }
+    if (snapshot->line_capacity >= required_capacity) {
+        return true;
+    }
+
+    next_capacity = snapshot->line_capacity > 0U ? snapshot->line_capacity : 256U;
+    while (next_capacity < required_capacity) {
+        next_capacity *= 2U;
+    }
+
+    next_lines = (LineRenderable*)realloc(snapshot->lines, next_capacity * sizeof(*next_lines));
+    if (next_lines == NULL) {
+        return false;
+    }
+
+    snapshot->lines = next_lines;
+    snapshot->line_capacity = next_capacity;
     return true;
 }
 
@@ -177,12 +264,15 @@ void render_world_snapshot_reset(RenderWorldSnapshot* snapshot) {
         return;
     }
 
-    snapshot->item_count = 0U;
-    snapshot->item_frame_signature = 0U;
-    snapshot->item_sort_signature = 0U;
-    snapshot->item_instance_signature = 0U;
-    snapshot->item_signatures_valid = false;
-    snapshot->items_sorted_by_layer = true;
+    snapshot->procedural_texture_count = 0U;
+    snapshot->procedural_mesh_count = 0U;
+    snapshot->triangle_count = 0U;
+    snapshot->line_count = 0U;
+    snapshot->procedural_texture_frame_signature = 0U;
+    snapshot->procedural_texture_sort_signature = 0U;
+    snapshot->procedural_texture_instance_signature = 0U;
+    snapshot->procedural_texture_signatures_valid = false;
+    snapshot->procedural_textures_sorted_by_layer = true;
     snapshot->backdrop_draw = NULL;
     snapshot->backdrop_user_data = NULL;
     snapshot->backdrop_signature = 0U;
@@ -196,7 +286,7 @@ void render_world_snapshot_reset(RenderWorldSnapshot* snapshot) {
     snapshot->has_selected_entity = false;
     memset(&snapshot->hovered_entity, 0, sizeof(snapshot->hovered_entity));
     snapshot->has_hovered_entity = false;
-    snapshot->draw_sprites = false;
+    snapshot->draw_scene_renderables = false;
     snapshot->draw_debug_world = false;
     snapshot->now_ms = 0U;
 }
@@ -354,13 +444,19 @@ void render_world_snapshot_build_frame(const RenderWorldSnapshot* snapshot, Rend
     }
 
     memset(frame, 0, sizeof(*frame));
-    frame->items = snapshot->items;
-    frame->item_count = snapshot->item_count;
-    frame->item_frame_signature = snapshot->item_frame_signature;
-    frame->item_sort_signature = snapshot->item_sort_signature;
-    frame->item_instance_signature = snapshot->item_instance_signature;
-    frame->item_signatures_valid = snapshot->item_signatures_valid;
-    frame->items_sorted_by_layer = snapshot->items_sorted_by_layer;
+    frame->procedural_textures = snapshot->procedural_textures;
+    frame->procedural_texture_count = snapshot->procedural_texture_count;
+    frame->procedural_meshes = snapshot->procedural_meshes;
+    frame->procedural_mesh_count = snapshot->procedural_mesh_count;
+    frame->triangles = snapshot->triangles;
+    frame->triangle_count = snapshot->triangle_count;
+    frame->lines = snapshot->lines;
+    frame->line_count = snapshot->line_count;
+    frame->procedural_texture_frame_signature = snapshot->procedural_texture_frame_signature;
+    frame->procedural_texture_sort_signature = snapshot->procedural_texture_sort_signature;
+    frame->procedural_texture_instance_signature = snapshot->procedural_texture_instance_signature;
+    frame->procedural_texture_signatures_valid = snapshot->procedural_texture_signatures_valid;
+    frame->procedural_textures_sorted_by_layer = snapshot->procedural_textures_sorted_by_layer;
     frame->backdrop_draw = snapshot->backdrop_draw;
     frame->backdrop_user_data = snapshot->backdrop_user_data;
     frame->backdrop_signature = snapshot->backdrop_signature;
@@ -373,7 +469,7 @@ void render_world_snapshot_build_frame(const RenderWorldSnapshot* snapshot, Rend
     frame->debug_collision_count = snapshot->debug_collision_count;
     frame->selected_debug_entity_id = 0U;
     frame->hovered_debug_entity_id = 0U;
-    frame->draw_sprites = snapshot->draw_sprites;
+    frame->draw_scene_renderables = snapshot->draw_scene_renderables;
     frame->draw_debug = snapshot->draw_debug_world;
     frame->now_ms = snapshot->now_ms;
 }

@@ -1,5 +1,6 @@
 #include "BallVisualResources.h"
 
+#include "GameConfig.h"
 #include "../Engine/Rendering/Renderer.h"
 #include "../Engine/Rendering/RendererResources.h"
 #include "../Engine/Rendering/Target.h"
@@ -7,10 +8,22 @@
 #include <math.h>
 #include <string.h>
 
-#define BALL_RENDER_SIZE 9.0f
-#define BALL_RENDER_CENTER 4.5f
-#define BALL_RENDER_SCALE (2.0f / 3.0f)
-#define BALL_BODY_RADIUS (13.0f / 3.0f)
+#define BALL_VISUAL_BASE_RADIUS (13.0f / 3.0f)
+#define BALL_RENDER_SIZE ((int)ceilf(BALL_RADIUS * 2.0f))
+#define BALL_RENDER_CENTER ((float)BALL_RENDER_SIZE * 0.5f)
+#define BALL_RENDER_SCALE (BALL_RADIUS / BALL_VISUAL_BASE_RADIUS)
+#define BALL_BODY_RADIUS BALL_RADIUS
+#define BALL_WARP_LOOP_SECONDS 2.0f
+
+static float game_ball_fract(float value)
+{
+    return value - floorf(value);
+}
+
+static float game_ball_hash_float(float seed)
+{
+    return game_ball_fract(sinf(seed * 12.9898f + 78.233f) * 43758.5453f);
+}
 
 static void game_fill_ball_material(Material* material, size_t index) {
     float hue = fmodf((float)index * 37.0f, 360.0f);
@@ -39,125 +52,115 @@ static void game_draw_ball_body(
     void* user_data
 ) {
     float time_seconds = context != NULL ? context->time_seconds : 0.0f;
-    const Material* material = context != NULL ? context->material : NULL;
-    float pulse_rate = material != NULL ? material->pulse_rate : 1.0f;
-    float swirl_phase = time_seconds * pulse_rate;
-    float pulse = 0.5f + 0.5f * sinf(swirl_phase * 1.7f);
-    float orbit_radius = 2.25f + pulse * 1.25f;
-    Color32 outer_color = (Color32){ material != NULL ? material->base_color : 0xf2f6ffU };
-    Color32 inner_color = (Color32){ material != NULL ? material->accent_color : 0xcfd8ebU };
-    Color32 glow_color = (Color32){ material != NULL ? material->glow_color : 0xffffffU };
-    Color32 core_color = (Color32){ material != NULL ? 0x08101aU : 0x445066U };
-    int ring_count = 4;
+    float loop_t = game_ball_fract(time_seconds / BALL_WARP_LOOP_SECONDS);
+    Color32 space_color = (Color32){ 0xff07111fU };
+    Color32 core_color = (Color32){ 0xffffffffU };
+    Color32 streak_color = (Color32){ 0xffd9ecffU };
+    Color32 dim_streak_color = (Color32){ 0xff6f95c8U };
+    Color32 warm_streak_color = (Color32){ 0xffffd895U };
     int index;
 
     (void)user_data;
 
-    target_circle_filled(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, BALL_BODY_RADIUS, outer_color);
-    target_circle_filled(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, 5.7f * BALL_RENDER_SCALE, inner_color);
-    target_circle_filled(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, 4.3f * BALL_RENDER_SCALE, core_color);
+    target_circle_filled(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, BALL_BODY_RADIUS, space_color);
 
-    for (index = 0; index < ring_count; ++index) {
-        float ring_phase = swirl_phase * (0.8f + (float)index * 0.15f) + (float)index * 1.7f;
-        float ring_radius = (1.2f + (float)index * 0.85f + sinf(ring_phase) * 0.2f) * BALL_RENDER_SCALE;
-        Vec2 ring_center = {
-            BALL_RENDER_CENTER + cosf(ring_phase * 0.25f) * ((0.55f + (float)index * 0.25f) * BALL_RENDER_SCALE),
-            BALL_RENDER_CENTER + sinf(ring_phase * 0.22f) * ((0.55f + (float)index * 0.25f) * BALL_RENDER_SCALE)
-        };
-        target_circle(target, ring_center, ring_radius, index % 2 == 0 ? glow_color : inner_color);
+    for (index = 0; index < 72; ++index) {
+        float seed = (float)index;
+        float angle = game_ball_hash_float(seed + 11.0f) * 6.28318530718f;
+        float speed = 0.55f + game_ball_hash_float(seed + 23.0f) * 0.55f;
+        float lane = game_ball_fract(game_ball_hash_float(seed + 37.0f) + loop_t * speed);
+        float outer_distance = (0.18f + lane * 0.76f) * BALL_BODY_RADIUS;
+        float length = (0.10f + lane * 0.16f) * BALL_BODY_RADIUS;
+        float inner_distance = outer_distance - length;
+        float outer_x;
+        float outer_y;
+        float inner_x;
+        float inner_y;
+        Color32 color;
+
+        if (inner_distance < BALL_BODY_RADIUS * 0.08f) {
+            inner_distance = BALL_BODY_RADIUS * 0.08f;
+        }
+        if (outer_distance > BALL_BODY_RADIUS - 2.0f) {
+            outer_distance = BALL_BODY_RADIUS - 2.0f;
+        }
+
+        outer_x = BALL_RENDER_CENTER + cosf(angle) * outer_distance;
+        outer_y = BALL_RENDER_CENTER + sinf(angle) * outer_distance;
+        inner_x = BALL_RENDER_CENTER + cosf(angle) * inner_distance;
+        inner_y = BALL_RENDER_CENTER + sinf(angle) * inner_distance;
+        color = (index % 13) == 0 ? warm_streak_color : ((index % 3) == 0 ? dim_streak_color : streak_color);
+
+        target_line(target, inner_x, inner_y, outer_x, outer_y, color);
+        if ((index % 5) == 0) {
+            target_circle_filled(
+                target,
+                (Vec2){ outer_x, outer_y },
+                (0.045f + lane * 0.035f) * BALL_RENDER_SCALE,
+                color
+            );
+        }
     }
 
-    for (index = 0; index < 5; ++index) {
-        float orbit_angle = swirl_phase * 0.45f + ((float)index * 1.25663706144f);
-        Vec2 center = {
-            BALL_RENDER_CENTER + cosf(orbit_angle) * (orbit_radius * BALL_RENDER_SCALE),
-            BALL_RENDER_CENTER + sinf(orbit_angle) * (orbit_radius * BALL_RENDER_SCALE)
-        };
-        float star_radius = (0.65f + 0.45f * (0.5f + 0.5f * sinf(swirl_phase * 2.3f + (float)index))) *
-            BALL_RENDER_SCALE;
-        target_circle_filled(target, center, star_radius, glow_color);
-    }
+    target_circle_filled(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, 0.42f * BALL_RENDER_SCALE, dim_streak_color);
+    target_circle_filled(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, 0.22f * BALL_RENDER_SCALE, core_color);
 
-    for (index = 0; index < 3; ++index) {
-        float nebula_angle = swirl_phase + (float)index * 2.09439510239f;
-        float nebula_width = (6.2f + pulse * 0.6f) * BALL_RENDER_SCALE;
-        float nebula_height = (2.1f + pulse * 0.4f) * BALL_RENDER_SCALE;
-        Vec2 nebula_center = {
-            BALL_RENDER_CENTER + cosf(nebula_angle) * (2.2f * BALL_RENDER_SCALE),
-            BALL_RENDER_CENTER + sinf(nebula_angle * 1.3f) * (1.3f * BALL_RENDER_SCALE)
-        };
-        Rect nebula = {
-            nebula_center.x - nebula_width * 0.5f,
-            nebula_center.y - nebula_height * 0.5f,
-            nebula_width,
-            nebula_height
-        };
-        target_oval_filled(target, nebula, index == 1 ? glow_color : inner_color);
+    for (index = 0; index < 9; ++index) {
+        float t = (float)index / 8.0f;
+        float radius = BALL_BODY_RADIUS * (1.0f - t * 0.055f);
+        uint32_t alpha = (uint32_t)(18.0f + t * 72.0f);
+        target_circle(
+            target,
+            (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER },
+            radius,
+            (Color32){ (alpha << 24U) }
+        );
     }
-
-    {
-        float glare_pulse = 0.5f + 0.5f * sinf(time_seconds * 2.0f);
-        Rect glare_fill_rect = {
-            2.5f,
-            1.5f,
-            (10.0f + glare_pulse) * BALL_RENDER_SCALE,
-            (5.0f + glare_pulse * 0.8f) * BALL_RENDER_SCALE
-        };
-        Rect glare_outline_rect = {
-            2.0f,
-            1.0f,
-            (12.0f + glare_pulse) * BALL_RENDER_SCALE,
-            (7.0f + glare_pulse * 0.8f) * BALL_RENDER_SCALE
-        };
-        target_oval_filled(target, glare_fill_rect, glow_color);
-        target_oval(target, glare_outline_rect, outer_color);
-        target_oval_filled(target, (Rect){ 8.0f, 8.5f, 2.0f, 1.0f }, glow_color);
-    }
-
-    target_circle(target, (Vec2){ BALL_RENDER_CENTER, BALL_RENDER_CENTER }, BALL_BODY_RADIUS, (Color32){ 0xe9f5ffU });
 }
 
 bool game_register_ball_visuals(
     Renderer* renderer,
     ResourceHandle* shared_shader_handle,
-    ResourceHandle* source_handles,
-    size_t source_count,
+    ResourceHandle* procedural_texture_handles,
+    size_t procedural_texture_count,
     ResourceHandle* material_handles,
     size_t material_count
 ) {
-    ProceduralSourceDesc source_desc;
+    ProceduralTextureDesc texture_desc;
     Material material;
-    ResourceHandle shared_source_handle;
+    ResourceHandle shared_procedural_texture_handle;
     ResourceHandle shared_material_handle;
     size_t index;
 
-    if (renderer == NULL || shared_shader_handle == NULL || source_handles == NULL || material_handles == NULL) {
+    if (renderer == NULL || shared_shader_handle == NULL || procedural_texture_handles == NULL || material_handles == NULL) {
         return false;
     }
 
-    memset(&source_desc, 0, sizeof(source_desc));
-    source_desc.width = (int)BALL_RENDER_SIZE;
-    source_desc.height = (int)BALL_RENDER_SIZE;
-    source_desc.animation_fps = 60.0f;
-    source_desc.bake_animation_fps = 60.0f;
-    source_desc.loop = true;
-    source_desc.bake_policy = RESOURCE_DEFAULT_PROCEDURAL_BAKE_POLICY;
-    source_desc.prebake_required = RESOURCE_DEFAULT_PREBAKE_REQUIRED;
-    source_desc.bake_instance_invariant = RESOURCE_DEFAULT_BAKE_INSTANCE_INVARIANT;
-    source_desc.bake_ignores_material = false;
-    source_desc.bake_frame_count = 240U;
-    source_desc.draw_body = game_draw_ball_body;
-    source_desc.draw_overlay = NULL;
-    shared_source_handle = renderer_register_procedural_source(
+    memset(&texture_desc, 0, sizeof(texture_desc));
+    texture_desc.width = BALL_RENDER_SIZE;
+    texture_desc.height = BALL_RENDER_SIZE;
+    texture_desc.frames = (GeneratedFrameConfig){
+        .animation_fps = 60.0f,
+        .cache_fps = 60.0f,
+        .loop = true,
+        .cache_policy = RESOURCE_DEFAULT_PROCEDURAL_BAKE_POLICY,
+        .prebake_enabled = RESOURCE_DEFAULT_PREBAKE_REQUIRED,
+        .instance_invariant = RESOURCE_DEFAULT_BAKE_INSTANCE_INVARIANT,
+        .frame_count = 240U
+    };
+    texture_desc.bake_ignores_material = false;
+    texture_desc.draw_body = game_draw_ball_body;
+    texture_desc.draw_overlay = NULL;
+    shared_procedural_texture_handle = renderer_register_procedural_texture(
         renderer,
         "procedural.space_ball.shared_60fps",
-        &source_desc
+        &texture_desc
     );
-    if (shared_source_handle.id == 0U) {
+    if (shared_procedural_texture_handle.id == 0U) {
         return false;
     }
-    for (index = 0U; index < source_count; ++index) {
-        source_handles[index] = shared_source_handle;
+    for (index = 0U; index < procedural_texture_count; ++index) {
+        procedural_texture_handles[index] = shared_procedural_texture_handle;
     }
 
     *shared_shader_handle = renderer_register_shader(

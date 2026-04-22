@@ -3,6 +3,7 @@
 
 #include "ResourceManager.h"
 #include "ResourceTypes.h"
+#include "RenderTypes.h"
 #include "Target.h"
 
 #include <stdbool.h>
@@ -15,42 +16,57 @@ void resource_manager_set_bake_admission_thresholds(
     size_t total_hits,
     size_t frame_hits
 );
-const Surface* resource_manager_get_baked_surface(
+const Texture* resource_manager_get_baked_texture(
     ResourceManager* manager,
-    ResourceHandle visual_source_handle,
+    ResourceHandle procedural_texture_handle,
     ResourceHandle material_handle,
     ResourceHandle shader_handle,
     uint32_t frame_index,
-    BakedSurfacePass pass,
+    BakedTexturePass pass,
     void* user_data
 );
-void resource_manager_request_baked_surface(
+const Texture* resource_manager_get_or_create_baked_texture(
     ResourceManager* manager,
-    ResourceHandle visual_source_handle,
+    ResourceHandle procedural_texture_handle,
     ResourceHandle material_handle,
     ResourceHandle shader_handle,
     uint32_t frame_index,
-    BakedSurfacePass pass
+    BakedTexturePass pass,
+    void* user_data
 );
-void resource_manager_request_baked_surface_for_time(
+const Mesh* resource_manager_get_or_create_baked_mesh(
     ResourceManager* manager,
-    ResourceHandle visual_source_handle,
+    ResourceHandle procedural_mesh_handle,
+    uint32_t frame_index,
+    void* user_data
+);
+void resource_manager_request_baked_texture(
+    ResourceManager* manager,
+    ResourceHandle procedural_texture_handle,
+    ResourceHandle material_handle,
+    ResourceHandle shader_handle,
+    uint32_t frame_index,
+    BakedTexturePass pass
+);
+void resource_manager_request_baked_texture_for_time(
+    ResourceManager* manager,
+    ResourceHandle procedural_texture_handle,
     ResourceHandle material_handle,
     ResourceHandle shader_handle,
     uint64_t now_ms,
-    BakedSurfacePass pass
+    BakedTexturePass pass
 );
 void resource_manager_process_pending_bakes(ResourceManager* manager, double time_budget_ms);
-bool resource_manager_prewarm_procedural_source(
+bool resource_manager_prewarm_procedural_texture(
     ResourceManager* manager,
-    ResourceHandle visual_source_handle,
+    ResourceHandle procedural_texture_handle,
     ResourceHandle material_handle,
     ResourceHandle shader_handle,
     void* user_data
 );
 size_t resource_manager_queue_required_prebake(
     ResourceManager* manager,
-    ResourceHandle visual_source_handle,
+    ResourceHandle procedural_texture_handle,
     ResourceHandle material_handle,
     ResourceHandle shader_handle
 );

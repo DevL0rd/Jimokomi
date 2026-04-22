@@ -24,10 +24,15 @@ struct ResourceRegistryState {
     size_t shader_count;
     size_t shader_capacity;
 
-    ResourceEntry* visual_sources;
-    VisualSourceResource* visual_source_values;
-    size_t visual_source_count;
-    size_t visual_source_capacity;
+    ResourceEntry* procedural_textures;
+    ProceduralTextureResource* procedural_texture_values;
+    size_t procedural_texture_count;
+    size_t procedural_texture_capacity;
+
+    ResourceEntry* procedural_meshes;
+    ProceduralMeshResource* procedural_mesh_values;
+    size_t procedural_mesh_count;
+    size_t procedural_mesh_capacity;
 };
 
 bool resource_manager_reserve(

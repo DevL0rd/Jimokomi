@@ -12,6 +12,7 @@ typedef struct SceneTilemapState SceneTilemapState;
 typedef struct SceneSpatialState SceneSpatialState;
 typedef struct SceneStatsState SceneStatsState;
 typedef struct SceneCameraFollowState SceneCameraFollowState;
+typedef struct SceneParticleVisualState SceneParticleVisualState;
 
 typedef struct Scene
 {
@@ -22,6 +23,7 @@ typedef struct Scene
     SceneSpatialState* spatial;
     SceneStatsState* stats;
     SceneCameraFollowState* camera_follow;
+    SceneParticleVisualState* particle_visuals;
 } Scene;
 
 #endif

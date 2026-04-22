@@ -3,27 +3,38 @@
 
 #include "ResourceManagerInternal.h"
 
-typedef struct BakedSurfaceResource {
-    BakedSurfaceKey key;
-    Surface* surface;
-} BakedSurfaceResource;
+typedef struct BakedTextureResource {
+    BakedTextureKey key;
+    Texture* texture;
+    uint32_t source_frame_index;
+} BakedTextureResource;
 
-typedef struct BakedSurfaceSlot {
+typedef struct BakedTextureSlot {
     uint8_t state;
-    BakedSurfaceKey key;
+    BakedTextureKey key;
     size_t index;
-} BakedSurfaceSlot;
+} BakedTextureSlot;
+
+typedef struct BakedMeshResource {
+    ResourceHandle procedural_mesh_handle;
+    uint32_t frame_index;
+    uint32_t source_frame_index;
+    Mesh* mesh;
+} BakedMeshResource;
 
 struct ResourceBakeCacheState {
-    BakedSurfaceResource* baked_surfaces;
-    size_t baked_surface_count;
-    size_t baked_surface_capacity;
-    BakedSurfaceSlot* baked_surface_slots;
-    size_t baked_surface_slot_capacity;
-    size_t baked_surface_slot_count;
+    BakedTextureResource* baked_textures;
+    size_t baked_texture_count;
+    size_t baked_texture_capacity;
+    BakedTextureSlot* baked_texture_slots;
+    size_t baked_texture_slot_capacity;
+    size_t baked_texture_slot_count;
+    BakedMeshResource* baked_meshes;
+    size_t baked_mesh_count;
+    size_t baked_mesh_capacity;
 };
 
-bool resource_manager_reserve_baked_surfaces(ResourceManager* manager, size_t required);
-bool resource_manager_insert_baked_surface_slot(ResourceManager* manager, BakedSurfaceKey key, size_t value_index);
+bool resource_manager_reserve_baked_textures(ResourceManager* manager, size_t required);
+bool resource_manager_insert_baked_texture_slot(ResourceManager* manager, BakedTextureKey key, size_t value_index);
 
 #endif

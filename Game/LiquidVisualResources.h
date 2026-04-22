@@ -9,7 +9,8 @@ typedef struct Renderer Renderer;
 
 typedef struct LiquidVisualResourceHandles
 {
-    ResourceHandle source_handle;
+    ResourceHandle texture_handle;
+    ResourceHandle procedural_mesh_handle;
     ResourceHandle shader_handle;
     ResourceHandle material_handle;
 } LiquidVisualResourceHandles;

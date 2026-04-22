@@ -4,10 +4,10 @@
 #include "DebugOverlayInternal.h"
 
 struct DebugOverlayInspectorState {
-    RenderBackend* surface_backend;
-    Surface* surface;
-    int surface_width;
-    int surface_height;
+    RenderBackend* texture_backend;
+    Texture* texture;
+    int texture_width;
+    int texture_height;
     uint64_t last_signature;
     uint64_t last_redraw_at_ms;
     uint32_t redraw_count;

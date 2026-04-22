@@ -1,7 +1,9 @@
 #include "RendererInternal.h"
 
 #include "DebugOverlay.h"
+#include "GeneratedFrame.h"
 #include "RendererLifecycleInternal.h"
+#include "RendererResources.h"
 #include "RendererScratchInternal.h"
 #include "RendererSignaturesInternal.h"
 #include "RendererStatsInternal.h"
@@ -18,10 +20,13 @@ double renderer_now_ms(void) {
     return engine_platform_now_ms();
 }
 
-static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend, const SpriteRenderable *item, uint64_t now_ms);
+static void renderer_draw_procedural_texture(Renderer *renderer, RenderBackend *backend, const ProceduralTextureRenderable *item, uint64_t now_ms);
+static void renderer_draw_procedural_mesh(Renderer* renderer, RenderBackend* backend, const RendererFrame* frame, const ProceduralMeshRenderable* mesh);
+static void renderer_draw_triangle(Renderer* renderer, RenderBackend* backend, const TriangleRenderable* triangle);
+static void renderer_draw_line(Renderer* renderer, RenderBackend* backend, const LineRenderable* line);
 
 static bool renderer_reserve_scratch(Renderer* renderer, size_t required_capacity) {
-    SpriteRenderable* items;
+    ProceduralTextureRenderable* procedural_textures;
     size_t next_capacity;
 
     if (renderer == NULL) {
@@ -37,22 +42,213 @@ static bool renderer_reserve_scratch(Renderer* renderer, size_t required_capacit
         next_capacity *= 2U;
     }
 
-    items = (SpriteRenderable*)realloc(renderer->scratch->scratch_items, next_capacity * sizeof(*items));
-    if (items == NULL) {
+    procedural_textures = (ProceduralTextureRenderable*)realloc(renderer->scratch->scratch_procedural_textures, next_capacity * sizeof(*procedural_textures));
+    if (procedural_textures == NULL) {
         return false;
     }
 
-    renderer->scratch->scratch_items = items;
+    renderer->scratch->scratch_procedural_textures = procedural_textures;
     renderer->scratch->scratch_capacity = next_capacity;
     return true;
 }
 
-static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend, const SpriteRenderable *item, uint64_t now_ms) {
-    const VisualSourceResource* source;
+static void renderer_draw_triangle(Renderer* renderer, RenderBackend* backend, const TriangleRenderable* triangle)
+{
+    Target target;
+    Vec2 a;
+    Vec2 b;
+    Vec2 c;
+
+    if (renderer == NULL || backend == NULL || triangle == NULL || !triangle->visible)
+    {
+        return;
+    }
+
+    a = camera_world_to_screen(&renderer->lifecycle->camera, triangle->a);
+    b = camera_world_to_screen(&renderer->lifecycle->camera, triangle->b);
+    c = camera_world_to_screen(&renderer->lifecycle->camera, triangle->c);
+    if (((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)) < 0.0f)
+    {
+        Vec2 swap = b;
+        b = c;
+        c = swap;
+    }
+    target_init(&target, backend, 0.0f, 0.0f);
+    target_triangle_filled(&target, a, b, c, triangle->color);
+}
+
+static void renderer_draw_line(Renderer* renderer, RenderBackend* backend, const LineRenderable* line)
+{
+    Target target;
+    Vec2 a;
+    Vec2 b;
+
+    if (renderer == NULL || backend == NULL || line == NULL || !line->visible)
+    {
+        return;
+    }
+
+    a = camera_world_to_screen(&renderer->lifecycle->camera, line->a);
+    b = camera_world_to_screen(&renderer->lifecycle->camera, line->b);
+    target_init(&target, backend, 0.0f, 0.0f);
+    target_line(&target, a.x, a.y, b.x, b.y, line->color);
+}
+
+typedef struct RendererProceduralMeshWriterState {
+    Renderer* renderer;
+    RenderBackend* backend;
+} RendererProceduralMeshWriterState;
+
+static bool renderer_procedural_mesh_add_triangle(
+    void* user_data,
+    Vec2 a,
+    Vec2 b,
+    Vec2 c,
+    Color32 color,
+    int layer
+) {
+    RendererProceduralMeshWriterState* state = (RendererProceduralMeshWriterState*)user_data;
+    TriangleRenderable triangle;
+
+    if (state == NULL)
+    {
+        return false;
+    }
+
+    triangle.a = a;
+    triangle.b = b;
+    triangle.c = c;
+    triangle.color = color;
+    triangle.layer = layer;
+    triangle.visible = true;
+    renderer_draw_triangle(state->renderer, state->backend, &triangle);
+    return true;
+}
+
+static bool renderer_procedural_mesh_add_line(
+    void* user_data,
+    Vec2 a,
+    Vec2 b,
+    Color32 color,
+    int layer
+) {
+    RendererProceduralMeshWriterState* state = (RendererProceduralMeshWriterState*)user_data;
+    LineRenderable line;
+
+    if (state == NULL)
+    {
+        return false;
+    }
+
+    line.a = a;
+    line.b = b;
+    line.color = color;
+    line.layer = layer;
+    line.visible = true;
+    renderer_draw_line(state->renderer, state->backend, &line);
+    return true;
+}
+
+static void renderer_draw_procedural_mesh(
+    Renderer* renderer,
+    RenderBackend* backend,
+    const RendererFrame* frame,
+    const ProceduralMeshRenderable* mesh
+) {
+    const ProceduralMeshResource* source;
+    uint32_t frame_index;
+    size_t index;
+
+    if (renderer == NULL || backend == NULL || frame == NULL || mesh == NULL || !mesh->visible)
+    {
+        return;
+    }
+
+    source = resource_manager_get_procedural_mesh(
+        renderer->lifecycle->resource_manager,
+        mesh->procedural_mesh_handle
+    );
+    if (source == NULL)
+    {
+        return;
+    }
+
+    if (mesh->triangle_count > 0U || mesh->line_count > 0U)
+    {
+        for (index = 0U; index < mesh->triangle_count; ++index)
+        {
+            size_t triangle_index = mesh->triangle_start + index;
+            if (triangle_index < frame->triangle_count)
+            {
+                renderer_draw_triangle(renderer, backend, &frame->triangles[triangle_index]);
+            }
+        }
+        for (index = 0U; index < mesh->line_count; ++index)
+        {
+            size_t line_index = mesh->line_start + index;
+            if (line_index < frame->line_count)
+            {
+                renderer_draw_line(renderer, backend, &frame->lines[line_index]);
+            }
+        }
+        return;
+    }
+
+    if (source->build_mesh == NULL)
+    {
+        return;
+    }
+
+    frame_index = generated_frame_animation_index(&source->frames, frame->now_ms);
+    if (source->frames.cache_policy != BAKE_POLICY_DISABLED)
+    {
+        const Mesh* geometry = resource_manager_get_or_create_baked_mesh(
+            renderer->lifecycle->resource_manager,
+            mesh->procedural_mesh_handle,
+            frame_index,
+            mesh->user_data
+        );
+        if (geometry == NULL)
+        {
+            return;
+        }
+        for (index = 0U; index < geometry->triangle_count; ++index)
+        {
+            renderer_draw_triangle(renderer, backend, &geometry->triangles[index]);
+        }
+        for (index = 0U; index < geometry->line_count; ++index)
+        {
+            renderer_draw_line(renderer, backend, &geometry->lines[index]);
+        }
+    }
+    else
+    {
+        RendererProceduralMeshWriterState writer_state;
+        ProceduralMeshWriter writer;
+        ProceduralMeshContext context;
+
+        writer_state.renderer = renderer;
+        writer_state.backend = backend;
+        writer.user_data = &writer_state;
+        writer.add_triangle = renderer_procedural_mesh_add_triangle;
+        writer.add_line = renderer_procedural_mesh_add_line;
+
+        memset(&context, 0, sizeof(context));
+        context.now_ms = frame->now_ms;
+        context.time_seconds = (float)frame->now_ms / 1000.0f;
+        context.animation_fps = source->frames.animation_fps;
+        context.frame_index = frame_index;
+        (void)source->build_mesh(&writer, &context, mesh->user_data);
+    }
+}
+
+static void renderer_draw_procedural_texture(Renderer *renderer, RenderBackend *backend, const ProceduralTextureRenderable *item, uint64_t now_ms) {
+    const ProceduralTextureResource* source;
     const MaterialResource* material;
     const ShaderResource* shader;
-    const Surface* baked_body;
-    const Surface* baked_overlay;
+    const TextureResource* texture;
+    const Texture* baked_body;
+    const Texture* baked_overlay;
     Target target;
     ProceduralTextureContext context;
     Material live_material;
@@ -67,7 +263,32 @@ static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend
         return;
     }
 
-    source = resource_manager_get_visual_source(renderer->lifecycle->resource_manager, item->visual_source_handle);
+    texture = resource_manager_get_texture(renderer->lifecycle->resource_manager, item->texture_handle);
+    if (texture != NULL && texture->texture != NULL) {
+        TextureDrawInstance instance;
+
+        width = (float)texture->texture->width;
+        height = (float)texture->texture->height;
+        screen_size = camera_world_size_to_screen(&renderer->lifecycle->camera, (Vec2){ width, height });
+        screen = camera_world_to_screen(&renderer->lifecycle->camera, (Vec2){ item->x, item->y });
+        dest.x = screen.x - screen_size.x * item->anchor_x;
+        dest.y = screen.y - screen_size.y * item->anchor_y;
+        dest.w = screen_size.x;
+        dest.h = screen_size.y;
+        instance.dest = dest;
+        instance.origin.x = screen_size.x * item->anchor_x;
+        instance.origin.y = screen_size.y * item->anchor_y;
+        instance.rotation_degrees = item->angle_radians * (180.0f / 3.14159265359f);
+        instance.tint = item->tint.value != 0U ? item->tint : (Color32){ 0xffffffffU };
+        if (backend->draw_texture_batch != NULL) {
+            started_ms = renderer_now_ms();
+            backend->draw_texture_batch(backend->userdata, texture->texture, &instance, 1U);
+            renderer->stats->last_body_draw_ms += renderer_now_ms() - started_ms;
+        }
+        return;
+    }
+
+    source = resource_manager_get_procedural_texture(renderer->lifecycle->resource_manager, item->procedural_texture_handle);
     material = resource_manager_get_material(renderer->lifecycle->resource_manager, item->material_handle);
     shader = resource_manager_get_shader(renderer->lifecycle->resource_manager, item->shader_handle);
     if (source == NULL || material == NULL || source->draw_body == NULL) {
@@ -85,10 +306,8 @@ static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend
     memset(&context, 0, sizeof(context));
     context.now_ms = now_ms;
     context.time_seconds = (float)now_ms / 1000.0f;
-    context.animation_fps = source->animation_fps;
-    context.frame_index = source->animation_fps > 0.0f
-        ? (uint32_t)floorf((context.time_seconds * source->animation_fps))
-        : 0U;
+    context.animation_fps = source->frames.animation_fps;
+    context.frame_index = generated_frame_animation_index(&source->frames, now_ms);
     context.angle_radians = item->angle_radians;
     live_material = material->value;
     if (source->bake_ignores_material)
@@ -101,32 +320,32 @@ static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend
     }
     context.material = &live_material;
     context.shader_style = shader != NULL ? shader->style : material->value.shader_style;
-    if (source->bake_policy != BAKE_POLICY_DISABLED) {
-        baked_body = resource_manager_get_baked_surface(
+    if (source->frames.cache_policy != BAKE_POLICY_DISABLED) {
+        baked_body = resource_manager_get_or_create_baked_texture(
             renderer->lifecycle->resource_manager,
-            item->visual_source_handle,
+            item->procedural_texture_handle,
             item->material_handle,
             item->shader_handle,
             context.frame_index,
-            BAKED_SURFACE_PASS_BODY,
+            BAKED_TEXTURE_PASS_BODY,
             item->user_data
         );
         baked_overlay = NULL;
         if (source->draw_overlay != NULL) {
-            baked_overlay = resource_manager_get_baked_surface(
+            baked_overlay = resource_manager_get_or_create_baked_texture(
                 renderer->lifecycle->resource_manager,
-                item->visual_source_handle,
+                item->procedural_texture_handle,
                 item->material_handle,
                 item->shader_handle,
                 context.frame_index,
-                BAKED_SURFACE_PASS_OVERLAY,
+                BAKED_TEXTURE_PASS_OVERLAY,
                 item->user_data
             );
         }
         if (baked_body != NULL && (source->draw_overlay == NULL || baked_overlay != NULL)) {
             started_ms = renderer_now_ms();
             target_init(&target, backend, 0.0f, 0.0f);
-            target_surface_ex(
+            target_texture_ex(
                 &target,
                 baked_body,
                 dest,
@@ -137,58 +356,13 @@ static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend
             if (source->draw_overlay != NULL) {
                 started_ms = renderer_now_ms();
                 target_init(&target, backend, 0.0f, 0.0f);
-                target_surface_ex(
+                target_texture_ex(
                     &target,
                     baked_overlay,
                     dest,
                     (Vec2){ screen_size.x * item->anchor_x, screen_size.y * item->anchor_y },
                     item->angle_radians * (180.0f / 3.14159265359f)
                 );
-                renderer->stats->last_overlay_draw_ms += renderer_now_ms() - started_ms;
-                renderer->stats->last_overlay_draw_count += 1U;
-            }
-        } else {
-            resource_manager_request_baked_surface(
-                renderer->lifecycle->resource_manager,
-                item->visual_source_handle,
-                item->material_handle,
-                item->shader_handle,
-                context.frame_index,
-                BAKED_SURFACE_PASS_BODY
-            );
-            if (source->draw_overlay != NULL) {
-                resource_manager_request_baked_surface(
-                    renderer->lifecycle->resource_manager,
-                    item->visual_source_handle,
-                    item->material_handle,
-                    item->shader_handle,
-                    context.frame_index,
-                    BAKED_SURFACE_PASS_OVERLAY
-                );
-            }
-
-            target_init_scaled(
-                &target,
-                backend,
-                dest.x,
-                dest.y,
-                width > 0.0f ? screen_size.x / width : 1.0f,
-                height > 0.0f ? screen_size.y / height : 1.0f
-            );
-            started_ms = renderer_now_ms();
-            source->draw_body(&target, &context, item->user_data);
-            renderer->stats->last_body_draw_ms += renderer_now_ms() - started_ms;
-            if (source->draw_overlay != NULL) {
-                target_init_scaled(
-                    &target,
-                    backend,
-                    dest.x,
-                    dest.y,
-                    width > 0.0f ? screen_size.x / width : 1.0f,
-                    height > 0.0f ? screen_size.y / height : 1.0f
-                );
-                started_ms = renderer_now_ms();
-                source->draw_overlay(&target, &context, item->user_data);
                 renderer->stats->last_overlay_draw_ms += renderer_now_ms() - started_ms;
                 renderer->stats->last_overlay_draw_count += 1U;
             }
@@ -220,14 +394,12 @@ static void renderer_draw_sprite_body(Renderer *renderer, RenderBackend *backend
             renderer->stats->last_overlay_draw_count += 1U;
         }
     }
-    if (source->kind == VISUAL_KIND_PROCEDURAL_TEXTURE) {
-        renderer->stats->last_procedural_item_count += 1U;
-    }
+    renderer->stats->last_procedural_texture_item_count += 1U;
 }
 
-static int renderer_compare_item_layer(const void *left, const void *right) {
-    const SpriteRenderable *a = (const SpriteRenderable *)left;
-    const SpriteRenderable *b = (const SpriteRenderable *)right;
+static int renderer_compare_procedural_texture_layer(const void *left, const void *right) {
+    const ProceduralTextureRenderable *a = (const ProceduralTextureRenderable *)left;
+    const ProceduralTextureRenderable *b = (const ProceduralTextureRenderable *)right;
     return (a->layer > b->layer) - (a->layer < b->layer);
 }
 
@@ -316,7 +488,7 @@ void renderer_dispose(Renderer *renderer) {
         debug_overlay_destroy(renderer->lifecycle->debug_overlay);
     }
     if (renderer->scratch != NULL) {
-        free(renderer->scratch->scratch_items);
+        free(renderer->scratch->scratch_procedural_textures);
         free(renderer->scratch->scratch_instances);
     }
     free(renderer->lifecycle);
@@ -474,6 +646,26 @@ void renderer_draw_debug_overlay_ui(
     }
 }
 
+ResourceHandle renderer_register_texture_from_builder(
+    Renderer* renderer,
+    const char* name,
+    int width,
+    int height,
+    RendererTextureBuildFn build_texture,
+    void* user_data
+) {
+    return renderer != NULL
+        ? resource_manager_register_texture_from_builder(
+            renderer->lifecycle->resource_manager,
+            name,
+            width,
+            height,
+            (ResourceTextureBuildFn)build_texture,
+            user_data
+        )
+        : (ResourceHandle){ 0U };
+}
+
 ResourceHandle renderer_register_material(Renderer* renderer, const char* name, const Material* material) {
     return renderer != NULL
         ? resource_manager_register_material(renderer->lifecycle->resource_manager, name, material)
@@ -486,13 +678,23 @@ ResourceHandle renderer_register_shader(Renderer* renderer, const char* name, Sh
         : (ResourceHandle){ 0U };
 }
 
-ResourceHandle renderer_register_procedural_source(
+ResourceHandle renderer_register_procedural_texture(
     Renderer* renderer,
     const char* name,
-    const ProceduralSourceDesc* desc
+    const ProceduralTextureDesc* desc
 ) {
     return renderer != NULL
-        ? resource_manager_register_procedural_source(renderer->lifecycle->resource_manager, name, desc)
+        ? resource_manager_register_procedural_texture(renderer->lifecycle->resource_manager, name, desc)
+        : (ResourceHandle){ 0U };
+}
+
+ResourceHandle renderer_register_procedural_mesh(
+    Renderer* renderer,
+    const char* name,
+    const ProceduralMeshDesc* desc
+) {
+    return renderer != NULL
+        ? resource_manager_register_procedural_mesh(renderer->lifecycle->resource_manager, name, desc)
         : (ResourceHandle){ 0U };
 }
 
@@ -505,12 +707,12 @@ void renderer_get_stats_snapshot(const Renderer* renderer, RendererStatsSnapshot
         return;
     }
 
-    out_snapshot->render_item_count = renderer->stats->last_render_item_count;
-    out_snapshot->sprite_draw_count = renderer->stats->last_sprite_draw_count;
-    out_snapshot->visible_item_count = renderer->stats->last_visible_item_count;
+    out_snapshot->procedural_texture_count = renderer->stats->last_procedural_texture_count;
+    out_snapshot->procedural_texture_draw_count = renderer->stats->last_procedural_texture_draw_count;
+    out_snapshot->visible_procedural_texture_count = renderer->stats->last_visible_procedural_texture_count;
     out_snapshot->overlay_draw_count = renderer->stats->last_overlay_draw_count;
-    out_snapshot->procedural_item_count = renderer->stats->last_procedural_item_count;
-    out_snapshot->baked_surface_count = renderer->stats->last_baked_surface_count;
+    out_snapshot->procedural_texture_item_count = renderer->stats->last_procedural_texture_item_count;
+    out_snapshot->baked_texture_count = renderer->stats->last_baked_texture_count;
     out_snapshot->instanced_batch_count = renderer->stats->last_instanced_batch_count;
     out_snapshot->instanced_draw_count = renderer->stats->last_instanced_draw_count;
     out_snapshot->sort_ms = renderer->stats->last_sort_ms;
@@ -524,12 +726,12 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
     size_t index;
     bool needs_sort = false;
     bool batching_enabled = false;
-    const SpriteRenderable* draw_items = NULL;
+    const ProceduralTextureRenderable* draw_procedural_textures = NULL;
     uint64_t frame_signature;
     uint64_t sort_signature;
     uint64_t overlay_signature;
     uint64_t instance_signature;
-    bool items_sorted_by_layer = true;
+    bool procedural_textures_sorted_by_layer = true;
     double frame_started_ms;
     if (renderer == NULL || backend == NULL || frame == NULL) {
         return;
@@ -537,7 +739,7 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
 
     frame_started_ms = renderer_now_ms();
 
-    renderer_compute_frame_signatures(frame, &frame_signature, &sort_signature, &instance_signature, &items_sorted_by_layer);
+    renderer_compute_frame_signatures(frame, &frame_signature, &sort_signature, &instance_signature, &procedural_textures_sorted_by_layer);
     overlay_signature = renderer_compute_overlay_signature(frame);
     renderer->signatures->dirty_flags = RENDERER_DIRTY_NONE;
     if (frame_signature != renderer->signatures->last_frame_signature) {
@@ -559,12 +761,12 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
         renderer->signatures->dirty_flags |= RENDERER_DIRTY_SNAPSHOT_METADATA;
     }
 
-    renderer->stats->last_render_item_count = frame->item_count;
-    renderer->stats->last_sprite_draw_count = 0U;
-    renderer->stats->last_visible_item_count = 0U;
+    renderer->stats->last_procedural_texture_count = frame->procedural_texture_count;
+    renderer->stats->last_procedural_texture_draw_count = 0U;
+    renderer->stats->last_visible_procedural_texture_count = 0U;
     renderer->stats->last_overlay_draw_count = 0U;
-    renderer->stats->last_procedural_item_count = 0U;
-    renderer->stats->last_baked_surface_count = resource_manager_get_baked_surface_count(renderer->lifecycle->resource_manager);
+    renderer->stats->last_procedural_texture_item_count = 0U;
+    renderer->stats->last_baked_texture_count = resource_manager_get_baked_texture_count(renderer->lifecycle->resource_manager);
     renderer->stats->last_instanced_batch_count = 0U;
     renderer->stats->last_instanced_draw_count = 0U;
     renderer->stats->last_sort_ms = 0.0;
@@ -574,21 +776,24 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
     renderer->stats->last_instance_draw_ms = 0.0;
     resource_manager_begin_frame(renderer->lifecycle->resource_manager);
 
-    if (frame->draw_sprites) {
+    if (frame->draw_scene_renderables) {
         double started_ms;
-        draw_items = frame->items;
+        draw_procedural_textures = frame->procedural_textures;
         if (frame->backdrop_draw != NULL) {
             Target target;
             target_init(&target, backend, 0.0f, 0.0f);
             frame->backdrop_draw(&target, &renderer->lifecycle->camera, frame->backdrop_user_data);
         }
-        if (draw_items != NULL && frame->item_count == 1U) {
+        for (index = 0U; index < frame->procedural_mesh_count; ++index) {
+            renderer_draw_procedural_mesh(renderer, backend, frame, &frame->procedural_meshes[index]);
+        }
+        if (draw_procedural_textures != NULL && frame->procedural_texture_count == 1U) {
             started_ms = renderer_now_ms();
-            if (renderer_is_item_visible(renderer, &draw_items[0])) {
-                renderer->stats->last_visible_item_count = 1U;
+            if (renderer_is_procedural_texture_visible(renderer, &draw_procedural_textures[0])) {
+                renderer->stats->last_visible_procedural_texture_count = 1U;
                 renderer->stats->last_visibility_ms = renderer_now_ms() - started_ms;
-                renderer_draw_sprite_body(renderer, backend, &draw_items[0], frame->now_ms);
-                renderer->stats->last_sprite_draw_count = 1U;
+                renderer_draw_procedural_texture(renderer, backend, &draw_procedural_textures[0], frame->now_ms);
+                renderer->stats->last_procedural_texture_draw_count = 1U;
             } else {
                 renderer->stats->last_visibility_ms = renderer_now_ms() - started_ms;
             }
@@ -600,54 +805,54 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
             }
             goto draw_debug;
         }
-        if (!items_sorted_by_layer && frame->items != NULL && frame->item_count > 0U) {
-            for (index = 1U; index < frame->item_count; ++index) {
-                if (frame->items[index - 1U].layer != frame->items[index].layer) {
+        if (!procedural_textures_sorted_by_layer && frame->procedural_textures != NULL && frame->procedural_texture_count > 0U) {
+            for (index = 1U; index < frame->procedural_texture_count; ++index) {
+                if (frame->procedural_textures[index - 1U].layer != frame->procedural_textures[index].layer) {
                     needs_sort = true;
                     break;
                 }
             }
         }
-        if (frame->items != NULL && needs_sort && renderer_reserve_scratch(renderer, frame->item_count)) {
+        if (frame->procedural_textures != NULL && needs_sort && renderer_reserve_scratch(renderer, frame->procedural_texture_count)) {
             started_ms = renderer_now_ms();
-            memcpy(renderer->scratch->scratch_items, frame->items, frame->item_count * sizeof(*renderer->scratch->scratch_items));
-            qsort(renderer->scratch->scratch_items, frame->item_count, sizeof(*renderer->scratch->scratch_items), renderer_compare_item_layer);
+            memcpy(renderer->scratch->scratch_procedural_textures, frame->procedural_textures, frame->procedural_texture_count * sizeof(*renderer->scratch->scratch_procedural_textures));
+            qsort(renderer->scratch->scratch_procedural_textures, frame->procedural_texture_count, sizeof(*renderer->scratch->scratch_procedural_textures), renderer_compare_procedural_texture_layer);
             renderer->stats->last_sort_ms = renderer_now_ms() - started_ms;
-            draw_items = renderer->scratch->scratch_items;
+            draw_procedural_textures = renderer->scratch->scratch_procedural_textures;
         }
-        if (draw_items != NULL) {
-            RendererSurfaceBatch batch = { 0 };
+        if (draw_procedural_textures != NULL) {
+            RendererTextureBatch batch = { 0 };
 
-            batching_enabled = renderer_reserve_instances(renderer, frame->item_count);
-            for (index = 0U; index < frame->item_count; ++index) {
-                RendererPreparedSurfaceDraw prepared;
+            batching_enabled = renderer_reserve_instances(renderer, frame->procedural_texture_count);
+            for (index = 0U; index < frame->procedural_texture_count; ++index) {
+                RendererPreparedTextureDraw prepared;
                 double started_ms;
 
                 started_ms = renderer_now_ms();
-                if (!renderer_is_item_visible(renderer, &draw_items[index])) {
+                if (!renderer_is_procedural_texture_visible(renderer, &draw_procedural_textures[index])) {
                     renderer->stats->last_visibility_ms += renderer_now_ms() - started_ms;
                     continue;
                 }
                 renderer->stats->last_visibility_ms += renderer_now_ms() - started_ms;
-                renderer->stats->last_visible_item_count += 1U;
+                renderer->stats->last_visible_procedural_texture_count += 1U;
 
                 if (batching_enabled &&
-                    renderer_prepare_batched_surface_draw(renderer, &draw_items[index], frame->now_ms, &prepared)) {
-                    if (batch.surface != NULL &&
-                        prepared.surface != batch.surface) {
-                        renderer_flush_surface_batch(renderer, backend, &batch);
+                    renderer_prepare_batched_texture_draw(renderer, &draw_procedural_textures[index], frame->now_ms, &prepared)) {
+                    if (batch.texture != NULL &&
+                        prepared.texture != batch.texture) {
+                        renderer_flush_texture_batch(renderer, backend, &batch);
                     }
-                    batch.surface = prepared.surface;
+                    batch.texture = prepared.texture;
                     batch.tint = prepared.instance.tint;
                     renderer->scratch->scratch_instances[batch.count++] = prepared.instance;
                     continue;
                 }
 
-                renderer_flush_surface_batch(renderer, backend, &batch);
-                renderer_draw_sprite_body(renderer, backend, &draw_items[index], frame->now_ms);
-                renderer->stats->last_sprite_draw_count += 1U;
+                renderer_flush_texture_batch(renderer, backend, &batch);
+                renderer_draw_procedural_texture(renderer, backend, &draw_procedural_textures[index], frame->now_ms);
+                renderer->stats->last_procedural_texture_draw_count += 1U;
             }
-            renderer_flush_surface_batch(renderer, backend, &batch);
+            renderer_flush_texture_batch(renderer, backend, &batch);
         }
         if (resource_manager_has_pending_bakes(renderer->lifecycle->resource_manager)) {
             resource_manager_process_pending_bakes(

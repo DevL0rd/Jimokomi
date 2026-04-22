@@ -10,7 +10,7 @@ typedef struct SceneDynamicCircleDesc
     float x;
     float y;
     float radius;
-    ResourceHandle visual_source_handle;
+    ResourceHandle procedural_texture_handle;
     ResourceHandle material_handle;
     ResourceHandle shader_handle;
     Color32 tint;
@@ -29,7 +29,7 @@ typedef struct SceneVisualCircleDesc
     float x;
     float y;
     float radius;
-    ResourceHandle visual_source_handle;
+    ResourceHandle procedural_texture_handle;
     ResourceHandle material_handle;
     ResourceHandle shader_handle;
     Color32 tint;
@@ -40,6 +40,7 @@ typedef struct SceneVisualCircleDesc
 struct Entity* Scene_CreateDynamicCircle(Scene* scene, const SceneDynamicCircleDesc* desc);
 struct Entity* Scene_CreateVisualCircle(Scene* scene, const SceneVisualCircleDesc* desc);
 struct Entity* Scene_CreateStaticBox(Scene* scene, float x, float y, float width, float height);
+struct Entity* Scene_CreateKinematicBox(Scene* scene, float x, float y, float width, float height);
 bool Scene_AddBoundsColliders(Scene* scene, Rect bounds, float thickness);
 
 #endif

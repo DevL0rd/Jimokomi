@@ -5,17 +5,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#define Texture RaylibNativeTexture
+#define RenderTexture RaylibNativeRenderTexture
 #include <raylib.h>
+#undef RenderTexture
+#undef Texture
 #include <raymath.h>
 #include <rlgl.h>
 
-typedef struct RaylibSurface {
-    Surface base;
+typedef struct RaylibTexture {
+    Texture base;
     RenderTexture2D target;
-} RaylibSurface;
+} RaylibTexture;
 
-static RaylibSurface *raylib_surface_from_base(Surface *surface);
-static const RaylibSurface *raylib_surface_from_const_base(const Surface *surface);
+static RaylibTexture *raylib_texture_from_base(Texture *texture);
+static const RaylibTexture *raylib_texture_from_const_base(const Texture *texture);
 
 static Color raylib_unpack_color(Color32 color) {
     Color unpacked;
@@ -30,53 +34,53 @@ static Color raylib_unpack_color(Color32 color) {
     return unpacked;
 }
 
-bool raylib_backend_surface_get_dimensions(
-    const Surface *surface,
+bool raylib_backend_texture_get_dimensions(
+    const Texture *texture,
     int *width,
     int *height
 ) {
-    const RaylibSurface *raylib_surface = raylib_surface_from_const_base(surface);
+    const RaylibTexture *raylib_texture = raylib_texture_from_const_base(texture);
 
-    if (raylib_surface == NULL) {
+    if (raylib_texture == NULL) {
         return false;
     }
 
     if (width != NULL) {
-        *width = raylib_surface->base.width;
+        *width = raylib_texture->base.width;
     }
     if (height != NULL) {
-        *height = raylib_surface->base.height;
+        *height = raylib_texture->base.height;
     }
     return true;
 }
 
-unsigned int raylib_backend_surface_get_texture_id(const Surface *surface) {
-    const RaylibSurface *raylib_surface = raylib_surface_from_const_base(surface);
+unsigned int raylib_backend_texture_get_texture_id(const Texture *texture) {
+    const RaylibTexture *raylib_texture = raylib_texture_from_const_base(texture);
 
-    return raylib_surface != NULL ? raylib_surface->target.texture.id : 0U;
+    return raylib_texture != NULL ? raylib_texture->target.texture.id : 0U;
 }
 
-void raylib_backend_draw_surface_batch_individual(
+void raylib_backend_draw_texture_batch_individual(
     void *userdata,
-    const Surface *surface,
-    const SurfaceDrawInstance *instances,
+    const Texture *texture,
+    const TextureDrawInstance *instances,
     size_t instance_count
 ) {
-    const RaylibSurface *raylib_surface = raylib_surface_from_const_base(surface);
+    const RaylibTexture *raylib_texture = raylib_texture_from_const_base(texture);
     Rectangle source;
     size_t index = 0U;
 
     (void)userdata;
 
-    if (raylib_surface == NULL || instances == NULL)
+    if (raylib_texture == NULL || instances == NULL)
     {
         return;
     }
 
     source.x = 0.0f;
     source.y = 0.0f;
-    source.width = (float)raylib_surface->base.width;
-    source.height = (float)-raylib_surface->base.height;
+    source.width = (float)raylib_texture->base.width;
+    source.height = (float)-raylib_texture->base.height;
 
     for (index = 0U; index < instance_count; ++index)
     {
@@ -91,7 +95,7 @@ void raylib_backend_draw_surface_batch_individual(
             instances[index].origin.y
         };
         DrawTexturePro(
-            raylib_surface->target.texture,
+            raylib_texture->target.texture,
             source,
             draw_dest,
             draw_origin,
@@ -105,12 +109,12 @@ static RaylibBackend *raylib_backend_from_user_data(void *userdata) {
     return (RaylibBackend *)userdata;
 }
 
-static RaylibSurface *raylib_surface_from_base(Surface *surface) {
-    return (RaylibSurface *)surface;
+static RaylibTexture *raylib_texture_from_base(Texture *texture) {
+    return (RaylibTexture *)texture;
 }
 
-static const RaylibSurface *raylib_surface_from_const_base(const Surface *surface) {
-    return (const RaylibSurface *)surface;
+static const RaylibTexture *raylib_texture_from_const_base(const Texture *texture) {
+    return (const RaylibTexture *)texture;
 }
 
 static void raylib_backend_apply_clip_rect(RaylibBackend *backend, Rect rect) {
@@ -150,49 +154,49 @@ static Rect raylib_backend_intersect_rect(Rect a, Rect b) {
     return result;
 }
 
-static Surface *raylib_backend_create_surface(void *userdata, int width, int height) {
+static Texture *raylib_backend_create_texture(void *userdata, int width, int height) {
     RaylibBackend *backend = raylib_backend_from_user_data(userdata);
-    RaylibSurface *surface;
+    RaylibTexture *texture;
 
     if (backend == NULL || width <= 0 || height <= 0) {
         return NULL;
     }
 
-    surface = (RaylibSurface *)calloc(1U, sizeof(*surface));
-    if (surface == NULL) {
+    texture = (RaylibTexture *)calloc(1U, sizeof(*texture));
+    if (texture == NULL) {
         return NULL;
     }
 
-    surface->base.width = width;
-    surface->base.height = height;
-    surface->base.bytes_per_pixel = 4U;
-    surface->target = LoadRenderTexture(width, height);
-    if (surface->target.id == 0U) {
-        free(surface);
+    texture->base.width = width;
+    texture->base.height = height;
+    texture->base.bytes_per_pixel = 4U;
+    texture->target = LoadRenderTexture(width, height);
+    if (texture->target.id == 0U) {
+        free(texture);
         return NULL;
     }
 
-    SetTextureFilter(surface->target.texture, TEXTURE_FILTER_BILINEAR);
-    return &surface->base;
+    SetTextureFilter(texture->target.texture, TEXTURE_FILTER_BILINEAR);
+    return &texture->base;
 }
 
-static void raylib_backend_destroy_surface(void *userdata, Surface *surface) {
-    RaylibSurface *raylib_surface = raylib_surface_from_base(surface);
+static void raylib_backend_destroy_texture(void *userdata, Texture *texture) {
+    RaylibTexture *raylib_texture = raylib_texture_from_base(texture);
     (void)userdata;
 
-    if (raylib_surface == NULL) {
+    if (raylib_texture == NULL) {
         return;
     }
 
-    UnloadRenderTexture(raylib_surface->target);
-    free(raylib_surface);
+    UnloadRenderTexture(raylib_texture->target);
+    free(raylib_texture);
 }
 
-static void raylib_backend_set_target(void *userdata, Surface *surface) {
+static void raylib_backend_set_target(void *userdata, Texture *texture) {
     RaylibBackend *backend = raylib_backend_from_user_data(userdata);
-    RaylibSurface *raylib_surface = raylib_surface_from_base(surface);
+    RaylibTexture *raylib_texture = raylib_texture_from_base(texture);
 
-    if (backend == NULL || raylib_surface == NULL) {
+    if (backend == NULL || raylib_texture == NULL) {
         return;
     }
 
@@ -202,10 +206,10 @@ static void raylib_backend_set_target(void *userdata, Surface *surface) {
             backend->clip_depth -= 1;
         }
     }
-    BeginTextureMode(raylib_surface->target);
+    BeginTextureMode(raylib_texture->target);
     backend->target_active = true;
-    backend->target_width = raylib_surface->base.width;
-    backend->target_height = raylib_surface->base.height;
+    backend->target_width = raylib_texture->base.width;
+    backend->target_height = raylib_texture->base.height;
 }
 
 static void raylib_backend_reset_target(void *userdata) {
@@ -281,76 +285,76 @@ static void raylib_backend_draw_text(void *userdata, float x, float y, const cha
     DrawText(text, (int)x, (int)y, 12, raylib_unpack_color(color));
 }
 
-static void raylib_backend_draw_surface(void *userdata, const Surface *surface, float x, float y) {
-    const RaylibSurface *raylib_surface = raylib_surface_from_const_base(surface);
+static void raylib_backend_draw_texture(void *userdata, const Texture *texture, float x, float y) {
+    const RaylibTexture *raylib_texture = raylib_texture_from_const_base(texture);
     Rectangle source;
     Rectangle dest;
     (void)userdata;
 
-    if (raylib_surface == NULL) {
+    if (raylib_texture == NULL) {
         return;
     }
 
     source.x = 0.0f;
     source.y = 0.0f;
-    source.width = (float)raylib_surface->base.width;
-    source.height = (float)-raylib_surface->base.height;
+    source.width = (float)raylib_texture->base.width;
+    source.height = (float)-raylib_texture->base.height;
     dest.x = x;
     dest.y = y;
-    dest.width = (float)raylib_surface->base.width;
-    dest.height = (float)raylib_surface->base.height;
-    DrawTexturePro(raylib_surface->target.texture, source, dest, (Vector2){ 0.0f, 0.0f }, 0.0f, WHITE);
+    dest.width = (float)raylib_texture->base.width;
+    dest.height = (float)raylib_texture->base.height;
+    DrawTexturePro(raylib_texture->target.texture, source, dest, (Vector2){ 0.0f, 0.0f }, 0.0f, WHITE);
 }
 
-static void raylib_backend_draw_surface_tinted(void *userdata, const Surface *surface, float x, float y, Color32 tint) {
-    const RaylibSurface *raylib_surface = raylib_surface_from_const_base(surface);
+static void raylib_backend_draw_texture_tinted(void *userdata, const Texture *texture, float x, float y, Color32 tint) {
+    const RaylibTexture *raylib_texture = raylib_texture_from_const_base(texture);
     Rectangle source;
     Rectangle dest;
     (void)userdata;
 
-    if (raylib_surface == NULL) {
+    if (raylib_texture == NULL) {
         return;
     }
 
     source.x = 0.0f;
     source.y = 0.0f;
-    source.width = (float)raylib_surface->base.width;
-    source.height = (float)-raylib_surface->base.height;
+    source.width = (float)raylib_texture->base.width;
+    source.height = (float)-raylib_texture->base.height;
     dest.x = x;
     dest.y = y;
-    dest.width = (float)raylib_surface->base.width;
-    dest.height = (float)raylib_surface->base.height;
-    DrawTexturePro(raylib_surface->target.texture, source, dest, (Vector2){ 0.0f, 0.0f }, 0.0f, raylib_unpack_color(tint));
+    dest.width = (float)raylib_texture->base.width;
+    dest.height = (float)raylib_texture->base.height;
+    DrawTexturePro(raylib_texture->target.texture, source, dest, (Vector2){ 0.0f, 0.0f }, 0.0f, raylib_unpack_color(tint));
 }
 
-static void raylib_backend_draw_surface_ex(
+static void raylib_backend_draw_texture_ex(
     void *userdata,
-    const Surface *surface,
+    const Texture *texture,
     Rect dest,
     Vec2 origin,
     float rotation_degrees
 ) {
-    const RaylibSurface *raylib_surface = raylib_surface_from_const_base(surface);
+    const RaylibTexture *raylib_texture = raylib_texture_from_const_base(texture);
     Rectangle source;
     Rectangle draw_dest;
     Vector2 draw_origin;
     (void)userdata;
 
-    if (raylib_surface == NULL) {
+    if (raylib_texture == NULL) {
         return;
     }
 
     source.x = 0.0f;
     source.y = 0.0f;
-    source.width = (float)raylib_surface->base.width;
-    source.height = (float)-raylib_surface->base.height;
+    source.width = (float)raylib_texture->base.width;
+    source.height = (float)-raylib_texture->base.height;
     draw_dest.x = dest.x + origin.x;
     draw_dest.y = dest.y + origin.y;
     draw_dest.width = dest.w;
     draw_dest.height = dest.h;
     draw_origin.x = origin.x;
     draw_origin.y = origin.y;
-    DrawTexturePro(raylib_surface->target.texture, source, draw_dest, draw_origin, rotation_degrees, WHITE);
+    DrawTexturePro(raylib_texture->target.texture, source, draw_dest, draw_origin, rotation_degrees, WHITE);
 }
 
 static void raylib_backend_draw_tilemap(
@@ -455,8 +459,8 @@ bool raylib_backend_init(
     backend->instancing_enabled = false;
 
     backend->render_backend.userdata = backend;
-    backend->render_backend.create_surface = raylib_backend_create_surface;
-    backend->render_backend.destroy_surface = raylib_backend_destroy_surface;
+    backend->render_backend.create_texture = raylib_backend_create_texture;
+    backend->render_backend.destroy_texture = raylib_backend_destroy_texture;
     backend->render_backend.set_target = raylib_backend_set_target;
     backend->render_backend.reset_target = raylib_backend_reset_target;
     backend->render_backend.clear = raylib_backend_clear;
@@ -467,10 +471,10 @@ bool raylib_backend_init(
     backend->render_backend.draw_circle = raylib_backend_draw_circle;
     backend->render_backend.draw_oval = raylib_backend_draw_oval;
     backend->render_backend.draw_text = raylib_backend_draw_text;
-    backend->render_backend.draw_surface = raylib_backend_draw_surface;
-    backend->render_backend.draw_surface_tinted = raylib_backend_draw_surface_tinted;
-    backend->render_backend.draw_surface_ex = raylib_backend_draw_surface_ex;
-    backend->render_backend.draw_surface_batch = raylib_backend_draw_surface_batch;
+    backend->render_backend.draw_texture = raylib_backend_draw_texture;
+    backend->render_backend.draw_texture_tinted = raylib_backend_draw_texture_tinted;
+    backend->render_backend.draw_texture_ex = raylib_backend_draw_texture_ex;
+    backend->render_backend.draw_texture_batch = raylib_backend_draw_texture_batch;
     backend->render_backend.draw_tilemap = raylib_backend_draw_tilemap;
     backend->render_backend.push_clip = raylib_backend_push_clip;
     backend->render_backend.pop_clip = raylib_backend_pop_clip;

@@ -4,17 +4,17 @@
 #include "ResourceManagerInternal.h"
 
 typedef struct PendingBakeRequest {
-    BakedSurfaceKey key;
+    BakedTextureKey key;
     uint32_t priority;
 } PendingBakeRequest;
 
 typedef struct PendingBakeSlot {
     uint8_t state;
-    BakedSurfaceKey key;
+    BakedTextureKey key;
 } PendingBakeSlot;
 
 typedef struct BakeInterestEntry {
-    BakedSurfaceKey key;
+    BakedTextureKey key;
     uint32_t total_hits;
     uint32_t frame_hits;
     uint64_t last_seen_frame;
@@ -41,8 +41,8 @@ struct ResourceBakeQueueState {
     size_t bake_admission_total_hits;
     size_t bake_admission_frame_hits;
     uint64_t frame_serial;
-    uint32_t* visual_source_last_requested_frame_indices;
-    size_t visual_source_last_requested_frame_capacity;
+    uint32_t* procedural_texture_last_requested_frame_indices;
+    size_t procedural_texture_last_requested_frame_capacity;
 };
 
 #endif

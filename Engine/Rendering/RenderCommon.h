@@ -67,13 +67,13 @@ static inline Color32 color_rgb_from_hsv(float hue, float saturation, float valu
     );
 }
 
-typedef struct Surface {
+typedef struct Texture {
     int width;
     int height;
     void *pixels;
     size_t bytes_per_pixel;
     uint64_t generation;
-} Surface;
+} Texture;
 
 static inline char *string_duplicate(const char *text) {
     size_t length;

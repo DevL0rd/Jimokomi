@@ -115,34 +115,34 @@ void target_text(Target *target, float x, float y, const char *text, Color32 col
     target->backend->draw_text(target->backend->userdata, target->origin.x + x * target->scale.x, target->origin.y + y * target->scale.y, text, color);
 }
 
-void target_surface(Target *target, const Surface *surface, float x, float y) {
-    if (target == NULL || target->backend == NULL || target->backend->draw_surface == NULL) {
+void target_texture(Target *target, const Texture *texture, float x, float y) {
+    if (target == NULL || target->backend == NULL || target->backend->draw_texture == NULL) {
         return;
     }
-    target->backend->draw_surface(target->backend->userdata, surface, target->origin.x + x * target->scale.x, target->origin.y + y * target->scale.y);
+    target->backend->draw_texture(target->backend->userdata, texture, target->origin.x + x * target->scale.x, target->origin.y + y * target->scale.y);
 }
 
-void target_surface_tinted(Target *target, const Surface *surface, float x, float y, Color32 tint) {
-    if (target == NULL || target->backend == NULL || target->backend->draw_surface_tinted == NULL) {
+void target_texture_tinted(Target *target, const Texture *texture, float x, float y, Color32 tint) {
+    if (target == NULL || target->backend == NULL || target->backend->draw_texture_tinted == NULL) {
         return;
     }
-    target->backend->draw_surface_tinted(
+    target->backend->draw_texture_tinted(
         target->backend->userdata,
-        surface,
+        texture,
         target->origin.x + x * target->scale.x,
         target->origin.y + y * target->scale.y,
         tint
     );
 }
 
-void target_surface_ex(Target *target, const Surface *surface, Rect dest, Vec2 origin, float rotation_degrees) {
-    if (target == NULL || target->backend == NULL || target->backend->draw_surface_ex == NULL) {
+void target_texture_ex(Target *target, const Texture *texture, Rect dest, Vec2 origin, float rotation_degrees) {
+    if (target == NULL || target->backend == NULL || target->backend->draw_texture_ex == NULL) {
         return;
     }
     dest = target_offset_rect(target, dest);
     origin.x *= target->scale.x;
     origin.y *= target->scale.y;
-    target->backend->draw_surface_ex(target->backend->userdata, surface, dest, origin, rotation_degrees);
+    target->backend->draw_texture_ex(target->backend->userdata, texture, dest, origin, rotation_degrees);
 }
 
 void target_tilemap(Target *target, const void *source, int tile_x, int tile_y, float x, float y, int width_tiles, int height_tiles) {

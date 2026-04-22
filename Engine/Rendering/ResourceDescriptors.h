@@ -2,16 +2,11 @@
 #define JIMOKOMI_ENGINE_RENDERING_RESOURCEDESCRIPTORS_H
 
 #include "ResourceTypes.h"
+#include "RenderTypes.h"
 #include "Target.h"
 
 #include <stdbool.h>
 #include <stdint.h>
-
-typedef enum VisualKind {
-    VISUAL_KIND_TEXTURE = 0,
-    VISUAL_KIND_SPRITE,
-    VISUAL_KIND_PROCEDURAL_TEXTURE
-} VisualKind;
 
 typedef enum ShaderStyle {
     SHADER_STYLE_NONE = 0,
@@ -42,25 +37,24 @@ typedef struct ProceduralTextureContext {
     ShaderStyle shader_style;
 } ProceduralTextureContext;
 
-typedef void (*SpriteBuilder)(Target* target, const ProceduralTextureContext* context, void* user_data);
+typedef void (*ProceduralTextureBuilder)(Target* target, const ProceduralTextureContext* context, void* user_data);
 
-typedef struct ProceduralSourceDesc {
+typedef struct ProceduralTextureDesc {
+    GeneratedFrameConfig frames;
     int width;
     int height;
-    float animation_fps;
-    float bake_animation_fps;
-    bool loop;
-    BakePolicy bake_policy;
-    bool prebake_required;
-    bool bake_instance_invariant;
     bool bake_ignores_material;
-    uint32_t bake_frame_count;
-    SpriteBuilder draw_body;
-    SpriteBuilder draw_overlay;
-} ProceduralSourceDesc;
+    ProceduralTextureBuilder draw_body;
+    ProceduralTextureBuilder draw_overlay;
+} ProceduralTextureDesc;
+
+typedef struct ProceduralMeshDesc {
+    GeneratedFrameConfig frames;
+    ProceduralMeshBuilder build_mesh;
+} ProceduralMeshDesc;
 
 typedef struct TextureResource {
-    Surface* surface;
+    Texture* texture;
 } TextureResource;
 
 typedef struct MaterialResource {
@@ -71,20 +65,18 @@ typedef struct ShaderResource {
     ShaderStyle style;
 } ShaderResource;
 
-typedef struct VisualSourceResource {
-    VisualKind kind;
+typedef struct ProceduralTextureResource {
+    GeneratedFrameConfig frames;
     int width;
     int height;
-    float animation_fps;
-    float bake_animation_fps;
-    bool loop;
-    BakePolicy bake_policy;
-    bool prebake_required;
-    bool bake_instance_invariant;
     bool bake_ignores_material;
-    uint32_t bake_frame_count;
-    SpriteBuilder draw_body;
-    SpriteBuilder draw_overlay;
-} VisualSourceResource;
+    ProceduralTextureBuilder draw_body;
+    ProceduralTextureBuilder draw_overlay;
+} ProceduralTextureResource;
+
+typedef struct ProceduralMeshResource {
+    GeneratedFrameConfig frames;
+    ProceduralMeshBuilder build_mesh;
+} ProceduralMeshResource;
 
 #endif

@@ -30,7 +30,7 @@ void renderer_compute_frame_signatures(
     uint64_t* out_frame_signature,
     uint64_t* out_sort_signature,
     uint64_t* out_instance_signature,
-    bool* out_items_sorted_by_layer
+    bool* out_procedural_textures_sorted_by_layer
 )
 {
     uint64_t frame_hash = 1469598103934665603ULL;
@@ -38,7 +38,7 @@ void renderer_compute_frame_signatures(
     uint64_t instance_hash = 88172645463325252ULL;
     size_t index = 0U;
     int previous_layer = 0;
-    bool items_sorted_by_layer = true;
+    bool procedural_textures_sorted_by_layer = true;
 
     if (frame == NULL)
     {
@@ -54,45 +54,47 @@ void renderer_compute_frame_signatures(
         {
             *out_instance_signature = 0U;
         }
-        if (out_items_sorted_by_layer != NULL)
+        if (out_procedural_textures_sorted_by_layer != NULL)
         {
-            *out_items_sorted_by_layer = true;
+            *out_procedural_textures_sorted_by_layer = true;
         }
         return;
     }
 
-    frame_hash = renderer_hash_u64(frame_hash, frame->item_count);
-    frame_hash = renderer_hash_u64(frame_hash, frame->draw_sprites ? 1U : 0U);
+    frame_hash = renderer_hash_u64(frame_hash, frame->procedural_texture_count);
+    frame_hash = renderer_hash_u64(frame_hash, frame->draw_scene_renderables ? 1U : 0U);
     frame_hash = renderer_hash_u64(frame_hash, frame->draw_debug ? 1U : 0U);
     frame_hash = renderer_hash_u64(frame_hash, frame->metadata_signature);
-    if (frame->item_signatures_valid)
+    if (frame->procedural_texture_signatures_valid)
     {
-        frame_hash = renderer_hash_u64(frame_hash, frame->item_frame_signature);
-        sort_hash = renderer_hash_u64(sort_hash, frame->item_sort_signature);
-        instance_hash = renderer_hash_u64(instance_hash, frame->item_instance_signature);
-        items_sorted_by_layer = frame->items_sorted_by_layer;
+        frame_hash = renderer_hash_u64(frame_hash, frame->procedural_texture_frame_signature);
+        sort_hash = renderer_hash_u64(sort_hash, frame->procedural_texture_sort_signature);
+        instance_hash = renderer_hash_u64(instance_hash, frame->procedural_texture_instance_signature);
+        procedural_textures_sorted_by_layer = frame->procedural_textures_sorted_by_layer;
     }
     else
     {
-        sort_hash = renderer_hash_u64(sort_hash, frame->item_count);
-        instance_hash = renderer_hash_u64(instance_hash, frame->item_count);
-        for (index = 0U; index < frame->item_count; ++index)
+        sort_hash = renderer_hash_u64(sort_hash, frame->procedural_texture_count);
+        instance_hash = renderer_hash_u64(instance_hash, frame->procedural_texture_count);
+        for (index = 0U; index < frame->procedural_texture_count; ++index)
         {
-            const SpriteRenderable* item = &frame->items[index];
+            const ProceduralTextureRenderable* item = &frame->procedural_textures[index];
 
             if (index > 0U && item->layer < previous_layer)
             {
-                items_sorted_by_layer = false;
+                procedural_textures_sorted_by_layer = false;
             }
             previous_layer = item->layer;
             frame_hash = renderer_hash_u64(frame_hash, (uint64_t)(int64_t)item->layer);
             frame_hash = renderer_hash_u64(frame_hash, item->visible ? 1U : 0U);
-            frame_hash = renderer_hash_u64(frame_hash, item->visual_source_handle.id);
+            frame_hash = renderer_hash_u64(frame_hash, item->texture_handle.id);
+            frame_hash = renderer_hash_u64(frame_hash, item->procedural_texture_handle.id);
             frame_hash = renderer_hash_u64(frame_hash, item->material_handle.id);
             frame_hash = renderer_hash_u64(frame_hash, item->shader_handle.id);
             frame_hash = renderer_hash_u64(frame_hash, item->tint.value);
             sort_hash = renderer_hash_u64(sort_hash, (uint64_t)(int64_t)item->layer);
-            instance_hash = renderer_hash_u64(instance_hash, item->visual_source_handle.id);
+            instance_hash = renderer_hash_u64(instance_hash, item->texture_handle.id);
+            instance_hash = renderer_hash_u64(instance_hash, item->procedural_texture_handle.id);
             instance_hash = renderer_hash_u64(instance_hash, item->material_handle.id);
             instance_hash = renderer_hash_u64(instance_hash, item->shader_handle.id);
             instance_hash = renderer_hash_u64(instance_hash, item->tint.value);
@@ -111,8 +113,8 @@ void renderer_compute_frame_signatures(
     {
         *out_instance_signature = instance_hash;
     }
-    if (out_items_sorted_by_layer != NULL)
+    if (out_procedural_textures_sorted_by_layer != NULL)
     {
-        *out_items_sorted_by_layer = items_sorted_by_layer;
+        *out_procedural_textures_sorted_by_layer = procedural_textures_sorted_by_layer;
     }
 }

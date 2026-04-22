@@ -4,9 +4,9 @@
 #include "RendererInternal.h"
 
 struct RendererScratchState {
-    SpriteRenderable* scratch_items;
+    ProceduralTextureRenderable* scratch_procedural_textures;
     size_t scratch_capacity;
-    SurfaceDrawInstance* scratch_instances;
+    TextureDrawInstance* scratch_instances;
     size_t scratch_instance_capacity;
 };
 

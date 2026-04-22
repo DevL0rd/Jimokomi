@@ -4,6 +4,7 @@
 #include "SceneCameraFollowInternal.h"
 #include "SceneLifecycleInternal.h"
 #include "ScenePhysicsInternal.h"
+#include "SceneParticleVisualsInternal.h"
 #include "SceneSpatialInternal.h"
 #include "SceneStatsInternal.h"
 #include "SceneStorage.h"
@@ -45,13 +46,15 @@ void Scene_Init(Scene* scene, const char* name, const PhysicsWorldConfig* physic
     scene->spatial = (SceneSpatialState*)calloc(1U, sizeof(*scene->spatial));
     scene->stats = (SceneStatsState*)calloc(1U, sizeof(*scene->stats));
     scene->camera_follow = (SceneCameraFollowState*)calloc(1U, sizeof(*scene->camera_follow));
+    scene->particle_visuals = (SceneParticleVisualState*)calloc(1U, sizeof(*scene->particle_visuals));
     if (scene->lifecycle == NULL ||
         scene->storage == NULL ||
         scene->physics == NULL ||
         scene->tilemap == NULL ||
         scene->spatial == NULL ||
         scene->stats == NULL ||
-        scene->camera_follow == NULL)
+        scene->camera_follow == NULL ||
+        scene->particle_visuals == NULL)
     {
         free(scene->lifecycle);
         free(scene->storage);
@@ -60,6 +63,7 @@ void Scene_Init(Scene* scene, const char* name, const PhysicsWorldConfig* physic
         free(scene->spatial);
         free(scene->stats);
         free(scene->camera_follow);
+        free(scene->particle_visuals);
         memset(scene, 0, sizeof(*scene));
         return;
     }
@@ -102,7 +106,8 @@ Scene* Scene_Create(const char* name, const PhysicsWorldConfig* physics_config)
         scene->tilemap == NULL ||
         scene->spatial == NULL ||
         scene->stats == NULL ||
-        scene->camera_follow == NULL)
+        scene->camera_follow == NULL ||
+        scene->particle_visuals == NULL)
     {
         free(scene);
         return NULL;
@@ -122,6 +127,16 @@ bool Scene_SetEntityLinearVelocity(Scene* scene, struct Entity* entity, Vec2 vel
     return scene != NULL &&
            scene->physics->physics_world != NULL &&
            PhysicsWorld_SetEntityLinearVelocity(scene->physics->physics_world, entity, velocity);
+}
+
+void Scene_SetEntityTargetPosition(Scene* scene, struct Entity* entity, float x, float y, float time_step, bool wake)
+{
+    if (scene == NULL || scene->physics->physics_world == NULL)
+    {
+        return;
+    }
+
+    PhysicsWorld_SetEntityTargetPosition(scene->physics->physics_world, entity, x, y, time_step, wake);
 }
 
 bool Scene_ApplyEntityLinearImpulse(Scene* scene, struct Entity* entity, Vec2 impulse, bool wake)
@@ -282,6 +297,10 @@ void Scene_Destroy(Scene* scene)
     {
         SpatialGrid_Dispose(&scene->spatial->spatial_grid);
     }
+    if (scene->particle_visuals != NULL)
+    {
+        SceneParticleVisualState_Dispose(scene->particle_visuals);
+    }
 
     free(scene->lifecycle);
     free(scene->storage);
@@ -290,5 +309,6 @@ void Scene_Destroy(Scene* scene)
     free(scene->spatial);
     free(scene->stats);
     free(scene->camera_follow);
+    free(scene->particle_visuals);
     free(scene);
 }

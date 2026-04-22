@@ -4,7 +4,7 @@
 #include "ResourceManagerStatsInternal.h"
 
 #include "RenderCommon.h"
-
+#include "Target.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,12 +32,12 @@ static ResourceHandle resource_manager_find(
 ResourceHandle resource_manager_register_texture(
     ResourceManager* manager,
     const char* key,
-    Surface* surface
+    Texture* texture
 ) {
     ResourceHandle existing;
     size_t index;
 
-    if (manager == NULL || key == NULL || surface == NULL) {
+    if (manager == NULL || key == NULL || texture == NULL) {
         return resource_handle(0U);
     }
 
@@ -59,8 +59,54 @@ ResourceHandle resource_manager_register_texture(
     index = manager->registry->texture_count++;
     manager->registry->textures[index].key = string_duplicate(key);
     manager->registry->textures[index].id = (uint32_t)(index + 1U);
-    manager->registry->texture_values[index].surface = surface;
+    manager->registry->texture_values[index].texture = texture;
     return resource_handle(manager->registry->textures[index].id);
+}
+
+ResourceHandle resource_manager_register_texture_from_builder(
+    ResourceManager* manager,
+    const char* key,
+    int width,
+    int height,
+    ResourceTextureBuildFn build_texture,
+    void* user_data
+) {
+    ResourceHandle existing;
+    Texture* texture;
+    Target target;
+
+    if (manager == NULL || key == NULL || width <= 0 || height <= 0 || build_texture == NULL ||
+        manager->backend == NULL ||
+        manager->backend->create_texture == NULL ||
+        manager->backend->set_target == NULL ||
+        manager->backend->reset_target == NULL ||
+        manager->backend->clear == NULL) {
+        return resource_handle(0U);
+    }
+
+    existing = resource_manager_find(manager->registry->textures, manager->registry->texture_count, key);
+    if (existing.id != 0U) {
+        return existing;
+    }
+
+    texture = manager->backend->create_texture(manager->backend->userdata, width, height);
+    if (texture == NULL) {
+        return resource_handle(0U);
+    }
+
+    manager->backend->set_target(manager->backend->userdata, texture);
+    manager->backend->clear(manager->backend->userdata, color_rgba(0U, 0U, 0U, 0U));
+    target_init(&target, manager->backend, 0.0f, 0.0f);
+    build_texture(&target, user_data);
+    manager->backend->reset_target(manager->backend->userdata);
+
+    existing = resource_manager_register_texture(manager, key, texture);
+    if (existing.id == 0U) {
+        if (manager->backend->destroy_texture != NULL) {
+            manager->backend->destroy_texture(manager->backend->userdata, texture);
+        }
+    }
+    return existing;
 }
 
 ResourceHandle resource_manager_register_material(
@@ -133,10 +179,10 @@ ResourceHandle resource_manager_register_shader(
     return resource_handle(manager->registry->shaders[index].id);
 }
 
-ResourceHandle resource_manager_register_procedural_source(
+ResourceHandle resource_manager_register_procedural_texture(
     ResourceManager* manager,
     const char* key,
-    const ProceduralSourceDesc* desc
+    const ProceduralTextureDesc* desc
 ) {
     ResourceHandle existing;
     size_t index;
@@ -145,58 +191,88 @@ ResourceHandle resource_manager_register_procedural_source(
         return resource_handle(0U);
     }
 
-    existing = resource_manager_find(manager->registry->visual_sources, manager->registry->visual_source_count, key);
+    existing = resource_manager_find(manager->registry->procedural_textures, manager->registry->procedural_texture_count, key);
     if (existing.id != 0U) {
         return existing;
     }
 
     if (!resource_manager_reserve(
-        &manager->registry->visual_sources,
-        (void**)&manager->registry->visual_source_values,
-        sizeof(*manager->registry->visual_source_values),
-        &manager->registry->visual_source_capacity,
-        manager->registry->visual_source_count + 1U
+        &manager->registry->procedural_textures,
+        (void**)&manager->registry->procedural_texture_values,
+        sizeof(*manager->registry->procedural_texture_values),
+        &manager->registry->procedural_texture_capacity,
+        manager->registry->procedural_texture_count + 1U
     )) {
         return resource_handle(0U);
     }
 
-    index = manager->registry->visual_source_count++;
-    manager->registry->visual_sources[index].key = string_duplicate(key);
-    manager->registry->visual_sources[index].id = (uint32_t)(index + 1U);
-    manager->registry->visual_source_values[index].kind = VISUAL_KIND_PROCEDURAL_TEXTURE;
-    manager->registry->visual_source_values[index].width = desc->width;
-    manager->registry->visual_source_values[index].height = desc->height;
-    manager->registry->visual_source_values[index].animation_fps = desc->animation_fps;
-    manager->registry->visual_source_values[index].bake_animation_fps = desc->bake_animation_fps;
-    manager->registry->visual_source_values[index].loop = desc->loop;
-    manager->registry->visual_source_values[index].bake_policy = desc->bake_policy;
-    manager->registry->visual_source_values[index].prebake_required = desc->prebake_required;
-    manager->registry->visual_source_values[index].bake_instance_invariant = desc->bake_instance_invariant;
-    manager->registry->visual_source_values[index].bake_ignores_material = desc->bake_ignores_material;
-    manager->registry->visual_source_values[index].bake_frame_count = desc->bake_frame_count;
-    manager->registry->visual_source_values[index].draw_body = desc->draw_body;
-    manager->registry->visual_source_values[index].draw_overlay = desc->draw_overlay;
-    if (manager->bake_queue->visual_source_last_requested_frame_capacity < manager->registry->visual_source_capacity) {
+    index = manager->registry->procedural_texture_count++;
+    manager->registry->procedural_textures[index].key = string_duplicate(key);
+    manager->registry->procedural_textures[index].id = (uint32_t)(index + 1U);
+    manager->registry->procedural_texture_values[index].frames = desc->frames;
+    manager->registry->procedural_texture_values[index].width = desc->width;
+    manager->registry->procedural_texture_values[index].height = desc->height;
+    manager->registry->procedural_texture_values[index].bake_ignores_material = desc->bake_ignores_material;
+    manager->registry->procedural_texture_values[index].draw_body = desc->draw_body;
+    manager->registry->procedural_texture_values[index].draw_overlay = desc->draw_overlay;
+    if (manager->bake_queue->procedural_texture_last_requested_frame_capacity < manager->registry->procedural_texture_capacity) {
         uint32_t* next_frames = (uint32_t*)realloc(
-            manager->bake_queue->visual_source_last_requested_frame_indices,
-            manager->registry->visual_source_capacity * sizeof(*next_frames)
+            manager->bake_queue->procedural_texture_last_requested_frame_indices,
+            manager->registry->procedural_texture_capacity * sizeof(*next_frames)
         );
         if (next_frames != NULL) {
             size_t fill_index;
-            for (fill_index = manager->bake_queue->visual_source_last_requested_frame_capacity;
-                 fill_index < manager->registry->visual_source_capacity;
+            for (fill_index = manager->bake_queue->procedural_texture_last_requested_frame_capacity;
+                 fill_index < manager->registry->procedural_texture_capacity;
                  ++fill_index) {
                 next_frames[fill_index] = UINT32_MAX;
             }
-            manager->bake_queue->visual_source_last_requested_frame_indices = next_frames;
-            manager->bake_queue->visual_source_last_requested_frame_capacity = manager->registry->visual_source_capacity;
+            manager->bake_queue->procedural_texture_last_requested_frame_indices = next_frames;
+            manager->bake_queue->procedural_texture_last_requested_frame_capacity = manager->registry->procedural_texture_capacity;
         }
     }
-    resource_manager_mark_dirty_visual_source(manager, resource_handle(manager->registry->visual_sources[index].id));
-    if (desc->prebake_required) {
-        manager->stats->prebake_ready_visual_source_count += 1U;
+    resource_manager_mark_dirty_procedural_texture(manager, resource_handle(manager->registry->procedural_textures[index].id));
+    if (desc->frames.prebake_enabled &&
+        desc->frames.cache_policy != BAKE_POLICY_DISABLED &&
+        desc->frames.cache_policy != BAKE_POLICY_REFRESH_FRAME) {
+        manager->stats->prebake_ready_procedural_texture_count += 1U;
     }
-    return resource_handle(manager->registry->visual_sources[index].id);
+    return resource_handle(manager->registry->procedural_textures[index].id);
+}
+
+ResourceHandle resource_manager_register_procedural_mesh(
+    ResourceManager* manager,
+    const char* key,
+    const ProceduralMeshDesc* desc
+) {
+    ResourceHandle existing;
+    size_t index;
+
+    if (manager == NULL || key == NULL || desc == NULL) {
+        return resource_handle(0U);
+    }
+
+    existing = resource_manager_find(manager->registry->procedural_meshes, manager->registry->procedural_mesh_count, key);
+    if (existing.id != 0U) {
+        return existing;
+    }
+
+    if (!resource_manager_reserve(
+        &manager->registry->procedural_meshes,
+        (void**)&manager->registry->procedural_mesh_values,
+        sizeof(*manager->registry->procedural_mesh_values),
+        &manager->registry->procedural_mesh_capacity,
+        manager->registry->procedural_mesh_count + 1U
+    )) {
+        return resource_handle(0U);
+    }
+
+    index = manager->registry->procedural_mesh_count++;
+    manager->registry->procedural_meshes[index].key = string_duplicate(key);
+    manager->registry->procedural_meshes[index].id = (uint32_t)(index + 1U);
+    manager->registry->procedural_mesh_values[index].frames = desc->frames;
+    manager->registry->procedural_mesh_values[index].build_mesh = desc->build_mesh;
+    return resource_handle(manager->registry->procedural_meshes[index].id);
 }
 
 const TextureResource* resource_manager_get_texture(
@@ -229,12 +305,22 @@ const ShaderResource* resource_manager_get_shader(
     return &manager->registry->shader_values[handle.id - 1U];
 }
 
-const VisualSourceResource* resource_manager_get_visual_source(
+const ProceduralTextureResource* resource_manager_get_procedural_texture(
     const ResourceManager* manager,
     ResourceHandle handle
 ) {
-    if (manager == NULL || handle.id == 0U || handle.id > manager->registry->visual_source_count) {
+    if (manager == NULL || handle.id == 0U || handle.id > manager->registry->procedural_texture_count) {
         return NULL;
     }
-    return &manager->registry->visual_source_values[handle.id - 1U];
+    return &manager->registry->procedural_texture_values[handle.id - 1U];
+}
+
+const ProceduralMeshResource* resource_manager_get_procedural_mesh(
+    const ResourceManager* manager,
+    ResourceHandle handle
+) {
+    if (manager == NULL || handle.id == 0U || handle.id > manager->registry->procedural_mesh_count) {
+        return NULL;
+    }
+    return &manager->registry->procedural_mesh_values[handle.id - 1U];
 }

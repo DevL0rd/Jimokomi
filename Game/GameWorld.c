@@ -11,7 +11,6 @@
 #include <math.h>
 #include <stdlib.h>
 
-#if 0
 static float jimokomi_random_range(float min_value, float max_value)
 {
     float t = (float)rand() / (float)RAND_MAX;
@@ -29,7 +28,6 @@ static void jimokomi_ball_spawn_position(float* out_x, float* out_y)
         *out_y = jimokomi_random_range(BALL_RADIUS, BALL_SPAWN_TOP_HEIGHT);
     }
 }
-#endif
 
 static bool jimokomi_player_is_grounded(const JimokomiGameState* game)
 {
@@ -85,7 +83,6 @@ static void jimokomi_scene_input(Scene* scene, const SceneInputState* input_stat
     }
 }
 
-#if 0
 static Entity* jimokomi_spawn_ball(JimokomiGameState* game, size_t index)
 {
     Entity* entity;
@@ -102,13 +99,13 @@ static Entity* jimokomi_spawn_ball(JimokomiGameState* game, size_t index)
     desc.x = x;
     desc.y = y;
     desc.radius = BALL_RADIUS;
-    desc.visual_source_handle = game->ball_source_handles[index % SOURCE_VARIANT_COUNT];
+    desc.procedural_texture_handle = game->ball_procedural_texture_handles[index % SOURCE_VARIANT_COUNT];
     desc.material_handle = game->ball_material_handle;
     desc.shader_handle = game->shared_ball_shader_handle;
     desc.initial_velocity.x = ((index % 2U) == 0U) ? 8.0f : -8.0f;
     desc.initial_velocity.y = ((index % 3U) == 0U) ? -4.0f : 4.0f;
     desc.initial_angular_velocity = 0.0f;
-    desc.density = 1.0f;
+    desc.density = BALL_DENSITY;
     desc.friction = 0.12f;
     desc.restitution = 0.0f;
     desc.selectable = true;
@@ -124,7 +121,42 @@ static Entity* jimokomi_spawn_ball(JimokomiGameState* game, size_t index)
     game->active_ball_count += 1U;
     return entity;
 }
-#endif
+
+static Entity* jimokomi_create_wave_paddle(Scene* scene)
+{
+    return Scene_CreateKinematicBox(
+        scene,
+        WAVE_PADDLE_RIGHT_X,
+        WAVE_PADDLE_Y,
+        WAVE_PADDLE_WIDTH,
+        WAVE_PADDLE_HEIGHT
+    );
+}
+
+static void jimokomi_update_wave_paddle(JimokomiGameState* game, double dt_seconds)
+{
+    double t;
+    float alpha;
+    float x;
+
+    if (game == NULL || game->scene == NULL || game->wave_paddle == NULL || dt_seconds <= 0.0)
+    {
+        return;
+    }
+
+    game->wave_paddle_time_seconds += dt_seconds;
+    t = game->wave_paddle_time_seconds / WAVE_PADDLE_PERIOD_SECONDS;
+    alpha = 0.5f + 0.5f * cosf((float)t * 6.28318530718f);
+    x = WAVE_PADDLE_LEFT_X + (WAVE_PADDLE_RIGHT_X - WAVE_PADDLE_LEFT_X) * alpha;
+    Scene_SetEntityTargetPosition(
+        game->scene,
+        game->wave_paddle,
+        x,
+        WAVE_PADDLE_Y,
+        (float)dt_seconds,
+        true
+    );
+}
 
 bool jimokomi_game_register_resources(EngineAppContext* app, JimokomiGameState* game)
 {
@@ -144,7 +176,7 @@ bool jimokomi_game_register_resources(EngineAppContext* app, JimokomiGameState* 
     if (!game_register_ball_visuals(
             renderer,
             &game->shared_ball_shader_handle,
-            game->ball_source_handles,
+            game->ball_procedural_texture_handles,
             SOURCE_VARIANT_COUNT,
             material_handles,
             1U))
@@ -202,6 +234,13 @@ Scene* jimokomi_game_create_scene(EngineAppContext* app, JimokomiGameState* game
     Scene_SetWorldBounds(game->scene, 0.0f, 0.0f, WORLD_WIDTH, WORLD_HEIGHT);
     Scene_AddBoundsColliders(game->scene, (Rect){ 0.0f, 0.0f, WORLD_WIDTH, WORLD_HEIGHT }, WORLD_WALL_THICKNESS);
     grid_backdrop_init(&game->backdrop, WORLD_WIDTH, WORLD_HEIGHT, GRID_CELL_SIZE);
+    game->wave_paddle = jimokomi_create_wave_paddle(game->scene);
+    if (game->wave_paddle == NULL)
+    {
+        Scene_Destroy(game->scene);
+        game->scene = NULL;
+        return NULL;
+    }
 
     if (!game_liquid_sources_create(game->scene, &game->liquid_sources))
     {
@@ -210,12 +249,8 @@ Scene* jimokomi_game_create_scene(EngineAppContext* app, JimokomiGameState* game
         return NULL;
     }
 
-    /*
     game->player = jimokomi_spawn_ball(game, PLAYER_INDEX);
     game->spawn_cursor = 1U;
-    */
-    game->player = NULL;
-    game->spawn_cursor = BALL_COUNT;
     return game->scene;
 }
 
@@ -230,8 +265,8 @@ void jimokomi_game_update_sim(EngineAppContext* app, double dt_seconds, const En
     }
 
     game_liquid_sources_update(game->scene, &game->liquid_sources, dt_seconds);
+    jimokomi_update_wave_paddle(game, dt_seconds);
 
-    /*
     game->spawn_accumulator_seconds += dt_seconds;
     while (game->spawn_accumulator_seconds >= BALL_SPAWN_INTERVAL_SECONDS &&
            game->spawn_cursor < BALL_COUNT)
@@ -243,7 +278,6 @@ void jimokomi_game_update_sim(EngineAppContext* app, double dt_seconds, const En
         }
         game->spawn_cursor += 1U;
     }
-    */
 }
 
 void jimokomi_game_post_update_sim(EngineAppContext* app, double dt_seconds, const EngineInput* input, JimokomiGameState* game)
@@ -251,11 +285,5 @@ void jimokomi_game_post_update_sim(EngineAppContext* app, double dt_seconds, con
     (void)app;
     (void)dt_seconds;
     (void)input;
-
-    if (game == NULL)
-    {
-        return;
-    }
-
-    game_liquid_sources_sync_visuals(game->scene, &game->liquid_sources);
+    (void)game;
 }

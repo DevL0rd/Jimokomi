@@ -19,23 +19,23 @@ typedef struct RaylibBackend {
     void* instancing_state;
 } RaylibBackend;
 
-bool raylib_backend_surface_get_dimensions(
-    const Surface *surface,
+bool raylib_backend_texture_get_dimensions(
+    const Texture *texture,
     int *width,
     int *height
 );
-unsigned int raylib_backend_surface_get_texture_id(const Surface *surface);
-void raylib_backend_draw_surface_batch_individual(
+unsigned int raylib_backend_texture_get_texture_id(const Texture *texture);
+void raylib_backend_draw_texture_batch_individual(
     void *userdata,
-    const Surface *surface,
-    const SurfaceDrawInstance *instances,
+    const Texture *texture,
+    const TextureDrawInstance *instances,
     size_t instance_count
 );
 
-void raylib_backend_draw_surface_batch(
+void raylib_backend_draw_texture_batch(
     void *userdata,
-    const Surface *surface,
-    const SurfaceDrawInstance *instances,
+    const Texture *texture,
+    const TextureDrawInstance *instances,
     size_t instance_count
 );
 void raylib_backend_release_instancing_state(RaylibBackend* backend);

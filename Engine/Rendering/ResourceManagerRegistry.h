@@ -3,11 +3,23 @@
 
 #include "ResourceDescriptors.h"
 #include "ResourceManager.h"
+#include "Target.h"
+
+typedef void (*ResourceTextureBuildFn)(Target* target, void* user_data);
+
+ResourceHandle resource_manager_register_texture_from_builder(
+    ResourceManager* manager,
+    const char* key,
+    int width,
+    int height,
+    ResourceTextureBuildFn build_texture,
+    void* user_data
+);
 
 ResourceHandle resource_manager_register_texture(
     ResourceManager* manager,
     const char* key,
-    Surface* surface
+    Texture* texture
 );
 ResourceHandle resource_manager_register_material(
     ResourceManager* manager,
@@ -19,10 +31,15 @@ ResourceHandle resource_manager_register_shader(
     const char* key,
     ShaderStyle style
 );
-ResourceHandle resource_manager_register_procedural_source(
+ResourceHandle resource_manager_register_procedural_texture(
     ResourceManager* manager,
     const char* key,
-    const ProceduralSourceDesc* desc
+    const ProceduralTextureDesc* desc
+);
+ResourceHandle resource_manager_register_procedural_mesh(
+    ResourceManager* manager,
+    const char* key,
+    const ProceduralMeshDesc* desc
 );
 
 const TextureResource* resource_manager_get_texture(
@@ -37,7 +54,11 @@ const ShaderResource* resource_manager_get_shader(
     const ResourceManager* manager,
     ResourceHandle handle
 );
-const VisualSourceResource* resource_manager_get_visual_source(
+const ProceduralTextureResource* resource_manager_get_procedural_texture(
+    const ResourceManager* manager,
+    ResourceHandle handle
+);
+const ProceduralMeshResource* resource_manager_get_procedural_mesh(
     const ResourceManager* manager,
     ResourceHandle handle
 );
