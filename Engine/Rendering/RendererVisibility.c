@@ -3,10 +3,11 @@
 #include "RendererLifecycleInternal.h"
 #include "ResourceManagerRegistry.h"
 
-bool renderer_is_procedural_texture_visible(const Renderer* renderer, const ProceduralTextureRenderable* item)
+bool renderer_is_material_renderable_visible(const Renderer* renderer, const MaterialRenderable* item)
 {
     const ProceduralTextureResource* source = NULL;
     const TextureResource* texture = NULL;
+    const MaterialResource* material = NULL;
     float left = 0.0f;
     float top = 0.0f;
     float right = 0.0f;
@@ -19,7 +20,13 @@ bool renderer_is_procedural_texture_visible(const Renderer* renderer, const Proc
         return false;
     }
 
-    texture = resource_manager_get_texture(renderer->lifecycle->resource_manager, item->texture_handle);
+    material = resource_manager_get_material(renderer->lifecycle->resource_manager, item->material_handle);
+    if (material == NULL)
+    {
+        return false;
+    }
+
+    texture = resource_manager_get_texture(renderer->lifecycle->resource_manager, material->value.texture_handle);
     if (texture != NULL && texture->texture != NULL)
     {
         width = (float)texture->texture->width;
@@ -27,7 +34,7 @@ bool renderer_is_procedural_texture_visible(const Renderer* renderer, const Proc
     }
     else
     {
-        source = resource_manager_get_procedural_texture(renderer->lifecycle->resource_manager, item->procedural_texture_handle);
+        source = resource_manager_get_procedural_texture(renderer->lifecycle->resource_manager, material->value.procedural_texture_handle);
         if (source == NULL)
         {
             return false;

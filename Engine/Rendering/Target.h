@@ -18,6 +18,16 @@ typedef struct TextureDrawInstance {
     Color32 tint;
 } TextureDrawInstance;
 
+typedef struct TriangleDrawInstance {
+    Vec2 a;
+    Vec2 b;
+    Vec2 c;
+    Vec2 uv_a;
+    Vec2 uv_b;
+    Vec2 uv_c;
+    Color32 tint;
+} TriangleDrawInstance;
+
 struct RenderBackend {
     void *userdata;
     Texture *(*create_texture)(void *userdata, int width, int height);
@@ -29,6 +39,8 @@ struct RenderBackend {
     void (*draw_rect)(void *userdata, Rect rect, Color32 color);
     void (*draw_rect_filled)(void *userdata, Rect rect, Color32 color);
     void (*draw_triangle_filled)(void *userdata, Vec2 a, Vec2 b, Vec2 c, Color32 color);
+    void (*draw_triangle_textured)(void *userdata, const Texture *texture, Vec2 a, Vec2 b, Vec2 c, Vec2 uv_a, Vec2 uv_b, Vec2 uv_c, Color32 tint);
+    void (*draw_triangles)(void *userdata, const Texture *texture, const TriangleDrawInstance *triangles, size_t triangle_count);
     void (*draw_circle)(void *userdata, Vec2 center, float radius, Color32 color, bool filled);
     void (*draw_oval)(void *userdata, Rect rect, Color32 color, bool filled);
     void (*draw_text)(void *userdata, float x, float y, const char *text, Color32 color);

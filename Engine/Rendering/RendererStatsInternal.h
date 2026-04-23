@@ -4,11 +4,11 @@
 #include "RendererInternal.h"
 
 struct RendererStatsState {
-    size_t last_procedural_texture_count;
-    size_t last_procedural_texture_draw_count;
-    size_t last_visible_procedural_texture_count;
+    size_t last_material_renderable_count;
+    size_t last_material_renderable_draw_count;
+    size_t last_visible_material_renderable_count;
     size_t last_overlay_draw_count;
-    size_t last_procedural_texture_item_count;
+    size_t last_material_renderable_item_count;
     size_t last_baked_texture_count;
     size_t last_instanced_batch_count;
     size_t last_instanced_draw_count;

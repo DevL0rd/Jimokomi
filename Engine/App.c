@@ -106,6 +106,12 @@ int EngineApp_Run(const EngineAppDesc* desc)
     {
         goto cleanup;
     }
+    task_system_config.requested_worker_count = settings->render_task_worker_count;
+    app.render_task_system = task_system_create(&task_system_config);
+    if (app.render_task_system == NULL)
+    {
+        goto cleanup;
+    }
 
     app.renderer = renderer_create(raylib_backend_get_render_backend(app.backend), &renderer_config);
     if (app.renderer == NULL)
@@ -184,6 +190,7 @@ cleanup:
     {
         renderer_destroy(app.renderer);
     }
+    task_system_destroy(app.render_task_system);
     task_system_destroy(app.task_system);
     Engine_dispose(&app.engine);
     raylib_backend_destroy(app.backend);

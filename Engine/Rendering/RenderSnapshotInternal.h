@@ -4,9 +4,9 @@
 #include "RenderSnapshot.h"
 
 struct RenderWorldSnapshot {
-    ProceduralTextureRenderable* procedural_textures;
-    size_t procedural_texture_capacity;
-    size_t procedural_texture_count;
+    MaterialRenderable* material_renderables;
+    size_t material_renderable_capacity;
+    size_t material_renderable_count;
     ProceduralMeshRenderable* procedural_meshes;
     size_t procedural_mesh_capacity;
     size_t procedural_mesh_count;
@@ -16,11 +16,11 @@ struct RenderWorldSnapshot {
     LineRenderable* lines;
     size_t line_capacity;
     size_t line_count;
-    uint64_t procedural_texture_frame_signature;
-    uint64_t procedural_texture_sort_signature;
-    uint64_t procedural_texture_instance_signature;
-    bool procedural_texture_signatures_valid;
-    bool procedural_textures_sorted_by_layer;
+    uint64_t material_frame_signature;
+    uint64_t material_sort_signature;
+    uint64_t material_instance_signature;
+    bool material_signatures_valid;
+    bool material_renderables_sorted_by_layer;
     RendererBackdropDrawFn backdrop_draw;
     void* backdrop_user_data;
     DebugGridView debug_grid;
@@ -53,7 +53,7 @@ struct RenderSnapshotBuffer {
     uint64_t published_at_ms;
 };
 
-bool render_world_snapshot_reserve_procedural_textures(RenderWorldSnapshot* snapshot, size_t required_capacity);
+bool render_world_snapshot_reserve_material_renderables(RenderWorldSnapshot* snapshot, size_t required_capacity);
 bool render_world_snapshot_reserve_procedural_meshes(RenderWorldSnapshot* snapshot, size_t required_capacity);
 bool render_world_snapshot_reserve_triangles(RenderWorldSnapshot* snapshot, size_t required_capacity);
 bool render_world_snapshot_reserve_lines(RenderWorldSnapshot* snapshot, size_t required_capacity);

@@ -303,6 +303,8 @@ void* engine_app_simulation_thread_main(void* user_data)
         bool snapshot_publish_due;
         uint32_t physics_substeps;
         float render_alpha;
+        Camera snapshot_camera;
+        const Camera* snapshot_camera_source;
         Aabb snapshot_view_bounds;
 
         if (input_packet_stream_read_latest(context->input_stream, &packet))
@@ -362,6 +364,7 @@ void* engine_app_simulation_thread_main(void* user_data)
             input_changed ||
             latest_input.drag_entity_active ||
             latest_input.drag_entity_release ||
+            physics_substeps > 0U ||
             now_ms - last_snapshot_publish_ms >= context->settings->app_snapshot_publish_interval_ms;
         if (!snapshot_publish_due)
         {
@@ -382,23 +385,31 @@ void* engine_app_simulation_thread_main(void* user_data)
             continue;
         }
 
+        snapshot_camera_source = renderer_get_camera_const(app->renderer);
+        if (has_input && latest_input.camera_view_width > 0.0f)
+        {
+            snapshot_camera = snapshot_camera_source != NULL
+                ? *snapshot_camera_source
+                : (Camera){ 0 };
+            snapshot_camera.x = latest_input.camera_x;
+            snapshot_camera.y = latest_input.camera_y;
+            snapshot_camera.view_width = latest_input.camera_view_width;
+            snapshot_camera.view_height = latest_input.camera_view_height;
+            snapshot_camera_source = &snapshot_camera;
+        }
+
         snapshot_view_bounds = scene_render_snapshot_compute_view_bounds(
             app->scene,
-            has_input && latest_input.camera_view_width > 0.0f
-                ? &(Camera){
-                    .x = latest_input.camera_x,
-                    .y = latest_input.camera_y,
-                    .view_width = latest_input.camera_view_width,
-                    .view_height = latest_input.camera_view_height
-                }
-                : renderer_get_camera_const(app->renderer),
+            snapshot_camera_source,
             context->settings->app_snapshot_preload_screens
         );
 
         snapshot_build_started_ms = engine_app_sim_now_ms();
         if (!scene_render_snapshot_build(
             snapshot_builder,
+            app->render_task_system,
             app->scene,
+            snapshot_camera_source,
             snapshot_view_bounds,
             render_alpha,
             now_ms,

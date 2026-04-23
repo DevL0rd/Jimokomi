@@ -34,13 +34,13 @@ void renderer_compute_frame_signatures(
     uint64_t* out_frame_signature,
     uint64_t* out_sort_signature,
     uint64_t* out_instance_signature,
-    bool* out_procedural_textures_sorted_by_layer
+    bool* out_material_renderables_sorted_by_layer
 );
-bool renderer_is_procedural_texture_visible(const Renderer* renderer, const ProceduralTextureRenderable* renderable);
+bool renderer_is_material_renderable_visible(const Renderer* renderer, const MaterialRenderable* renderable);
 bool renderer_reserve_instances(Renderer* renderer, size_t required_capacity);
-bool renderer_prepare_batched_texture_draw(
+bool renderer_prepare_batched_material_draw(
     Renderer* renderer,
-    const ProceduralTextureRenderable* renderable,
+    const MaterialRenderable* renderable,
     uint64_t now_ms,
     RendererPreparedTextureDraw* prepared
 );

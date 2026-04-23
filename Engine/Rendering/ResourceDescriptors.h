@@ -15,7 +15,21 @@ typedef enum ShaderStyle {
     SHADER_STYLE_ADDITIVE_GLOW
 } ShaderStyle;
 
+typedef enum MaterialUvMode {
+    MATERIAL_UV_VERTEX = 0,
+    MATERIAL_UV_WORLD,
+    MATERIAL_UV_LOCAL_BOUNDS
+} MaterialUvMode;
+
 typedef struct Material {
+    ResourceHandle texture_handle;
+    ResourceHandle procedural_texture_handle;
+    ResourceHandle shader_handle;
+    MaterialUvMode uv_mode;
+    float uv_scale_x;
+    float uv_scale_y;
+    float uv_offset_x;
+    float uv_offset_y;
     uint32_t base_color;
     uint32_t accent_color;
     uint32_t glow_color;

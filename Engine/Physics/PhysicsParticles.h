@@ -62,6 +62,7 @@ bool PhysicsWorld_CreateParticle(
 );
 size_t PhysicsWorld_GetParticleCount(const PhysicsWorld* world);
 size_t PhysicsWorld_GetParticleSystemParticleCount(const PhysicsWorld* world, PhysicsParticleSystemHandle handle);
+float PhysicsWorld_GetParticleSystemRadius(const PhysicsWorld* world, PhysicsParticleSystemHandle handle);
 size_t PhysicsWorld_CopyParticleRenderData(
     const PhysicsWorld* world,
     PhysicsParticleRenderData* particles,
@@ -70,6 +71,13 @@ size_t PhysicsWorld_CopyParticleRenderData(
 size_t PhysicsWorld_CopyParticleSystemRenderData(
     const PhysicsWorld* world,
     PhysicsParticleSystemHandle handle,
+    PhysicsParticleRenderData* particles,
+    size_t capacity
+);
+size_t PhysicsWorld_CopyParticleSystemRenderDataInAabb(
+    const PhysicsWorld* world,
+    PhysicsParticleSystemHandle handle,
+    Aabb bounds,
     PhysicsParticleRenderData* particles,
     size_t capacity
 );

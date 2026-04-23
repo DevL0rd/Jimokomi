@@ -2,6 +2,7 @@
 #define JIMOKOMI_ENGINE_RENDERING_SCENERENDERSNAPSHOT_H
 
 #include "RenderSnapshot.h"
+#include "../Core/TaskSystem.h"
 
 struct Entity;
 struct Scene;
@@ -18,7 +19,9 @@ Aabb scene_render_snapshot_compute_view_bounds(
 );
 bool scene_render_snapshot_build(
     SceneRenderSnapshotBuilder* builder,
+    const TaskSystem* task_system,
     struct Scene* scene,
+    const Camera* camera,
     Aabb view_bounds,
     float render_alpha,
     uint64_t now_ms,

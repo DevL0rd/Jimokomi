@@ -17,6 +17,7 @@ typedef struct EngineSettings
     uint64_t app_snapshot_publish_interval_ms;
     uint32_t app_idle_sleep_ms;
     Color32 app_clear_color;
+    int render_task_worker_count;
 
     float scene_spatial_grid_cell_size;
 

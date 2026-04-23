@@ -6,12 +6,13 @@ const EngineSettings* EngineSettings_GetDefaults(void)
         .window_width = 960,
         .window_height = 540,
         .window_title = "Jimokomi",
-        .vsync_enabled = true,
+        .vsync_enabled = false,
 
         .app_snapshot_preload_screens = 1.0f,
         .app_snapshot_publish_interval_ms = 16ULL,
         .app_idle_sleep_ms = 1U,
         .app_clear_color = { 0x0b1020U },
+        .render_task_worker_count = 1,
 
         .scene_spatial_grid_cell_size = 64.0f,
 

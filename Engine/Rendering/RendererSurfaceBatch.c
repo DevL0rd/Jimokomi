@@ -13,7 +13,7 @@
 
 bool renderer_reserve_instances(Renderer* renderer, size_t required_capacity)
 {
-    TextureDrawInstance* procedural_textures = NULL;
+    TextureDrawInstance* material_renderables = NULL;
     size_t next_capacity = 0U;
 
     if (renderer == NULL)
@@ -32,20 +32,20 @@ bool renderer_reserve_instances(Renderer* renderer, size_t required_capacity)
         next_capacity *= 2U;
     }
 
-    procedural_textures = (TextureDrawInstance*)realloc(renderer->scratch->scratch_instances, next_capacity * sizeof(*procedural_textures));
-    if (procedural_textures == NULL)
+    material_renderables = (TextureDrawInstance*)realloc(renderer->scratch->scratch_instances, next_capacity * sizeof(*material_renderables));
+    if (material_renderables == NULL)
     {
         return false;
     }
 
-    renderer->scratch->scratch_instances = procedural_textures;
+    renderer->scratch->scratch_instances = material_renderables;
     renderer->scratch->scratch_instance_capacity = next_capacity;
     return true;
 }
 
-bool renderer_prepare_batched_texture_draw(
+bool renderer_prepare_batched_material_draw(
     Renderer* renderer,
-    const ProceduralTextureRenderable* item,
+    const MaterialRenderable* item,
     uint64_t now_ms,
     RendererPreparedTextureDraw* prepared
 )
@@ -69,7 +69,13 @@ bool renderer_prepare_batched_texture_draw(
 
     memset(prepared, 0, sizeof(*prepared));
 
-    texture = resource_manager_get_texture(renderer->lifecycle->resource_manager, item->texture_handle);
+    material = resource_manager_get_material(renderer->lifecycle->resource_manager, item->material_handle);
+    if (material == NULL)
+    {
+        return false;
+    }
+
+    texture = resource_manager_get_texture(renderer->lifecycle->resource_manager, material->value.texture_handle);
     if (texture != NULL && texture->texture != NULL)
     {
         width = (float)texture->texture->width;
@@ -90,8 +96,7 @@ bool renderer_prepare_batched_texture_draw(
         return true;
     }
 
-    source = resource_manager_get_procedural_texture(renderer->lifecycle->resource_manager, item->procedural_texture_handle);
-    material = resource_manager_get_material(renderer->lifecycle->resource_manager, item->material_handle);
+    source = resource_manager_get_procedural_texture(renderer->lifecycle->resource_manager, material->value.procedural_texture_handle);
     if (source == NULL || material == NULL || source->draw_body == NULL)
     {
         return false;
@@ -108,9 +113,9 @@ bool renderer_prepare_batched_texture_draw(
     frame_index = generated_frame_animation_index(&source->frames, now_ms);
     baked_body = resource_manager_get_or_create_baked_texture(
         renderer->lifecycle->resource_manager,
-        item->procedural_texture_handle,
+        material->value.procedural_texture_handle,
         item->material_handle,
-        item->shader_handle,
+        material->value.shader_handle,
         frame_index,
         BAKED_TEXTURE_PASS_BODY,
         item->user_data
@@ -175,7 +180,7 @@ void renderer_flush_texture_batch(
     renderer->stats->last_instance_draw_ms += renderer_now_ms() - started_ms;
     renderer->stats->last_instanced_batch_count += 1U;
     renderer->stats->last_instanced_draw_count += batch->count;
-    renderer->stats->last_procedural_texture_draw_count += batch->count;
+    renderer->stats->last_material_renderable_draw_count += batch->count;
     batch->texture = NULL;
     batch->tint.value = 0U;
     batch->count = 0U;

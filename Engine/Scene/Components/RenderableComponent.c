@@ -17,9 +17,7 @@ void RenderableComponent_Init(RenderableComponent* component)
     }
 
     Component_Init(&component->base, COMPONENT_RENDERABLE, RenderableComponent_DestroyBase);
-    component->procedural_texture_handle = (ResourceHandle){ 0U };
     component->material_handle = (ResourceHandle){ 0U };
-    component->shader_handle = (ResourceHandle){ 0U };
     component->anchor_x = 0.5f;
     component->anchor_y = 0.5f;
     component->tint = (Color32){ 0xffffffffU };
@@ -47,9 +45,7 @@ RenderableComponent* RenderableComponent_CreateWithDesc(const RenderableComponen
         return component;
     }
 
-    component->procedural_texture_handle = desc->procedural_texture_handle;
     component->material_handle = desc->material_handle;
-    component->shader_handle = desc->shader_handle;
     component->anchor_x = desc->anchor_x;
     component->anchor_y = desc->anchor_y;
     component->tint = desc->tint.value != 0U ? desc->tint : (Color32){ 0xffffffffU };

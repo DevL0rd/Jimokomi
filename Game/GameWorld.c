@@ -99,9 +99,7 @@ static Entity* jimokomi_spawn_ball(JimokomiGameState* game, size_t index)
     desc.x = x;
     desc.y = y;
     desc.radius = BALL_RADIUS;
-    desc.procedural_texture_handle = game->ball_procedural_texture_handles[index % SOURCE_VARIANT_COUNT];
     desc.material_handle = game->ball_material_handle;
-    desc.shader_handle = game->shared_ball_shader_handle;
     desc.initial_velocity.x = ((index % 2U) == 0U) ? 8.0f : -8.0f;
     desc.initial_velocity.y = ((index % 3U) == 0U) ? -4.0f : 4.0f;
     desc.initial_angular_velocity = 0.0f;
@@ -160,7 +158,6 @@ static void jimokomi_update_wave_paddle(JimokomiGameState* game, double dt_secon
 
 bool jimokomi_game_register_resources(EngineAppContext* app, JimokomiGameState* game)
 {
-    ResourceHandle material_handles[1];
     Renderer* renderer;
 
     if (app == NULL || game == NULL)
@@ -175,15 +172,10 @@ bool jimokomi_game_register_resources(EngineAppContext* app, JimokomiGameState* 
 
     if (!game_register_ball_visuals(
             renderer,
-            &game->shared_ball_shader_handle,
-            game->ball_procedural_texture_handles,
-            SOURCE_VARIANT_COUNT,
-            material_handles,
-            1U))
+            &game->ball_material_handle))
     {
         return false;
     }
-    game->ball_material_handle = material_handles[0];
     return game_liquid_sources_register_resources(renderer, &game->liquid_sources);
 }
 

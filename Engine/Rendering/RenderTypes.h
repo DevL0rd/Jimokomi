@@ -7,7 +7,7 @@
 #include "ResourceTypes.h"
 #include "Target.h"
 
-typedef struct ProceduralTextureRenderable {
+typedef struct MaterialRenderable {
     float x;
     float y;
     float angle_radians;
@@ -15,21 +15,25 @@ typedef struct ProceduralTextureRenderable {
     float anchor_y;
     int layer;
     bool visible;
-    ResourceHandle texture_handle;
-    ResourceHandle procedural_texture_handle;
     ResourceHandle material_handle;
-    ResourceHandle shader_handle;
     Color32 tint;
     void* user_data;
-} ProceduralTextureRenderable;
+} MaterialRenderable;
 
 typedef struct TriangleRenderable {
     Vec2 a;
     Vec2 b;
     Vec2 c;
+    Vec2 screen_a;
+    Vec2 screen_b;
+    Vec2 screen_c;
+    Vec2 uv_a;
+    Vec2 uv_b;
+    Vec2 uv_c;
     Color32 color;
     int layer;
     bool visible;
+    bool screen_space_valid;
 } TriangleRenderable;
 
 typedef struct LineRenderable {
@@ -86,6 +90,7 @@ typedef struct Mesh {
 
 typedef struct ProceduralMeshRenderable {
     ResourceHandle procedural_mesh_handle;
+    ResourceHandle material_handle;
     size_t triangle_start;
     size_t triangle_count;
     size_t line_start;
@@ -98,19 +103,19 @@ typedef struct ProceduralMeshRenderable {
 typedef void (*RendererBackdropDrawFn)(Target* target, const Camera* camera, void* user_data);
 
 typedef struct RendererFrame {
-    const ProceduralTextureRenderable *procedural_textures;
-    size_t procedural_texture_count;
+    const MaterialRenderable* material_renderables;
+    size_t material_renderable_count;
     const ProceduralMeshRenderable* procedural_meshes;
     size_t procedural_mesh_count;
     const TriangleRenderable* triangles;
     size_t triangle_count;
     const LineRenderable* lines;
     size_t line_count;
-    uint64_t procedural_texture_frame_signature;
-    uint64_t procedural_texture_sort_signature;
-    uint64_t procedural_texture_instance_signature;
-    bool procedural_texture_signatures_valid;
-    bool procedural_textures_sorted_by_layer;
+    uint64_t material_frame_signature;
+    uint64_t material_sort_signature;
+    uint64_t material_instance_signature;
+    bool material_signatures_valid;
+    bool material_renderables_sorted_by_layer;
     RendererBackdropDrawFn backdrop_draw;
     void* backdrop_user_data;
     uint64_t backdrop_signature;

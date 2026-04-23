@@ -15,6 +15,7 @@ struct EngineAppContext
     Renderer* renderer;
     Scene* scene;
     TaskSystem* task_system;
+    TaskSystem* render_task_system;
     InteractionSystemState interaction_state;
     uint64_t dropped_render_snapshots;
 };

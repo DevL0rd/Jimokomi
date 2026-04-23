@@ -13,7 +13,7 @@ static bool game_liquid_sources_emit_particle(
     LiquidSourceSystemState* liquid,
     float x,
     float y,
-    float velocity_x,
+    float velocity_y,
     uint32_t color_argb
 )
 {
@@ -27,7 +27,7 @@ static bool game_liquid_sources_emit_particle(
     particle.flags = PHYSICS_PARTICLE_FLAG_LIQUID |
                      PHYSICS_PARTICLE_FLAG_COLOR_MIXING;
     particle.position = (Vec2){ x, y };
-    particle.velocity = (Vec2){ velocity_x, LIQUID_SOURCE_SPEED_Y };
+    particle.velocity = (Vec2){ 0.0f, velocity_y };
     particle.color_argb = color_argb;
     particle.lifetime_seconds = LIQUID_PARTICLE_LIFETIME_SECONDS;
     return PhysicsWorld_CreateParticle(
@@ -38,41 +38,42 @@ static bool game_liquid_sources_emit_particle(
     );
 }
 
-static void game_liquid_sources_emit_pair(Scene* scene, LiquidSourceSystemState* liquid)
+static void game_liquid_sources_emit(Scene* scene, LiquidSourceSystemState* liquid)
 {
-    float left_x = LIQUID_SOURCE_X_OFFSET;
-    float right_x = WORLD_WIDTH - LIQUID_SOURCE_X_OFFSET;
-    float first_y = LIQUID_SOURCE_Y -
-        ((float)(LIQUID_SOURCE_PARTICLES_PER_SIDE - 1U) * LIQUID_SOURCE_VERTICAL_SPACING * 0.5f);
+    float left_x = WORLD_WIDTH * 0.5f - LIQUID_SOURCE_CENTER_GAP * 0.5f;
+    float right_x = WORLD_WIDTH * 0.5f + LIQUID_SOURCE_CENTER_GAP * 0.5f;
+    float first_offset =
+        -((float)(LIQUID_SOURCE_PARTICLES_PER_SIDE - 1U) * LIQUID_SOURCE_PARTICLE_SPACING * 0.5f);
     size_t index = 0U;
 
     for (index = 0U; index < LIQUID_SOURCE_PARTICLES_PER_SIDE; ++index)
     {
-        float y = first_y + (float)index * LIQUID_SOURCE_VERTICAL_SPACING;
+        float x_offset = first_offset + (float)index * LIQUID_SOURCE_PARTICLE_SPACING;
         (void)game_liquid_sources_emit_particle(
             scene,
             liquid,
-            left_x,
-            y,
-            LIQUID_SOURCE_SPEED_X,
+            left_x + x_offset,
+            LIQUID_SOURCE_Y,
+            LIQUID_SOURCE_SPEED,
             LIQUID_BLUE_ARGB
         );
         (void)game_liquid_sources_emit_particle(
             scene,
             liquid,
-            right_x,
-            y,
-            -LIQUID_SOURCE_SPEED_X,
+            right_x + x_offset,
+            LIQUID_SOURCE_Y,
+            LIQUID_SOURCE_SPEED,
             LIQUID_RED_ARGB
         );
     }
-
-    liquid->emit_sequence += 1U;
 }
 
 bool game_liquid_sources_register_resources(Renderer* renderer, LiquidSourceSystemState* liquid)
 {
-    return game_register_liquid_visuals(renderer, liquid != NULL ? &liquid->visuals : NULL);
+    return renderer_register_default_particle_visual_resources(
+        renderer,
+        liquid != NULL ? &liquid->visuals : NULL
+    );
 }
 
 bool game_liquid_sources_create(Scene* scene, LiquidSourceSystemState* liquid)
@@ -105,23 +106,20 @@ bool game_liquid_sources_create(Scene* scene, LiquidSourceSystemState* liquid)
         return false;
     }
 
+    if (!Scene_SetDefaultParticleVisualResources(scene, &liquid->visuals))
+    {
+        PhysicsWorld_DestroyParticleSystem(physics_world, liquid->particle_system);
+        memset(&liquid->particle_system, 0, sizeof(liquid->particle_system));
+        liquid->particle_system_created = false;
+        return false;
+    }
+
     if (!Scene_RegisterParticleVisual(
         scene,
         &(SceneParticleVisualDesc){
             .particle_system = liquid->particle_system,
-            .texture_handle = liquid->visuals.texture_handle,
-            .procedural_mesh_handle = liquid->visuals.procedural_mesh_handle,
-            .material_handle = liquid->visuals.material_handle,
-            .shader_handle = liquid->visuals.shader_handle,
-            .fallback_tint = (Color32){ LIQUID_BLUE_ARGB },
-            .layer = -1,
-            .visible = true,
+            .particles_visible = false,
             .mesh_visible = true,
-            .mesh_tint = (Color32){ LIQUID_SURFACE_ARGB },
-            .mesh_layer = -2,
-            .mesh_cell_size = LIQUID_SURFACE_CELL_SIZE,
-            .mesh_influence_radius = LIQUID_SURFACE_INFLUENCE_RADIUS,
-            .mesh_threshold = LIQUID_SURFACE_THRESHOLD
         }
     ))
     {
@@ -149,17 +147,10 @@ void game_liquid_sources_update(Scene* scene, LiquidSourceSystemState* liquid, d
         return;
     }
 
-    if (dt_seconds > 0.0)
+    if (dt_seconds > 0.0 &&
+        PhysicsWorld_GetParticleSystemParticleCount(physics_world, liquid->particle_system) < LIQUID_PARTICLE_SOURCE_MAX_COUNT)
     {
-        liquid->emit_accumulator_seconds += dt_seconds;
-        while (
-            liquid->emit_accumulator_seconds >= LIQUID_EMIT_INTERVAL_SECONDS &&
-            PhysicsWorld_GetParticleSystemParticleCount(physics_world, liquid->particle_system) < LIQUID_PARTICLE_SOURCE_MAX_COUNT
-        )
-        {
-            liquid->emit_accumulator_seconds -= LIQUID_EMIT_INTERVAL_SECONDS;
-            game_liquid_sources_emit_pair(scene, liquid);
-        }
+        game_liquid_sources_emit(scene, liquid);
     }
 }
 

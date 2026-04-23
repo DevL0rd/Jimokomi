@@ -3,6 +3,7 @@
 
 #include "Scene.h"
 #include "../Physics/PhysicsHandles.h"
+#include "../Rendering/ParticleVisualResources.h"
 #include "../Rendering/RenderCommon.h"
 #include "../Rendering/ResourceTypes.h"
 
@@ -12,14 +13,12 @@
 typedef struct SceneParticleVisualDesc
 {
     PhysicsParticleSystemHandle particle_system;
-    ResourceHandle texture_handle;
-    ResourceHandle procedural_texture_handle;
-    ResourceHandle procedural_mesh_handle;
-    ResourceHandle material_handle;
-    ResourceHandle shader_handle;
-    Color32 fallback_tint;
-    int layer;
-    bool visible;
+    ResourceHandle mesh_handle;
+    ResourceHandle particle_material_handle;
+    ResourceHandle mesh_material_handle;
+    Color32 particle_fallback_tint;
+    int particle_layer;
+    bool particles_visible;
     bool mesh_visible;
     Color32 mesh_tint;
     int mesh_layer;
@@ -28,6 +27,10 @@ typedef struct SceneParticleVisualDesc
     float mesh_threshold;
 } SceneParticleVisualDesc;
 
+bool Scene_SetDefaultParticleVisualResources(
+    Scene* scene,
+    const ParticleVisualResourceHandles* handles
+);
 bool Scene_RegisterParticleVisual(Scene* scene, const SceneParticleVisualDesc* desc);
 bool Scene_UnregisterParticleVisual(Scene* scene, PhysicsParticleSystemHandle particle_system);
 size_t Scene_GetParticleVisualCount(const Scene* scene);

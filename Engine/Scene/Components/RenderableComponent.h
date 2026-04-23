@@ -8,9 +8,7 @@
 typedef struct RenderableComponent
 {
     Component base;
-    ResourceHandle procedural_texture_handle;
     ResourceHandle material_handle;
-    ResourceHandle shader_handle;
     float anchor_x;
     float anchor_y;
     Color32 tint;
@@ -20,9 +18,7 @@ typedef struct RenderableComponent
 
 typedef struct RenderableComponentDesc
 {
-    ResourceHandle procedural_texture_handle;
     ResourceHandle material_handle;
-    ResourceHandle shader_handle;
     float anchor_x;
     float anchor_y;
     Color32 tint;

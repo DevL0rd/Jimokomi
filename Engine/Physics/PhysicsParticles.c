@@ -147,6 +147,42 @@ static uint32_t PhysicsWorld_PackParticleColor(b2ParticleColor color)
            (uint32_t)color.b;
 }
 
+typedef struct PhysicsParticleRenderQueryContext
+{
+    PhysicsParticleRenderData* particles;
+    size_t capacity;
+    size_t count;
+    float radius;
+} PhysicsParticleRenderQueryContext;
+
+static bool PhysicsWorld_CopyQueriedParticleRenderData(
+    b2ParticleSystemId system_id,
+    int particle_index,
+    b2Vec2 position,
+    b2ParticleColor color,
+    void* user_data,
+    void* context
+)
+{
+    PhysicsParticleRenderQueryContext* query = (PhysicsParticleRenderQueryContext*)context;
+    PhysicsParticleRenderData* particle = NULL;
+
+    (void)system_id;
+    (void)particle_index;
+
+    if (query == NULL || query->particles == NULL || query->count >= query->capacity)
+    {
+        return false;
+    }
+
+    particle = &query->particles[query->count++];
+    particle->position = (Vec2){ position.x, position.y };
+    particle->radius = query->radius;
+    particle->color_argb = PhysicsWorld_PackParticleColor(color);
+    particle->user_tag = (uintptr_t)user_data;
+    return query->count < query->capacity;
+}
+
 bool PhysicsWorld_CreateParticleSystem(
     PhysicsWorld* world,
     const PhysicsParticleSystemDesc* desc,
@@ -316,6 +352,16 @@ size_t PhysicsWorld_GetParticleSystemParticleCount(
     return particle_count > 0 ? (size_t)particle_count : 0U;
 }
 
+float PhysicsWorld_GetParticleSystemRadius(const PhysicsWorld* world, PhysicsParticleSystemHandle handle)
+{
+    if (!PhysicsWorld_IsParticleSystemValid(world, handle))
+    {
+        return 0.0f;
+    }
+
+    return b2ParticleSystem_GetRadius(PhysicsWorld_LoadParticleSystemHandle(handle));
+}
+
 size_t PhysicsWorld_GetParticleCount(const PhysicsWorld* world)
 {
     size_t total_count = 0U;
@@ -378,6 +424,44 @@ size_t PhysicsWorld_CopyParticleSystemRenderData(
     }
 
     return copied_count;
+}
+
+size_t PhysicsWorld_CopyParticleSystemRenderDataInAabb(
+    const PhysicsWorld* world,
+    PhysicsParticleSystemHandle handle,
+    Aabb bounds,
+    PhysicsParticleRenderData* particles,
+    size_t capacity
+)
+{
+    b2ParticleSystemId system_id;
+    b2AABB query_bounds;
+    PhysicsParticleRenderQueryContext query_context;
+
+    if (!PhysicsWorld_IsParticleSystemValid(world, handle) || particles == NULL || capacity == 0U)
+    {
+        return 0U;
+    }
+
+    system_id = PhysicsWorld_LoadParticleSystemHandle(handle);
+    query_bounds = (b2AABB){
+        .lowerBound = { bounds.min_x, bounds.min_y },
+        .upperBound = { bounds.max_x, bounds.max_y }
+    };
+    query_context = (PhysicsParticleRenderQueryContext){
+        .particles = particles,
+        .capacity = capacity,
+        .count = 0U,
+        .radius = b2ParticleSystem_GetRadius(system_id)
+    };
+
+    (void)b2ParticleSystem_QueryParticlesInAABB(
+        system_id,
+        query_bounds,
+        PhysicsWorld_CopyQueriedParticleRenderData,
+        &query_context
+    );
+    return query_context.count;
 }
 
 size_t PhysicsWorld_CopyParticleRenderData(

@@ -8,6 +8,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define SCENE_PARTICLE_DEFAULT_BLUE_ARGB 0xd02f8dffU
+#define SCENE_PARTICLE_DEFAULT_MESH_ARGB 0xccfff000U
+#define SCENE_PARTICLE_DEFAULT_MESH_LAYER 1000
+
 static bool SceneParticleVisuals_HandlesEqual(
     PhysicsParticleSystemHandle a,
     PhysicsParticleSystemHandle b
@@ -82,10 +86,7 @@ bool Scene_RegisterParticleVisual(Scene* scene, const SceneParticleVisualDesc* d
     if (scene == NULL ||
         scene->particle_visuals == NULL ||
         desc == NULL ||
-        desc->particle_system.index1 == 0 ||
-        (desc->texture_handle.id == 0U && desc->procedural_texture_handle.id == 0U) ||
-        desc->material_handle.id == 0U ||
-        (desc->mesh_visible && desc->procedural_mesh_handle.id == 0U))
+        desc->particle_system.index1 == 0)
     {
         return false;
     }
@@ -97,9 +98,39 @@ bool Scene_RegisterParticleVisual(Scene* scene, const SceneParticleVisualDesc* d
     }
 
     binding = *desc;
-    binding.fallback_tint = desc->fallback_tint.value != 0U
-        ? desc->fallback_tint
-        : (Color32){ 0xffffffffU };
+    if (binding.particles_visible && binding.particle_material_handle.id == 0U)
+    {
+        binding.particle_material_handle = scene->particle_visuals->default_resources.particle_material_handle;
+    }
+    if (binding.mesh_visible)
+    {
+        if (binding.mesh_handle.id == 0U)
+        {
+            binding.mesh_handle = scene->particle_visuals->default_resources.mesh_handle;
+        }
+        if (binding.mesh_material_handle.id == 0U)
+        {
+            binding.mesh_material_handle = scene->particle_visuals->default_resources.mesh_material_handle;
+        }
+    }
+    if ((!binding.particles_visible && !binding.mesh_visible) ||
+        (binding.particles_visible && binding.particle_material_handle.id == 0U) ||
+        (binding.mesh_visible &&
+         (binding.mesh_handle.id == 0U || binding.mesh_material_handle.id == 0U)))
+    {
+        return false;
+    }
+
+    binding.particle_fallback_tint = desc->particle_fallback_tint.value != 0U
+        ? desc->particle_fallback_tint
+        : (Color32){ SCENE_PARTICLE_DEFAULT_BLUE_ARGB };
+    binding.mesh_tint = desc->mesh_tint.value != 0U
+        ? desc->mesh_tint
+        : (Color32){ SCENE_PARTICLE_DEFAULT_MESH_ARGB };
+    if (binding.mesh_visible && desc->mesh_layer == 0)
+    {
+        binding.mesh_layer = SCENE_PARTICLE_DEFAULT_MESH_LAYER;
+    }
     index = SceneParticleVisuals_FindIndex(scene->particle_visuals, desc->particle_system);
     if (index >= 0)
     {
@@ -113,6 +144,20 @@ bool Scene_RegisterParticleVisual(Scene* scene, const SceneParticleVisualDesc* d
     }
 
     scene->particle_visuals->bindings[scene->particle_visuals->binding_count++] = binding;
+    return true;
+}
+
+bool Scene_SetDefaultParticleVisualResources(
+    Scene* scene,
+    const ParticleVisualResourceHandles* handles
+)
+{
+    if (scene == NULL || scene->particle_visuals == NULL || handles == NULL)
+    {
+        return false;
+    }
+
+    scene->particle_visuals->default_resources = *handles;
     return true;
 }
 

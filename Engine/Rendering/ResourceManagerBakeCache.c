@@ -142,9 +142,13 @@ static bool resource_manager_baked_mesh_add_triangle(
     triangle->a = a;
     triangle->b = b;
     triangle->c = c;
+    triangle->uv_a = a;
+    triangle->uv_b = b;
+    triangle->uv_c = c;
     triangle->color = color;
     triangle->layer = layer;
     triangle->visible = true;
+    triangle->screen_space_valid = false;
     return true;
 }
 

@@ -39,9 +39,7 @@ struct Entity* Scene_CreateDynamicCircle(Scene* scene, const SceneDynamicCircleD
     });
     collider = ColliderComponent_CreateCircle(desc->radius);
     renderable = RenderableComponent_CreateWithDesc(&(RenderableComponentDesc){
-        .procedural_texture_handle = desc->procedural_texture_handle,
         .material_handle = desc->material_handle,
-        .shader_handle = desc->shader_handle,
         .anchor_x = 0.5f,
         .anchor_y = 0.5f,
         .tint = desc->tint.value != 0U ? desc->tint : (Color32){ 0xffffffffU },
@@ -106,9 +104,7 @@ struct Entity* Scene_CreateVisualCircle(Scene* scene, const SceneVisualCircleDes
     transform = TransformComponent_Create(desc->x, desc->y, 0.0f);
     collider = ColliderComponent_CreateCircle(desc->radius);
     renderable = RenderableComponent_CreateWithDesc(&(RenderableComponentDesc){
-        .procedural_texture_handle = desc->procedural_texture_handle,
         .material_handle = desc->material_handle,
-        .shader_handle = desc->shader_handle,
         .anchor_x = 0.5f,
         .anchor_y = 0.5f,
         .tint = desc->tint.value != 0U ? desc->tint : (Color32){ 0xffffffffU },

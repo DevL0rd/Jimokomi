@@ -56,6 +56,7 @@ set(SOURCES
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Rendering/DebugOverlayWorld.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Rendering/GeneratedFrame.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Rendering/GridBackdrop.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Rendering/ParticleVisualResources.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Rendering/RaylibBackend.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Rendering/RaylibBackendInstancing.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Rendering/Renderer.c"
@@ -109,7 +110,6 @@ set(SOURCES
 	"${CMAKE_CURRENT_SOURCE_DIR}/Game/Game.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Game/GameWorld.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Game/LiquidSourceSystem.c"
-	"${CMAKE_CURRENT_SOURCE_DIR}/Game/LiquidVisualResources.c"
 )
 
 add_executable(jimokomi ${SOURCES})

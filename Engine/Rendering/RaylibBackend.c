@@ -258,6 +258,80 @@ static void raylib_backend_draw_triangle_filled(void *userdata, Vec2 a, Vec2 b, 
     DrawTriangle((Vector2){ a.x, a.y }, (Vector2){ b.x, b.y }, (Vector2){ c.x, c.y }, raylib_unpack_color(color));
 }
 
+static void raylib_backend_draw_triangle_textured(
+    void *userdata,
+    const Texture *texture,
+    Vec2 a,
+    Vec2 b,
+    Vec2 c,
+    Vec2 uv_a,
+    Vec2 uv_b,
+    Vec2 uv_c,
+    Color32 tint
+) {
+    const RaylibTexture *raylib_texture = raylib_texture_from_const_base(texture);
+    Color color = raylib_unpack_color(tint);
+
+    (void)userdata;
+
+    if (raylib_texture == NULL) {
+        return;
+    }
+
+    rlSetTexture(raylib_texture->target.texture.id);
+    rlBegin(RL_TRIANGLES);
+    rlColor4ub(color.r, color.g, color.b, color.a);
+    rlTexCoord2f(uv_a.x, uv_a.y);
+    rlVertex2f(a.x, a.y);
+    rlTexCoord2f(uv_b.x, uv_b.y);
+    rlVertex2f(b.x, b.y);
+    rlTexCoord2f(uv_c.x, uv_c.y);
+    rlVertex2f(c.x, c.y);
+    rlEnd();
+    rlSetTexture(0U);
+}
+
+static void raylib_backend_draw_triangles(
+    void *userdata,
+    const Texture *texture,
+    const TriangleDrawInstance *triangles,
+    size_t triangle_count
+) {
+    const RaylibTexture *raylib_texture = texture != NULL
+        ? raylib_texture_from_const_base(texture)
+        : NULL;
+    size_t index;
+
+    (void)userdata;
+
+    if (triangles == NULL || triangle_count == 0U)
+    {
+        return;
+    }
+    if (texture != NULL && raylib_texture == NULL)
+    {
+        return;
+    }
+
+    rlSetTexture(raylib_texture != NULL ? raylib_texture->target.texture.id : 0U);
+    rlBegin(RL_TRIANGLES);
+    for (index = 0U; index < triangle_count; ++index)
+    {
+        const TriangleDrawInstance *triangle = &triangles[index];
+        Color color = raylib_unpack_color(triangle->tint);
+
+        rlColor4ub(color.r, color.g, color.b, color.a);
+        rlTexCoord2f(triangle->uv_a.x, triangle->uv_a.y);
+        rlVertex2f(triangle->a.x, triangle->a.y);
+        rlTexCoord2f(triangle->uv_b.x, triangle->uv_b.y);
+        rlVertex2f(triangle->b.x, triangle->b.y);
+        rlTexCoord2f(triangle->uv_c.x, triangle->uv_c.y);
+        rlVertex2f(triangle->c.x, triangle->c.y);
+    }
+    rlEnd();
+    rlSetTexture(0U);
+}
+
 static void raylib_backend_draw_circle(void *userdata, Vec2 center, float radius, Color32 color, bool filled) {
     (void)userdata;
     if (filled) {
@@ -468,6 +542,8 @@ bool raylib_backend_init(
     backend->render_backend.draw_rect = raylib_backend_draw_rect;
     backend->render_backend.draw_rect_filled = raylib_backend_draw_rect_filled;
     backend->render_backend.draw_triangle_filled = raylib_backend_draw_triangle_filled;
+    backend->render_backend.draw_triangle_textured = raylib_backend_draw_triangle_textured;
+    backend->render_backend.draw_triangles = raylib_backend_draw_triangles;
     backend->render_backend.draw_circle = raylib_backend_draw_circle;
     backend->render_backend.draw_oval = raylib_backend_draw_oval;
     backend->render_backend.draw_text = raylib_backend_draw_text;

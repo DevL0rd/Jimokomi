@@ -1,20 +1,16 @@
 #ifndef JIMOKOMI_GAME_LIQUID_SOURCE_SYSTEM_H
 #define JIMOKOMI_GAME_LIQUID_SOURCE_SYSTEM_H
 
-#include "LiquidVisualResources.h"
 #include "../Engine/Physics/PhysicsParticles.h"
+#include "../Engine/Rendering/ParticleVisualResources.h"
 #include "../Engine/Scene/Scene.h"
 
 #include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 
 typedef struct LiquidSourceSystemState
 {
     PhysicsParticleSystemHandle particle_system;
-    LiquidVisualResourceHandles visuals;
-    double emit_accumulator_seconds;
-    uint32_t emit_sequence;
+    ParticleVisualResourceHandles visuals;
     bool particle_system_created;
 } LiquidSourceSystemState;
 

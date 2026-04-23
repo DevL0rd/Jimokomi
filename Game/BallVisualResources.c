@@ -25,7 +25,12 @@ static float game_ball_hash_float(float seed)
     return game_ball_fract(sinf(seed * 12.9898f + 78.233f) * 43758.5453f);
 }
 
-static void game_fill_ball_material(Material* material, size_t index) {
+static void game_fill_ball_material(
+    Material* material,
+    size_t index,
+    ResourceHandle procedural_texture_handle,
+    ResourceHandle shader_handle
+) {
     float hue = fmodf((float)index * 37.0f, 360.0f);
     float accent_hue = fmodf(hue + 34.0f + (float)(index % 5U) * 7.0f, 360.0f);
     float glow_hue = fmodf(hue + 110.0f + (float)(index % 3U) * 11.0f, 360.0f);
@@ -35,6 +40,9 @@ static void game_fill_ball_material(Material* material, size_t index) {
     }
 
     memset(material, 0, sizeof(*material));
+    material->procedural_texture_handle = procedural_texture_handle;
+    material->shader_handle = shader_handle;
+    material->uv_mode = MATERIAL_UV_VERTEX;
     material->base_color = color_rgb_from_hsv(hue, 0.68f, 0.14f + (float)(index % 5U) * 0.03f).value;
     material->accent_color = color_rgb_from_hsv(accent_hue, 0.62f, 0.75f + (float)(index % 4U) * 0.05f).value;
     material->glow_color = color_rgb_from_hsv(glow_hue, 0.35f, 0.92f).value;
@@ -120,19 +128,15 @@ static void game_draw_ball_body(
 
 bool game_register_ball_visuals(
     Renderer* renderer,
-    ResourceHandle* shared_shader_handle,
-    ResourceHandle* procedural_texture_handles,
-    size_t procedural_texture_count,
-    ResourceHandle* material_handles,
-    size_t material_count
+    ResourceHandle* material_handle
 ) {
     ProceduralTextureDesc texture_desc;
     Material material;
     ResourceHandle shared_procedural_texture_handle;
+    ResourceHandle shared_shader_handle;
     ResourceHandle shared_material_handle;
-    size_t index;
 
-    if (renderer == NULL || shared_shader_handle == NULL || procedural_texture_handles == NULL || material_handles == NULL) {
+    if (renderer == NULL || material_handle == NULL) {
         return false;
     }
 
@@ -159,20 +163,17 @@ bool game_register_ball_visuals(
     if (shared_procedural_texture_handle.id == 0U) {
         return false;
     }
-    for (index = 0U; index < procedural_texture_count; ++index) {
-        procedural_texture_handles[index] = shared_procedural_texture_handle;
-    }
 
-    *shared_shader_handle = renderer_register_shader(
+    shared_shader_handle = renderer_register_shader(
         renderer,
         "shader.space.v1",
         SHADER_STYLE_SPACE
     );
-    if (shared_shader_handle->id == 0U) {
+    if (shared_shader_handle.id == 0U) {
         return false;
     }
 
-    game_fill_ball_material(&material, 0U);
+    game_fill_ball_material(&material, 0U, shared_procedural_texture_handle, shared_shader_handle);
     shared_material_handle = renderer_register_material(
         renderer,
         "material.space_ball.shared",
@@ -181,9 +182,7 @@ bool game_register_ball_visuals(
     if (shared_material_handle.id == 0U) {
         return false;
     }
-    for (index = 0U; index < material_count; ++index) {
-        material_handles[index] = shared_material_handle;
-    }
+    *material_handle = shared_material_handle;
 
     return true;
 }

@@ -10,9 +10,7 @@ typedef struct SceneDynamicCircleDesc
     float x;
     float y;
     float radius;
-    ResourceHandle procedural_texture_handle;
     ResourceHandle material_handle;
-    ResourceHandle shader_handle;
     Color32 tint;
     Vec2 initial_velocity;
     float initial_angular_velocity;
@@ -29,9 +27,7 @@ typedef struct SceneVisualCircleDesc
     float x;
     float y;
     float radius;
-    ResourceHandle procedural_texture_handle;
     ResourceHandle material_handle;
-    ResourceHandle shader_handle;
     Color32 tint;
     int layer;
     bool visible;

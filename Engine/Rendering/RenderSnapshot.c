@@ -32,7 +32,7 @@ static void render_snapshot_exchange_free_world(RenderWorldSnapshot* world) {
         return;
     }
 
-    free(world->procedural_textures);
+    free(world->material_renderables);
     free(world->procedural_meshes);
     free(world->triangles);
     free(world->lines);
@@ -66,8 +66,8 @@ static bool render_snapshot_exchange_init(RenderSnapshotExchange* exchange) {
     return true;
 }
 
-bool render_world_snapshot_reserve_procedural_textures(RenderWorldSnapshot* snapshot, size_t required_capacity) {
-    ProceduralTextureRenderable* next_items;
+bool render_world_snapshot_reserve_material_renderables(RenderWorldSnapshot* snapshot, size_t required_capacity) {
+    MaterialRenderable* next_items;
     DebugEntityView* next_debug_entities;
     PickTargetView* next_pick_targets;
     size_t next_capacity;
@@ -75,23 +75,23 @@ bool render_world_snapshot_reserve_procedural_textures(RenderWorldSnapshot* snap
     if (snapshot == NULL) {
         return false;
     }
-    if (snapshot->procedural_texture_capacity >= required_capacity &&
+    if (snapshot->material_renderable_capacity >= required_capacity &&
         snapshot->debug_entity_capacity >= required_capacity &&
         snapshot->pick_target_capacity >= required_capacity) {
         return true;
     }
 
-    next_capacity = snapshot->procedural_texture_capacity > 0U ? snapshot->procedural_texture_capacity : 64U;
+    next_capacity = snapshot->material_renderable_capacity > 0U ? snapshot->material_renderable_capacity : 64U;
     while (next_capacity < required_capacity) {
         next_capacity *= 2U;
     }
 
-    next_items = (ProceduralTextureRenderable*)realloc(snapshot->procedural_textures, next_capacity * sizeof(*next_items));
+    next_items = (MaterialRenderable*)realloc(snapshot->material_renderables, next_capacity * sizeof(*next_items));
     if (next_items == NULL) {
         return false;
     }
-    snapshot->procedural_textures = next_items;
-    snapshot->procedural_texture_capacity = next_capacity;
+    snapshot->material_renderables = next_items;
+    snapshot->material_renderable_capacity = next_capacity;
 
     next_debug_entities = (DebugEntityView*)realloc(snapshot->debug_entities, next_capacity * sizeof(*next_debug_entities));
     if (next_debug_entities == NULL) {
@@ -264,15 +264,15 @@ void render_world_snapshot_reset(RenderWorldSnapshot* snapshot) {
         return;
     }
 
-    snapshot->procedural_texture_count = 0U;
+    snapshot->material_renderable_count = 0U;
     snapshot->procedural_mesh_count = 0U;
     snapshot->triangle_count = 0U;
     snapshot->line_count = 0U;
-    snapshot->procedural_texture_frame_signature = 0U;
-    snapshot->procedural_texture_sort_signature = 0U;
-    snapshot->procedural_texture_instance_signature = 0U;
-    snapshot->procedural_texture_signatures_valid = false;
-    snapshot->procedural_textures_sorted_by_layer = true;
+    snapshot->material_frame_signature = 0U;
+    snapshot->material_sort_signature = 0U;
+    snapshot->material_instance_signature = 0U;
+    snapshot->material_signatures_valid = false;
+    snapshot->material_renderables_sorted_by_layer = true;
     snapshot->backdrop_draw = NULL;
     snapshot->backdrop_user_data = NULL;
     snapshot->backdrop_signature = 0U;
@@ -444,19 +444,19 @@ void render_world_snapshot_build_frame(const RenderWorldSnapshot* snapshot, Rend
     }
 
     memset(frame, 0, sizeof(*frame));
-    frame->procedural_textures = snapshot->procedural_textures;
-    frame->procedural_texture_count = snapshot->procedural_texture_count;
+    frame->material_renderables = snapshot->material_renderables;
+    frame->material_renderable_count = snapshot->material_renderable_count;
     frame->procedural_meshes = snapshot->procedural_meshes;
     frame->procedural_mesh_count = snapshot->procedural_mesh_count;
     frame->triangles = snapshot->triangles;
     frame->triangle_count = snapshot->triangle_count;
     frame->lines = snapshot->lines;
     frame->line_count = snapshot->line_count;
-    frame->procedural_texture_frame_signature = snapshot->procedural_texture_frame_signature;
-    frame->procedural_texture_sort_signature = snapshot->procedural_texture_sort_signature;
-    frame->procedural_texture_instance_signature = snapshot->procedural_texture_instance_signature;
-    frame->procedural_texture_signatures_valid = snapshot->procedural_texture_signatures_valid;
-    frame->procedural_textures_sorted_by_layer = snapshot->procedural_textures_sorted_by_layer;
+    frame->material_frame_signature = snapshot->material_frame_signature;
+    frame->material_sort_signature = snapshot->material_sort_signature;
+    frame->material_instance_signature = snapshot->material_instance_signature;
+    frame->material_signatures_valid = snapshot->material_signatures_valid;
+    frame->material_renderables_sorted_by_layer = snapshot->material_renderables_sorted_by_layer;
     frame->backdrop_draw = snapshot->backdrop_draw;
     frame->backdrop_user_data = snapshot->backdrop_user_data;
     frame->backdrop_signature = snapshot->backdrop_signature;

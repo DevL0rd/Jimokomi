@@ -5,6 +5,7 @@
 
 typedef struct SceneParticleVisualState
 {
+    ParticleVisualResourceHandles default_resources;
     SceneParticleVisualDesc* bindings;
     size_t binding_count;
     size_t binding_capacity;
