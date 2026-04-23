@@ -2,28 +2,41 @@
 #include "Game/GameWorld.h"
 
 #include "../Engine/App.h"
+#include "../Engine/Core/Profiling.h"
 #include "../Engine/Rendering/GridBackdrop.h"
 
 #include <string.h>
 
 static bool jimokomi_register_resources_callback(EngineAppContext* app, void* user_data)
 {
-    return jimokomi_game_register_resources(app, (JimokomiGameState*)user_data);
+    bool result;
+    ENGINE_PROFILE_ZONE_BEGIN(resources_zone, "Game Register Resources");
+    result = jimokomi_game_register_resources(app, (JimokomiGameState*)user_data);
+    ENGINE_PROFILE_ZONE_END(resources_zone);
+    return result;
 }
 
 static Scene* jimokomi_create_scene_callback(EngineAppContext* app, void* user_data)
 {
-    return jimokomi_game_create_scene(app, (JimokomiGameState*)user_data);
+    Scene* scene;
+    ENGINE_PROFILE_ZONE_BEGIN(create_scene_zone, "Game Create Scene");
+    scene = jimokomi_game_create_scene(app, (JimokomiGameState*)user_data);
+    ENGINE_PROFILE_ZONE_END(create_scene_zone);
+    return scene;
 }
 
 static void jimokomi_update_sim_callback(EngineAppContext* app, double dt_seconds, const EngineInput* input, void* user_data)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(update_zone, "Game Update Sim");
     jimokomi_game_update_sim(app, dt_seconds, input, (JimokomiGameState*)user_data);
+    ENGINE_PROFILE_ZONE_END(update_zone);
 }
 
 static void jimokomi_post_update_sim_callback(EngineAppContext* app, double dt_seconds, const EngineInput* input, void* user_data)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(post_update_zone, "Game Post Update Sim");
     jimokomi_game_post_update_sim(app, dt_seconds, input, (JimokomiGameState*)user_data);
+    ENGINE_PROFILE_ZONE_END(post_update_zone);
 }
 
 int JimokomiGame_Run(void)

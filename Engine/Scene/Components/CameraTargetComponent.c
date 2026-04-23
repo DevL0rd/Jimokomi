@@ -1,5 +1,7 @@
 #include "CameraTargetComponent.h"
 
+#include "../../Core/Memory.h"
+
 #include <stdlib.h>
 
 static void CameraTargetComponent_DestroyBase(Component* component)

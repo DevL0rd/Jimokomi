@@ -56,6 +56,7 @@ bool resource_manager_store_baked_texture(
 const Mesh* resource_manager_get_or_create_baked_mesh(
     ResourceManager* manager,
     ResourceHandle procedural_mesh_handle,
+    uint64_t instance_signature,
     uint32_t frame_index,
     void* user_data
 );

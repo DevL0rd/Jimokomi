@@ -4,6 +4,8 @@
 #include "ResourceManagerRegistryInternal.h"
 #include "ResourceManagerStatsInternal.h"
 
+#include "../Core/Memory.h"
+
 #include <stdlib.h>
 #include <string.h>
 

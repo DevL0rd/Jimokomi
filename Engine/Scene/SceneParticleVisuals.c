@@ -5,6 +5,8 @@
 #include "SceneParticleVisualsInternal.h"
 #include "../Physics/PhysicsParticles.h"
 
+#include "../Core/Memory.h"
+
 #include <stdlib.h>
 #include <string.h>
 

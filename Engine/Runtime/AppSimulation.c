@@ -2,6 +2,7 @@
 
 #include "InteractionSystem.h"
 #include "../Core/PlatformRuntimeInternal.h"
+#include "../Core/Profiling.h"
 #include "../Rendering/Renderer.h"
 #include "../Rendering/RenderSnapshotExchange.h"
 #include "../Rendering/SceneRenderSnapshot.h"
@@ -9,6 +10,8 @@
 #include "../Scene/ScenePhysics.h"
 #include "../Scene/SceneQueries.h"
 #include "../Scene/SceneStats.h"
+
+#include "../Core/Memory.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -140,6 +143,7 @@ static void engine_app_sim_update_sleep_visibility(
     bool input_changed,
     uint64_t now_ms
 ) {
+    ENGINE_PROFILE_ZONE_BEGIN(sleep_visibility_zone, "Sim Sleep Visibility");
     PhysicsWorld* physics_world = NULL;
     Aabb sleep_bounds;
     size_t entity_capacity = 0U;
@@ -147,24 +151,28 @@ static void engine_app_sim_update_sleep_visibility(
 
     if (context == NULL || context->app == NULL || context->app->scene == NULL || context->settings == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(sleep_visibility_zone);
         return;
     }
     if (!input_changed &&
         context->last_sleep_visibility_update_ms != 0ULL &&
         now_ms - context->last_sleep_visibility_update_ms < ENGINE_APP_SLEEP_VISIBILITY_UPDATE_INTERVAL_MS)
     {
+        ENGINE_PROFILE_ZONE_END(sleep_visibility_zone);
         return;
     }
 
     physics_world = Scene_GetPhysicsWorld(context->app->scene);
     if (physics_world == NULL || !engine_app_sim_get_camera_sleep_bounds(context, latest_input, has_input, &sleep_bounds))
     {
+        ENGINE_PROFILE_ZONE_END(sleep_visibility_zone);
         return;
     }
 
     entity_capacity = Scene_GetEntityCount(context->app->scene);
     if (entity_capacity == 0U || !engine_app_sim_reserve_sleep_visible_entities(context, entity_capacity))
     {
+        ENGINE_PROFILE_ZONE_END(sleep_visibility_zone);
         return;
     }
 
@@ -182,6 +190,7 @@ static void engine_app_sim_update_sleep_visibility(
         context->settings->physics_offscreen_sleep_threshold
     );
     context->last_sleep_visibility_update_ms = now_ms;
+    ENGINE_PROFILE_ZONE_END(sleep_visibility_zone);
 }
 
 static uint32_t engine_app_sim_step_scene(
@@ -190,6 +199,7 @@ static uint32_t engine_app_sim_step_scene(
     const EngineInput* input
 )
 {
+    ENGINE_PROFILE_ZONE_BEGIN(step_scene_zone, "Simulation Step Scene");
     SceneInputState scene_input = { 0 };
     PhysicsWorld* physics_world;
     double fixed_dt;
@@ -197,6 +207,7 @@ static uint32_t engine_app_sim_step_scene(
 
     if (context == NULL || context->app == NULL || context->app->scene == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(step_scene_zone);
         return 0U;
     }
 
@@ -210,7 +221,6 @@ static uint32_t engine_app_sim_step_scene(
     {
         float adaptive_fixed_dt = 0.0f;
         uint32_t adaptive_max_substeps = 0U;
-        PhysicsWorld_UpdateAdaptiveStepRate(physics_world, (float)context->accumulator_seconds);
         PhysicsWorld_GetStepConfig(physics_world, &adaptive_fixed_dt, &adaptive_max_substeps);
         context->fixed_dt_seconds = adaptive_fixed_dt > 0.0f ? (double)adaptive_fixed_dt : context->fixed_dt_seconds;
         context->max_substeps = adaptive_max_substeps > 0U ? adaptive_max_substeps : context->max_substeps;
@@ -222,6 +232,7 @@ static uint32_t engine_app_sim_step_scene(
     if (context->accumulator_seconds < fixed_dt)
     {
         Scene_FlushSpatialUpdates(context->app->scene);
+        ENGINE_PROFILE_ZONE_END(step_scene_zone);
         return 0U;
     }
 
@@ -242,6 +253,7 @@ static uint32_t engine_app_sim_step_scene(
 
     Scene_Update(context->app->scene, (float)fixed_dt, &scene_input);
     context->accumulator_seconds -= fixed_dt;
+    ENGINE_PROFILE_ZONE_END(step_scene_zone);
     return 1U;
 }
 
@@ -264,6 +276,7 @@ void* engine_app_simulation_thread_main(void* user_data)
         return NULL;
     }
 
+    engine_profile_set_thread_name("Simulation");
     app = context->app;
     EngineInputBindings_set_defaults(&bindings);
     EngineInput_init(&sim_input, &bindings);
@@ -280,6 +293,7 @@ void* engine_app_simulation_thread_main(void* user_data)
 
     while (!atomic_load_explicit(&context->shutdown_requested, memory_order_acquire))
     {
+        ENGINE_PROFILE_ZONE_BEGIN(sim_tick_zone, "Simulation Tick");
         EngineRuntimeInputPacket packet;
         RenderSnapshotBuffer* next_render_snapshot;
         uint64_t now_ms;
@@ -372,6 +386,7 @@ void* engine_app_simulation_thread_main(void* user_data)
             {
                 engine_app_sim_sleep_ms(context->settings->app_idle_sleep_ms);
             }
+            ENGINE_PROFILE_ZONE_END(sim_tick_zone);
             continue;
         }
 
@@ -382,6 +397,7 @@ void* engine_app_simulation_thread_main(void* user_data)
         if (next_render_snapshot == NULL)
         {
             engine_app_sim_sleep_ms(context->settings->app_idle_sleep_ms);
+            ENGINE_PROFILE_ZONE_END(sim_tick_zone);
             continue;
         }
 
@@ -428,6 +444,7 @@ void* engine_app_simulation_thread_main(void* user_data)
         ))
         {
             engine_app_sim_sleep_ms(context->settings->app_idle_sleep_ms);
+            ENGINE_PROFILE_ZONE_END(sim_tick_zone);
             continue;
         }
         snapshot_build_ms = engine_app_sim_now_ms() - snapshot_build_started_ms;
@@ -445,6 +462,16 @@ void* engine_app_simulation_thread_main(void* user_data)
         );
         render_snapshot_exchange_publish(context->render_snapshot_exchange, next_render_snapshot);
         last_snapshot_publish_ms = now_ms;
+
+        engine_profile_plot_value("Sim/UpdateMs", update_ms);
+        engine_profile_plot_value("Sim/InputMs", input_captured ? input_ms : 0.0);
+        engine_profile_plot_value("Sim/GameUpdateMs", game_update_ms);
+        engine_profile_plot_value("Sim/FixedStepMs", fixed_step_wall_ms);
+        engine_profile_plot_value("Sim/DragMs", drag_ms);
+        engine_profile_plot_value("Sim/SnapshotAcquireMs", snapshot_acquire_ms);
+        engine_profile_plot_value("Sim/SnapshotBuildMs", snapshot_build_ms);
+        engine_profile_plot_integer("Sim/PhysicsSubsteps", physics_substeps);
+        ENGINE_PROFILE_ZONE_END(sim_tick_zone);
     }
 
     scene_render_snapshot_builder_destroy(snapshot_builder);

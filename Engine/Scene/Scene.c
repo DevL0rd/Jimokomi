@@ -20,8 +20,11 @@
 #include "Components/RigidBodyComponent.h"
 #include "Components/TransformComponent.h"
 #include "../Core/PlatformRuntimeInternal.h"
+#include "../Core/Profiling.h"
 #include "../Physics/PhysicsBodyControl.h"
 #include "../Settings.h"
+
+#include "../Core/Memory.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -179,10 +182,12 @@ size_t Scene_GetSpatialGridDirtyCellSpans(const Scene* scene, SpatialGridCellSpa
 
 void Scene_FlushSpatialUpdates(Scene* scene)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(flush_zone, "Scene_FlushSpatialUpdates");
     size_t index = 0U;
 
     if (scene == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(flush_zone);
         return;
     }
 
@@ -214,14 +219,17 @@ void Scene_FlushSpatialUpdates(Scene* scene)
             );
         }
     }
+    ENGINE_PROFILE_ZONE_END(flush_zone);
 }
 
 void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_state)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(scene_update_zone, "Scene_Update");
     double phase_started_ms = 0.0;
 
     if (scene == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(scene_update_zone);
         return;
     }
 
@@ -257,6 +265,7 @@ void Scene_Update(Scene* scene, float dt_seconds, const SceneInputState* input_s
         CameraFollowSystem_Update(scene, dt_seconds);
         scene->stats->last_camera_follow_ms = Scene_NowMs() - phase_started_ms;
     }
+    ENGINE_PROFILE_ZONE_END(scene_update_zone);
 }
 
 void Scene_Destroy(Scene* scene)

@@ -1,0 +1,329 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "activePreset",
+      "type": "pickString",
+      "description": "Select the active build preset",
+      "options": [
+        "default",
+        "debug",
+        "profile"
+      ],
+      "default": "default"
+    },
+    {
+      "id": "captureSeconds",
+      "type": "promptString",
+      "description": "Capture duration in seconds for Tracy file capture",
+      "default": "15"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "configure: default",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--preset",
+        "default"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "build: default",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "--preset",
+        "default"
+      ],
+      "dependsOn": [
+        "configure: default"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "run: default",
+      "type": "process",
+      "dependsOn": [
+        "build: default"
+      ],
+      "linux": {
+        "command": "${workspaceFolder}/build/default/jimokomi"
+      },
+      "osx": {
+        "command": "${workspaceFolder}/build/default/jimokomi"
+      },
+      "windows": {
+        "command": "${workspaceFolder}\\build\\default\\jimokomi.exe"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "configure: debug",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--preset",
+        "debug"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "build: debug",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "--preset",
+        "debug"
+      ],
+      "dependsOn": [
+        "configure: debug"
+      ],
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "configure: profile",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--preset",
+        "profile"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "build: profile",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "--preset",
+        "profile"
+      ],
+      "dependsOn": [
+        "configure: profile"
+      ],
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "run: profile",
+      "type": "process",
+      "dependsOn": [
+        "build: profile",
+        "_build: tracy capture",
+        "_build: tracy csvexport"
+      ],
+      "linux": {
+        "command": "bash",
+        "args": [
+          "${workspaceFolder}/.vscode/tracy_profile.sh",
+          "run",
+          "${workspaceFolder}",
+          "${input:captureSeconds}",
+          "${workspaceFolder}/build/profile/jimokomi"
+        ]
+      },
+      "osx": {
+        "command": "bash",
+        "args": [
+          "${workspaceFolder}/.vscode/tracy_profile.sh",
+          "run",
+          "${workspaceFolder}",
+          "${input:captureSeconds}",
+          "${workspaceFolder}/build/profile/jimokomi"
+        ]
+      },
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder}\\.vscode\\tracy_profile.ps1",
+          "run",
+          "${workspaceFolder}",
+          "${input:captureSeconds}",
+          "${workspaceFolder}\\build\\profile\\jimokomi.exe"
+        ]
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "_configure: tracy capture",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "-S",
+        "${workspaceFolder}/build/profile/_deps/tracy-src/capture",
+        "-B",
+        "${workspaceFolder}/build/profile/tracy-capture",
+        "-DNO_FILESELECTOR=ON",
+        "-DNO_PARALLEL_STL=ON"
+      ],
+      "dependsOn": [
+        "configure: profile"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "_build: tracy capture",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "${workspaceFolder}/build/profile/tracy-capture"
+      ],
+      "dependsOn": [
+        "_configure: tracy capture"
+      ],
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "_configure: tracy csvexport",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "-S",
+        "${workspaceFolder}/build/profile/_deps/tracy-src/csvexport",
+        "-B",
+        "${workspaceFolder}/build/profile/tracy-csvexport",
+        "-DNO_FILESELECTOR=ON",
+        "-DNO_PARALLEL_STL=ON"
+      ],
+      "dependsOn": [
+        "configure: profile"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "_build: tracy csvexport",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "${workspaceFolder}/build/profile/tracy-csvexport"
+      ],
+      "dependsOn": [
+        "_configure: tracy csvexport"
+      ],
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "prepare: profile capture",
+      "type": "process",
+      "dependsOn": [
+        "build: profile",
+        "_build: tracy capture",
+        "_build: tracy csvexport"
+      ],
+      "linux": {
+        "command": "bash",
+        "args": [
+          "${workspaceFolder}/.vscode/tracy_profile.sh",
+          "prepare",
+          "${workspaceFolder}",
+          "${input:captureSeconds}"
+        ]
+      },
+      "osx": {
+        "command": "bash",
+        "args": [
+          "${workspaceFolder}/.vscode/tracy_profile.sh",
+          "prepare",
+          "${workspaceFolder}",
+          "${input:captureSeconds}"
+        ]
+      },
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder}\\.vscode\\tracy_profile.ps1",
+          "prepare",
+          "${workspaceFolder}",
+          "${input:captureSeconds}"
+        ]
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "finalize: profile capture",
+      "type": "process",
+      "linux": {
+        "command": "bash",
+        "args": [
+          "${workspaceFolder}/.vscode/tracy_profile.sh",
+          "finalize",
+          "${workspaceFolder}"
+        ]
+      },
+      "osx": {
+        "command": "bash",
+        "args": [
+          "${workspaceFolder}/.vscode/tracy_profile.sh",
+          "finalize",
+          "${workspaceFolder}"
+        ]
+      },
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder}\\.vscode\\tracy_profile.ps1",
+          "finalize",
+          "${workspaceFolder}"
+        ]
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "clean: active preset",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "--preset",
+        "${input:activePreset}",
+        "--target",
+        "clean"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "reconfigure: active preset",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--preset",
+        "${input:activePreset}",
+        "--fresh"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

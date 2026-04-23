@@ -1,10 +1,14 @@
 #include "TaskSystemInternal.h"
 
+#include "Memory.h"
+
 #include <corephys/corephys.h>
 
+#include "Profiling.h"
 #include "PlatformRuntimeInternal.h"
 
 #include <stdatomic.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -134,10 +138,14 @@ static void task_system_run_inline(
 static void* task_system_worker_main(void* user_data) {
     TaskSystemWorkerContext* worker = (TaskSystemWorkerContext*)user_data;
     TaskSystemImpl* system = worker != NULL ? worker->system : NULL;
+    char thread_name[32];
 
     if (worker == NULL || system == NULL) {
         return NULL;
     }
+
+    snprintf(thread_name, sizeof(thread_name), "Task Worker %u", worker->worker_index);
+    engine_profile_set_thread_name(thread_name);
 
     for (;;) {
         TaskSystemTask* task;
@@ -173,7 +181,9 @@ static void* task_system_worker_main(void* user_data) {
         }
 
         atomic_fetch_add(&system->worker_chunk_count, 1U);
+        ENGINE_PROFILE_ZONE_BEGIN(task_zone, "Task Worker Chunk");
         task->callback(start_index, end_index, worker->worker_index, task->task_context);
+        ENGINE_PROFILE_ZONE_END(task_zone);
 
         if (atomic_fetch_sub(&task->remaining_chunks, 1) == 1) {
             engine_platform_mutex_lock(&task->mutex);
@@ -227,7 +237,7 @@ static void* task_system_enqueue_task_internal(
     atomic_init(&user_task->next_index, 0);
     atomic_init(&user_task->remaining_chunks, chunk_count);
     atomic_init(&user_task->completed, false);
-    mutex_initialized = engine_platform_mutex_init(&user_task->mutex);
+    mutex_initialized = engine_platform_mutex_init_named(&user_task->mutex, "TaskSystem Task");
     condition_variable_initialized =
         mutex_initialized && engine_platform_condition_variable_init(&user_task->completed_cond);
     if (!mutex_initialized || !condition_variable_initialized) {
@@ -285,7 +295,9 @@ static void task_system_finish_task(void* user_task, void* user_context) {
         }
 
         atomic_fetch_add(&system->main_chunk_count, 1U);
+        ENGINE_PROFILE_ZONE_BEGIN(main_chunk_zone, "Task Main Chunk");
         task->callback(start_index, end_index, 0U, task->task_context);
+        ENGINE_PROFILE_ZONE_END(main_chunk_zone);
 
         if (atomic_fetch_sub(&task->remaining_chunks, 1) == 1) {
             engine_platform_mutex_lock(&task->mutex);
@@ -363,7 +375,7 @@ bool task_system_init(TaskSystem* system, const TaskSystemConfig* config) {
         return false;
     }
 
-    mutex_initialized = engine_platform_mutex_init(&implementation->mutex);
+    mutex_initialized = engine_platform_mutex_init_named(&implementation->mutex, "TaskSystem Queue");
     condition_variable_initialized =
         mutex_initialized && engine_platform_condition_variable_init(&implementation->work_available_cond);
     if (!mutex_initialized || !condition_variable_initialized) {

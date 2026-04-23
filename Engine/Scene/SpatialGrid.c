@@ -4,6 +4,8 @@
 #include "Components/TransformComponent.h"
 #include "Components/ColliderComponent.h"
 
+#include "../Core/Memory.h"
+
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

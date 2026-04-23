@@ -17,6 +17,7 @@ typedef struct BakedTextureSlot {
 
 typedef struct BakedMeshResource {
     ResourceHandle procedural_mesh_handle;
+    uint64_t instance_signature;
     uint32_t frame_index;
     uint32_t source_frame_index;
     Mesh* mesh;

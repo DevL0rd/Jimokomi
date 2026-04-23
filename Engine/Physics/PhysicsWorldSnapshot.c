@@ -2,6 +2,8 @@
 #include "PhysicsWorldStatsInternal.h"
 #include "PhysicsWorldTilemapInternal.h"
 
+#include "../Core/Profiling.h"
+
 #include <string.h>
 
 static uint32_t PhysicsWorld_SnapshotCounter(int value)
@@ -11,14 +13,17 @@ static uint32_t PhysicsWorld_SnapshotCounter(int value)
 
 void PhysicsWorld_GetSnapshot(const PhysicsWorld* world, PhysicsWorldSnapshot* snapshot)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(snapshot_zone, "PhysicsWorld_GetSnapshot");
     if (snapshot == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(snapshot_zone);
         return;
     }
 
     memset(snapshot, 0, sizeof(*snapshot));
     if (world == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(snapshot_zone);
         return;
     }
 
@@ -81,6 +86,7 @@ void PhysicsWorld_GetSnapshot(const PhysicsWorld* world, PhysicsWorldSnapshot* s
         snapshot->particle_profile_scratch_ms = profile.particleScratch;
         snapshot->particle_profile_events_ms = profile.particleEvents;
     }
+    snapshot->physics_step_version = world->lifecycle->step_version;
     snapshot->physics_hz = world->lifecycle->target_hz;
     snapshot->physics_fixed_dt = world->lifecycle->fixed_dt;
     snapshot->physics_accumulator = (float)world->stats->last_accumulator_seconds;
@@ -99,4 +105,5 @@ void PhysicsWorld_GetSnapshot(const PhysicsWorld* world, PhysicsWorldSnapshot* s
     snapshot->corephys_inline_task_count = world->stats->corephys_inline_task_count;
     snapshot->corephys_main_chunk_count = world->stats->corephys_main_chunk_count;
     snapshot->corephys_worker_chunk_count = world->stats->corephys_worker_chunk_count;
+    ENGINE_PROFILE_ZONE_END(snapshot_zone);
 }

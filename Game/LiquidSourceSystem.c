@@ -1,6 +1,7 @@
 #include "LiquidSourceSystem.h"
 
 #include "GameConfig.h"
+#include "../Engine/Core/Profiling.h"
 #include "../Engine/Scene/SceneParticleVisuals.h"
 #include "../Engine/Scene/ScenePhysics.h"
 #include <string.h>
@@ -17,10 +18,12 @@ static bool game_liquid_sources_emit_particle(
     uint32_t color_argb
 )
 {
+    ENGINE_PROFILE_ZONE_BEGIN(emit_particle_zone, "game_liquid_sources_emit_particle");
     PhysicsParticleDesc particle = { 0 };
 
     if (scene == NULL || liquid == NULL || !liquid->particle_system_created)
     {
+        ENGINE_PROFILE_ZONE_END(emit_particle_zone);
         return false;
     }
 
@@ -30,16 +33,21 @@ static bool game_liquid_sources_emit_particle(
     particle.velocity = (Vec2){ 0.0f, velocity_y };
     particle.color_argb = color_argb;
     particle.lifetime_seconds = LIQUID_PARTICLE_LIFETIME_SECONDS;
-    return PhysicsWorld_CreateParticle(
-        Scene_GetPhysicsWorld(scene),
-        liquid->particle_system,
-        &particle,
-        NULL
-    );
+    {
+        bool result = PhysicsWorld_CreateParticle(
+            Scene_GetPhysicsWorld(scene),
+            liquid->particle_system,
+            &particle,
+            NULL
+        );
+        ENGINE_PROFILE_ZONE_END(emit_particle_zone);
+        return result;
+    }
 }
 
 static void game_liquid_sources_emit(Scene* scene, LiquidSourceSystemState* liquid)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(emit_zone, "game_liquid_sources_emit");
     float left_x = WORLD_WIDTH * 0.5f - LIQUID_SOURCE_CENTER_GAP * 0.5f;
     float right_x = WORLD_WIDTH * 0.5f + LIQUID_SOURCE_CENTER_GAP * 0.5f;
     float first_offset =
@@ -66,6 +74,7 @@ static void game_liquid_sources_emit(Scene* scene, LiquidSourceSystemState* liqu
             LIQUID_RED_ARGB
         );
     }
+    ENGINE_PROFILE_ZONE_END(emit_zone);
 }
 
 bool game_liquid_sources_register_resources(Renderer* renderer, LiquidSourceSystemState* liquid)
@@ -78,17 +87,20 @@ bool game_liquid_sources_register_resources(Renderer* renderer, LiquidSourceSyst
 
 bool game_liquid_sources_create(Scene* scene, LiquidSourceSystemState* liquid)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(create_zone, "game_liquid_sources_create");
     PhysicsParticleSystemDesc desc = { 0 };
     PhysicsWorld* physics_world = NULL;
 
     if (scene == NULL || liquid == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(create_zone);
         return false;
     }
 
     physics_world = Scene_GetPhysicsWorld(scene);
     if (physics_world == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(create_zone);
         return false;
     }
 
@@ -103,6 +115,7 @@ bool game_liquid_sources_create(Scene* scene, LiquidSourceSystemState* liquid)
     );
     if (!liquid->particle_system_created)
     {
+        ENGINE_PROFILE_ZONE_END(create_zone);
         return false;
     }
 
@@ -111,6 +124,7 @@ bool game_liquid_sources_create(Scene* scene, LiquidSourceSystemState* liquid)
         PhysicsWorld_DestroyParticleSystem(physics_world, liquid->particle_system);
         memset(&liquid->particle_system, 0, sizeof(liquid->particle_system));
         liquid->particle_system_created = false;
+        ENGINE_PROFILE_ZONE_END(create_zone);
         return false;
     }
 
@@ -126,24 +140,29 @@ bool game_liquid_sources_create(Scene* scene, LiquidSourceSystemState* liquid)
         PhysicsWorld_DestroyParticleSystem(physics_world, liquid->particle_system);
         memset(&liquid->particle_system, 0, sizeof(liquid->particle_system));
         liquid->particle_system_created = false;
+        ENGINE_PROFILE_ZONE_END(create_zone);
         return false;
     }
 
+    ENGINE_PROFILE_ZONE_END(create_zone);
     return true;
 }
 
 void game_liquid_sources_update(Scene* scene, LiquidSourceSystemState* liquid, double dt_seconds)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(update_zone, "game_liquid_sources_update");
     PhysicsWorld* physics_world = NULL;
 
     if (scene == NULL || liquid == NULL || !liquid->particle_system_created)
     {
+        ENGINE_PROFILE_ZONE_END(update_zone);
         return;
     }
 
     physics_world = Scene_GetPhysicsWorld(scene);
     if (physics_world == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(update_zone);
         return;
     }
 
@@ -152,6 +171,7 @@ void game_liquid_sources_update(Scene* scene, LiquidSourceSystemState* liquid, d
     {
         game_liquid_sources_emit(scene, liquid);
     }
+    ENGINE_PROFILE_ZONE_END(update_zone);
 }
 
 void game_liquid_sources_dispose(LiquidSourceSystemState* liquid)

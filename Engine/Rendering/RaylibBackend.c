@@ -1,6 +1,10 @@
 #include "RaylibBackendInternal.h"
 
+#include "../Core/Profiling.h"
 #include "../Settings.h"
+
+#include "../../third_party/raylib/src/external/glad.h"
+#include "../Core/Memory.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -20,6 +24,233 @@ typedef struct RaylibTexture {
 
 static RaylibTexture *raylib_texture_from_base(Texture *texture);
 static const RaylibTexture *raylib_texture_from_const_base(const Texture *texture);
+static bool raylib_backend_tracy_frame_images_enabled_from_env(void);
+static void raylib_backend_tracy_release_frame_images(RaylibBackend* backend);
+static void raylib_backend_tracy_capture_frame_image(RaylibBackend* backend);
+
+static bool raylib_backend_tracy_frame_images_enabled_from_env(void)
+{
+    const char* value = getenv("JIMOKOMI_TRACY_FRAME_IMAGES");
+
+    if (value == NULL || value[0] == '\0')
+    {
+        return false;
+    }
+
+    return strcmp(value, "0") != 0 &&
+           strcmp(value, "false") != 0 &&
+           strcmp(value, "FALSE") != 0 &&
+           strcmp(value, "off") != 0 &&
+           strcmp(value, "OFF") != 0;
+}
+
+static bool raylib_backend_tracy_frame_images_supported(void)
+{
+    return glad_glGenBuffers != NULL &&
+           glad_glDeleteBuffers != NULL &&
+           glad_glBindBuffer != NULL &&
+           glad_glBufferData != NULL &&
+           glad_glReadPixels != NULL &&
+           glad_glMapBufferRange != NULL &&
+           glad_glUnmapBuffer != NULL &&
+           glad_glFenceSync != NULL &&
+           glad_glClientWaitSync != NULL &&
+           glad_glDeleteSync != NULL;
+}
+
+static int raylib_backend_tracy_frame_image_dimension(int dimension)
+{
+    if (dimension <= 0)
+    {
+        return 0;
+    }
+
+    return dimension - (dimension % 4);
+}
+
+static GLsync raylib_backend_tracy_get_frame_image_fence(const RaylibBackend* backend, unsigned int slot)
+{
+    return backend != NULL ? (GLsync)(uintptr_t)backend->tracy_frame_image_fences[slot] : NULL;
+}
+
+static void raylib_backend_tracy_set_frame_image_fence(RaylibBackend* backend, unsigned int slot, GLsync fence)
+{
+    if (backend == NULL)
+    {
+        return;
+    }
+
+    backend->tracy_frame_image_fences[slot] = (uintptr_t)fence;
+}
+
+static bool raylib_backend_tracy_ensure_frame_images(RaylibBackend* backend)
+{
+    int frame_image_width = 0;
+    int frame_image_height = 0;
+    size_t frame_image_bytes = 0U;
+    unsigned int index = 0U;
+
+    if (backend == NULL ||
+        !backend->tracy_frame_images_enabled ||
+        !raylib_backend_tracy_frame_images_supported())
+    {
+        return false;
+    }
+
+    frame_image_width = raylib_backend_tracy_frame_image_dimension(backend->target_width);
+    frame_image_height = raylib_backend_tracy_frame_image_dimension(backend->target_height);
+    if (frame_image_width <= 0 || frame_image_height <= 0)
+    {
+        backend->tracy_frame_images_ready = false;
+        return false;
+    }
+
+    if (backend->tracy_frame_images_ready &&
+        backend->tracy_frame_image_width == frame_image_width &&
+        backend->tracy_frame_image_height == frame_image_height)
+    {
+        return true;
+    }
+    if (backend->tracy_frame_images_ready)
+    {
+        raylib_backend_tracy_release_frame_images(backend);
+    }
+
+    backend->tracy_frame_image_width = frame_image_width;
+    backend->tracy_frame_image_height = frame_image_height;
+    frame_image_bytes =
+        (size_t)backend->tracy_frame_image_width * (size_t)backend->tracy_frame_image_height * 4U;
+
+    glGenBuffers(3, backend->tracy_frame_image_pbos);
+    for (index = 0U; index < 3U; ++index)
+    {
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, backend->tracy_frame_image_pbos[index]);
+        glBufferData(GL_PIXEL_PACK_BUFFER, (GLsizeiptr)frame_image_bytes, NULL, GL_STREAM_READ);
+    }
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0U);
+    backend->tracy_frame_image_write_index = 0U;
+    backend->tracy_frame_image_pending_count = 0U;
+    backend->tracy_frame_images_ready = true;
+    return true;
+}
+
+static void raylib_backend_tracy_try_submit_frame_images(RaylibBackend* backend)
+{
+    while (backend != NULL && backend->tracy_frame_images_ready && backend->tracy_frame_image_pending_count > 0U)
+    {
+        const unsigned int slot = (backend->tracy_frame_image_write_index + 3U - backend->tracy_frame_image_pending_count) % 3U;
+        GLsync fence = raylib_backend_tracy_get_frame_image_fence(backend, slot);
+        GLenum wait_result;
+        void* image_data = NULL;
+
+        if (fence == NULL)
+        {
+            break;
+        }
+
+        wait_result = glClientWaitSync(fence, 0U, 0U);
+        if (wait_result == GL_TIMEOUT_EXPIRED || wait_result == GL_WAIT_FAILED)
+        {
+            break;
+        }
+
+        glDeleteSync(fence);
+        raylib_backend_tracy_set_frame_image_fence(backend, slot, NULL);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, backend->tracy_frame_image_pbos[slot]);
+        image_data = glMapBufferRange(
+            GL_PIXEL_PACK_BUFFER,
+            0,
+            (GLsizeiptr)((size_t)backend->tracy_frame_image_width * (size_t)backend->tracy_frame_image_height * 4U),
+            GL_MAP_READ_BIT
+        );
+        if (image_data != NULL)
+        {
+            engine_profile_frame_image(
+                image_data,
+                (uint16_t)backend->tracy_frame_image_width,
+                (uint16_t)backend->tracy_frame_image_height,
+                (uint8_t)backend->tracy_frame_image_pending_count,
+                true
+            );
+            glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+        }
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0U);
+        backend->tracy_frame_image_pending_count -= 1U;
+    }
+}
+
+static void raylib_backend_tracy_release_frame_images(RaylibBackend* backend)
+{
+    unsigned int index = 0U;
+
+    if (backend == NULL)
+    {
+        return;
+    }
+
+    for (index = 0U; index < 3U; ++index)
+    {
+        GLsync fence = raylib_backend_tracy_get_frame_image_fence(backend, index);
+        if (fence != NULL)
+        {
+            glDeleteSync(fence);
+            raylib_backend_tracy_set_frame_image_fence(backend, index, NULL);
+        }
+    }
+    if (backend->tracy_frame_images_ready)
+    {
+        glDeleteBuffers(3, backend->tracy_frame_image_pbos);
+    }
+    memset(backend->tracy_frame_image_pbos, 0, sizeof(backend->tracy_frame_image_pbos));
+    backend->tracy_frame_image_width = 0;
+    backend->tracy_frame_image_height = 0;
+    backend->tracy_frame_image_write_index = 0U;
+    backend->tracy_frame_image_pending_count = 0U;
+    backend->tracy_frame_images_ready = false;
+}
+
+static void raylib_backend_tracy_capture_frame_image(RaylibBackend* backend)
+{
+    unsigned int slot = 0U;
+
+    if (backend == NULL || !backend->tracy_frame_images_enabled)
+    {
+        return;
+    }
+
+    if (!engine_profile_is_connected())
+    {
+        raylib_backend_tracy_release_frame_images(backend);
+        return;
+    }
+
+    if (!raylib_backend_tracy_ensure_frame_images(backend))
+    {
+        return;
+    }
+
+    raylib_backend_tracy_try_submit_frame_images(backend);
+    if (backend->tracy_frame_image_pending_count >= 3U)
+    {
+        return;
+    }
+
+    slot = backend->tracy_frame_image_write_index;
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, backend->tracy_frame_image_pbos[slot]);
+    glReadPixels(
+        0,
+        0,
+        backend->tracy_frame_image_width,
+        backend->tracy_frame_image_height,
+        GL_RGBA,
+        GL_UNSIGNED_BYTE,
+        NULL
+    );
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0U);
+    raylib_backend_tracy_set_frame_image_fence(backend, slot, glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0U));
+    backend->tracy_frame_image_write_index = (slot + 1U) % 3U;
+    backend->tracy_frame_image_pending_count += 1U;
+}
 
 static Color raylib_unpack_color(Color32 color) {
     Color unpacked;
@@ -66,6 +297,7 @@ void raylib_backend_draw_texture_batch_individual(
     const TextureDrawInstance *instances,
     size_t instance_count
 ) {
+    EngineProfileGpuZone gpu_zone = { 0 };
     const RaylibTexture *raylib_texture = raylib_texture_from_const_base(texture);
     Rectangle source;
     size_t index = 0U;
@@ -81,6 +313,7 @@ void raylib_backend_draw_texture_batch_individual(
     source.y = 0.0f;
     source.width = (float)raylib_texture->base.width;
     source.height = (float)-raylib_texture->base.height;
+    engine_profile_gpu_zone_begin(&gpu_zone, "GPU Texture Batch");
 
     for (index = 0U; index < instance_count; ++index)
     {
@@ -103,6 +336,7 @@ void raylib_backend_draw_texture_batch_individual(
             raylib_unpack_color(instances[index].tint)
         );
     }
+    engine_profile_gpu_zone_end(&gpu_zone);
 }
 
 static RaylibBackend *raylib_backend_from_user_data(void *userdata) {
@@ -193,6 +427,7 @@ static void raylib_backend_destroy_texture(void *userdata, Texture *texture) {
 }
 
 static void raylib_backend_set_target(void *userdata, Texture *texture) {
+    EngineProfileGpuZone gpu_zone = { 0 };
     RaylibBackend *backend = raylib_backend_from_user_data(userdata);
     RaylibTexture *raylib_texture = raylib_texture_from_base(texture);
 
@@ -206,13 +441,16 @@ static void raylib_backend_set_target(void *userdata, Texture *texture) {
             backend->clip_depth -= 1;
         }
     }
+    engine_profile_gpu_zone_begin(&gpu_zone, "GPU Set Target");
     BeginTextureMode(raylib_texture->target);
+    engine_profile_gpu_zone_end(&gpu_zone);
     backend->target_active = true;
     backend->target_width = raylib_texture->base.width;
     backend->target_height = raylib_texture->base.height;
 }
 
 static void raylib_backend_reset_target(void *userdata) {
+    EngineProfileGpuZone gpu_zone = { 0 };
     RaylibBackend *backend = raylib_backend_from_user_data(userdata);
 
     if (backend == NULL) {
@@ -226,7 +464,9 @@ static void raylib_backend_reset_target(void *userdata) {
         }
     }
     if (backend->target_active) {
+        engine_profile_gpu_zone_begin(&gpu_zone, "GPU Reset Target");
         EndTextureMode();
+        engine_profile_gpu_zone_end(&gpu_zone);
         backend->target_active = false;
     }
     backend->target_width = GetRenderWidth();
@@ -234,8 +474,11 @@ static void raylib_backend_reset_target(void *userdata) {
 }
 
 static void raylib_backend_clear(void *userdata, Color32 color) {
+    EngineProfileGpuZone gpu_zone = { 0 };
     (void)userdata;
+    engine_profile_gpu_zone_begin(&gpu_zone, "GPU Clear");
     ClearBackground(raylib_unpack_color(color));
+    engine_profile_gpu_zone_end(&gpu_zone);
 }
 
 static void raylib_backend_draw_line(void *userdata, float x0, float y0, float x1, float y1, Color32 color) {
@@ -269,6 +512,7 @@ static void raylib_backend_draw_triangle_textured(
     Vec2 uv_c,
     Color32 tint
 ) {
+    EngineProfileGpuZone gpu_zone = { 0 };
     const RaylibTexture *raylib_texture = raylib_texture_from_const_base(texture);
     Color color = raylib_unpack_color(tint);
 
@@ -278,6 +522,7 @@ static void raylib_backend_draw_triangle_textured(
         return;
     }
 
+    engine_profile_gpu_zone_begin(&gpu_zone, "GPU Textured Triangle");
     rlSetTexture(raylib_texture->target.texture.id);
     rlBegin(RL_TRIANGLES);
     rlColor4ub(color.r, color.g, color.b, color.a);
@@ -289,6 +534,7 @@ static void raylib_backend_draw_triangle_textured(
     rlVertex2f(c.x, c.y);
     rlEnd();
     rlSetTexture(0U);
+    engine_profile_gpu_zone_end(&gpu_zone);
 }
 
 static void raylib_backend_draw_triangles(
@@ -297,6 +543,7 @@ static void raylib_backend_draw_triangles(
     const TriangleDrawInstance *triangles,
     size_t triangle_count
 ) {
+    EngineProfileGpuZone gpu_zone = { 0 };
     const RaylibTexture *raylib_texture = texture != NULL
         ? raylib_texture_from_const_base(texture)
         : NULL;
@@ -313,23 +560,41 @@ static void raylib_backend_draw_triangles(
         return;
     }
 
+    engine_profile_gpu_zone_begin(&gpu_zone, "GPU Triangle Batch");
     rlSetTexture(raylib_texture != NULL ? raylib_texture->target.texture.id : 0U);
     rlBegin(RL_TRIANGLES);
-    for (index = 0U; index < triangle_count; ++index)
+    if (raylib_texture != NULL)
     {
-        const TriangleDrawInstance *triangle = &triangles[index];
-        Color color = raylib_unpack_color(triangle->tint);
+        for (index = 0U; index < triangle_count; ++index)
+        {
+            const TriangleDrawInstance *triangle = &triangles[index];
+            Color color = raylib_unpack_color(triangle->tint);
 
-        rlColor4ub(color.r, color.g, color.b, color.a);
-        rlTexCoord2f(triangle->uv_a.x, triangle->uv_a.y);
-        rlVertex2f(triangle->a.x, triangle->a.y);
-        rlTexCoord2f(triangle->uv_b.x, triangle->uv_b.y);
-        rlVertex2f(triangle->b.x, triangle->b.y);
-        rlTexCoord2f(triangle->uv_c.x, triangle->uv_c.y);
-        rlVertex2f(triangle->c.x, triangle->c.y);
+            rlColor4ub(color.r, color.g, color.b, color.a);
+            rlTexCoord2f(triangle->uv_a.x, triangle->uv_a.y);
+            rlVertex2f(triangle->a.x, triangle->a.y);
+            rlTexCoord2f(triangle->uv_b.x, triangle->uv_b.y);
+            rlVertex2f(triangle->b.x, triangle->b.y);
+            rlTexCoord2f(triangle->uv_c.x, triangle->uv_c.y);
+            rlVertex2f(triangle->c.x, triangle->c.y);
+        }
+    }
+    else
+    {
+        for (index = 0U; index < triangle_count; ++index)
+        {
+            const TriangleDrawInstance *triangle = &triangles[index];
+            Color color = raylib_unpack_color(triangle->tint);
+
+            rlColor4ub(color.r, color.g, color.b, color.a);
+            rlVertex2f(triangle->a.x, triangle->a.y);
+            rlVertex2f(triangle->b.x, triangle->b.y);
+            rlVertex2f(triangle->c.x, triangle->c.y);
+        }
     }
     rlEnd();
     rlSetTexture(0U);
+    engine_profile_gpu_zone_end(&gpu_zone);
 }
 
 static void raylib_backend_draw_circle(void *userdata, Vec2 center, float radius, Color32 color, bool filled) {
@@ -360,6 +625,7 @@ static void raylib_backend_draw_text(void *userdata, float x, float y, const cha
 }
 
 static void raylib_backend_draw_texture(void *userdata, const Texture *texture, float x, float y) {
+    EngineProfileGpuZone gpu_zone = { 0 };
     const RaylibTexture *raylib_texture = raylib_texture_from_const_base(texture);
     Rectangle source;
     Rectangle dest;
@@ -377,10 +643,13 @@ static void raylib_backend_draw_texture(void *userdata, const Texture *texture, 
     dest.y = y;
     dest.width = (float)raylib_texture->base.width;
     dest.height = (float)raylib_texture->base.height;
+    engine_profile_gpu_zone_begin(&gpu_zone, "GPU Texture Draw");
     DrawTexturePro(raylib_texture->target.texture, source, dest, (Vector2){ 0.0f, 0.0f }, 0.0f, WHITE);
+    engine_profile_gpu_zone_end(&gpu_zone);
 }
 
 static void raylib_backend_draw_texture_tinted(void *userdata, const Texture *texture, float x, float y, Color32 tint) {
+    EngineProfileGpuZone gpu_zone = { 0 };
     const RaylibTexture *raylib_texture = raylib_texture_from_const_base(texture);
     Rectangle source;
     Rectangle dest;
@@ -398,7 +667,9 @@ static void raylib_backend_draw_texture_tinted(void *userdata, const Texture *te
     dest.y = y;
     dest.width = (float)raylib_texture->base.width;
     dest.height = (float)raylib_texture->base.height;
+    engine_profile_gpu_zone_begin(&gpu_zone, "GPU Tinted Texture Draw");
     DrawTexturePro(raylib_texture->target.texture, source, dest, (Vector2){ 0.0f, 0.0f }, 0.0f, raylib_unpack_color(tint));
+    engine_profile_gpu_zone_end(&gpu_zone);
 }
 
 static void raylib_backend_draw_texture_ex(
@@ -408,6 +679,7 @@ static void raylib_backend_draw_texture_ex(
     Vec2 origin,
     float rotation_degrees
 ) {
+    EngineProfileGpuZone gpu_zone = { 0 };
     const RaylibTexture *raylib_texture = raylib_texture_from_const_base(texture);
     Rectangle source;
     Rectangle draw_dest;
@@ -428,7 +700,9 @@ static void raylib_backend_draw_texture_ex(
     draw_dest.height = dest.h;
     draw_origin.x = origin.x;
     draw_origin.y = origin.y;
+    engine_profile_gpu_zone_begin(&gpu_zone, "GPU Texture Draw Ex");
     DrawTexturePro(raylib_texture->target.texture, source, draw_dest, draw_origin, rotation_degrees, WHITE);
+    engine_profile_gpu_zone_end(&gpu_zone);
 }
 
 static void raylib_backend_draw_tilemap(
@@ -531,7 +805,9 @@ bool raylib_backend_init(
     backend->target_width = GetRenderWidth();
     backend->target_height = GetRenderHeight();
     backend->instancing_enabled = false;
+    backend->tracy_frame_images_enabled = raylib_backend_tracy_frame_images_enabled_from_env();
 
+    engine_profile_gpu_init();
     backend->render_backend.userdata = backend;
     backend->render_backend.create_texture = raylib_backend_create_texture;
     backend->render_backend.destroy_texture = raylib_backend_destroy_texture;
@@ -576,7 +852,9 @@ void raylib_backend_dispose(RaylibBackend *backend) {
     if (backend == NULL) {
         return;
     }
+    raylib_backend_tracy_release_frame_images(backend);
     raylib_backend_release_instancing_state(backend);
+    engine_profile_gpu_shutdown();
     CloseWindow();
     memset(backend, 0, sizeof(*backend));
 }
@@ -637,22 +915,36 @@ void raylib_backend_pump_events(RaylibBackend *backend) {
 }
 
 void raylib_backend_begin_frame(RaylibBackend *backend, Color32 clear_color) {
+    ENGINE_PROFILE_ZONE_BEGIN(begin_frame_zone, "raylib_backend_begin_frame");
+    EngineProfileGpuZone gpu_zone = { 0 };
     if (backend == NULL) {
+        ENGINE_PROFILE_ZONE_END(begin_frame_zone);
         return;
     }
 
     backend->clip_depth = 0;
     backend->frame_active = true;
+    engine_profile_gpu_zone_begin(&gpu_zone, "GPU Begin Frame");
     BeginDrawing();
     ClearBackground(raylib_unpack_color(clear_color));
+    engine_profile_gpu_zone_end(&gpu_zone);
+    ENGINE_PROFILE_ZONE_END(begin_frame_zone);
 }
 
 void raylib_backend_end_frame(RaylibBackend *backend) {
+    ENGINE_PROFILE_ZONE_BEGIN(end_frame_zone, "raylib_backend_end_frame");
+    EngineProfileGpuZone gpu_zone = { 0 };
     if (backend == NULL) {
+        ENGINE_PROFILE_ZONE_END(end_frame_zone);
         return;
     }
+    raylib_backend_tracy_capture_frame_image(backend);
+    engine_profile_gpu_zone_begin(&gpu_zone, "GPU Present");
     EndDrawing();
+    engine_profile_gpu_zone_end(&gpu_zone);
+    engine_profile_gpu_collect();
     backend->frame_active = false;
+    ENGINE_PROFILE_ZONE_END(end_frame_zone);
 }
 
 bool raylib_backend_should_close(const RaylibBackend *backend) {
@@ -688,4 +980,16 @@ void raylib_backend_get_window_size(const RaylibBackend* backend, int* out_width
     if (out_height != NULL) {
         *out_height = backend != NULL ? backend->window_height : 0;
     }
+}
+
+int raylib_backend_get_display_refresh_rate(const RaylibBackend* backend)
+{
+    int monitor = 0;
+    int refresh_rate_hz = 0;
+
+    (void)backend;
+
+    monitor = GetCurrentMonitor();
+    refresh_rate_hz = GetMonitorRefreshRate(monitor);
+    return refresh_rate_hz > 0 ? refresh_rate_hz : 60;
 }

@@ -23,11 +23,6 @@ typedef struct EngineSettings
 
     float physics_onscreen_sleep_threshold;
     float physics_offscreen_sleep_threshold;
-    bool physics_adaptive_hz_enabled;
-    float physics_target_hz;
-    float physics_min_hz;
-    float physics_max_hz;
-    float physics_frame_budget_hz;
     uint32_t physics_max_substeps;
     uint32_t physics_step_substep_count;
 

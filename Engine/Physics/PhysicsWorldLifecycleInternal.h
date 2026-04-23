@@ -10,12 +10,9 @@ struct PhysicsWorldLifecycleState {
     float gravity_x;
     float gravity_y;
     float target_hz;
-    float min_hz;
-    float max_hz;
-    float frame_budget_hz;
-    bool adaptive_hz_enabled;
     float sleep_threshold;
     float fixed_dt;
+    uint64_t step_version;
     uint32_t max_substeps;
     uint32_t base_step_substep_count;
     uint32_t step_substep_count;

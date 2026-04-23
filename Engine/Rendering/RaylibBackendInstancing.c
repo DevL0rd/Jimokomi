@@ -2,6 +2,9 @@
 
 #include "../../third_party/raylib/src/external/glad.h"
 
+#include "../Core/Profiling.h"
+#include "../Core/Memory.h"
+
 #include <stdlib.h>
 #include <string.h>
 #define Texture RaylibNativeTexture
@@ -310,6 +313,7 @@ void raylib_backend_draw_texture_batch(
     size_t instance_count
 )
 {
+    EngineProfileGpuZone gpu_zone = { 0 };
     RaylibBackend *backend = (RaylibBackend*)userdata;
     RaylibInstancingState* state = raylib_backend_get_instancing_state(backend);
     unsigned int texture_id = 0U;
@@ -459,7 +463,9 @@ void raylib_backend_draw_texture_batch(
         raylib_backend_set_attribute_divisor((unsigned int)state->instance_color_location, 1U);
     }
 
+    engine_profile_gpu_zone_begin(&gpu_zone, "GPU Instanced Texture Batch");
     raylib_backend_draw_arrays_instanced(0, state->quad_mesh.vertexCount, (int)instance_count);
+    engine_profile_gpu_zone_end(&gpu_zone);
 
     if (state->instance_color_location != -1)
     {

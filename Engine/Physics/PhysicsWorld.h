@@ -19,13 +19,8 @@ typedef struct PhysicsWorldConfig
     float gravity_x;
     float gravity_y;
     float target_hz;
-    float min_hz;
-    float max_hz;
-    float frame_budget_hz;
-    bool adaptive_hz_enabled;
     float sleep_threshold;
     bool continuous_collision_enabled;
-    bool has_adaptive_hz_setting;
     bool has_continuous_collision_setting;
     bool has_sleep_threshold_setting;
     uint32_t max_substeps;
@@ -90,6 +85,7 @@ typedef struct PhysicsWorldSnapshot
     float particle_profile_compaction_ms;
     float particle_profile_scratch_ms;
     float particle_profile_events_ms;
+    uint64_t physics_step_version;
     float physics_hz;
     float physics_fixed_dt;
     float physics_accumulator;
@@ -125,7 +121,7 @@ PhysicsWorld* PhysicsWorld_Create(const PhysicsWorldConfig* config);
 void PhysicsWorld_Destroy(PhysicsWorld* world);
 
 void PhysicsWorld_GetStepConfig(const PhysicsWorld* world, float* out_fixed_dt, uint32_t* out_max_substeps);
-void PhysicsWorld_UpdateAdaptiveStepRate(PhysicsWorld* world, float accumulator_seconds);
+uint64_t PhysicsWorld_GetStepVersion(const PhysicsWorld* world);
 void PhysicsWorld_SetSleepThreshold(PhysicsWorld* world, float sleep_threshold);
 void PhysicsWorld_UpdateViewSleepThresholds(
     PhysicsWorld* world,

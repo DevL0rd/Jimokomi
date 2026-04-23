@@ -1,4 +1,5 @@
 #include "PhysicsWorldLifecycleInternal.h"
+#include "../Core/Profiling.h"
 
 typedef struct PhysicsQueryAccumulator
 {
@@ -51,18 +52,21 @@ static float PhysicsWorld_RayCollector(b2ShapeId shape_id, b2Vec2 point, b2Vec2 
 
 size_t PhysicsWorld_QueryPoint(PhysicsWorld* world, float x, float y, PhysicsQueryResult* results, size_t capacity)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(query_point_zone, "PhysicsWorld_QueryPoint");
     b2AABB aabb;
     b2QueryFilter filter = b2DefaultQueryFilter();
     PhysicsQueryAccumulator accumulator = {world, results, capacity, 0u, {x, y}};
 
     if (world == NULL || !world->lifecycle->has_world || results == NULL || capacity == 0)
     {
+        ENGINE_PROFILE_ZONE_END(query_point_zone);
         return 0;
     }
 
     aabb.lowerBound = (b2Vec2){x - 0.001f, y - 0.001f};
     aabb.upperBound = (b2Vec2){x + 0.001f, y + 0.001f};
     b2World_OverlapAABB(world->lifecycle->world_id, aabb, filter, PhysicsWorld_OverlapCollector, &accumulator);
+    ENGINE_PROFILE_ZONE_END(query_point_zone);
     return accumulator.count;
 }
 
@@ -74,11 +78,13 @@ size_t PhysicsWorld_QueryRay(PhysicsWorld* world,
                                PhysicsQueryResult* results,
                                size_t capacity)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(query_ray_zone, "PhysicsWorld_QueryRay");
     b2QueryFilter filter = b2DefaultQueryFilter();
     PhysicsQueryAccumulator accumulator = {world, results, capacity, 0u, {x0, y0}};
 
     if (world == NULL || !world->lifecycle->has_world || results == NULL || capacity == 0)
     {
+        ENGINE_PROFILE_ZONE_END(query_ray_zone);
         return 0;
     }
 
@@ -88,23 +94,27 @@ size_t PhysicsWorld_QueryRay(PhysicsWorld* world,
                     filter,
                     PhysicsWorld_RayCollector,
                     &accumulator);
+    ENGINE_PROFILE_ZONE_END(query_ray_zone);
     return accumulator.count;
 }
 
 size_t PhysicsWorld_QueryRadius(PhysicsWorld* world, float x, float y, float radius, PhysicsQueryResult* results, size_t capacity)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(query_radius_zone, "PhysicsWorld_QueryRadius");
     b2AABB aabb;
     b2QueryFilter filter = b2DefaultQueryFilter();
     PhysicsQueryAccumulator accumulator = {world, results, capacity, 0u, {x, y}};
 
     if (world == NULL || !world->lifecycle->has_world || results == NULL || capacity == 0)
     {
+        ENGINE_PROFILE_ZONE_END(query_radius_zone);
         return 0;
     }
 
     aabb.lowerBound = (b2Vec2){x - radius, y - radius};
     aabb.upperBound = (b2Vec2){x + radius, y + radius};
     b2World_OverlapAABB(world->lifecycle->world_id, aabb, filter, PhysicsWorld_OverlapCollector, &accumulator);
+    ENGINE_PROFILE_ZONE_END(query_radius_zone);
     return accumulator.count;
 }
 
@@ -122,11 +132,13 @@ size_t PhysicsWorld_GetContactHitCount(PhysicsWorld* world)
 
 size_t PhysicsWorld_GetContactHits(PhysicsWorld* world, PhysicsContactHit* hits, size_t capacity)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(contact_hits_zone, "PhysicsWorld_GetContactHits");
     b2ContactEvents contact_events;
     size_t count = 0U;
     int event_index;
 
     if (world == NULL || !world->lifecycle->has_world || hits == NULL || capacity == 0U) {
+        ENGINE_PROFILE_ZONE_END(contact_hits_zone);
         return 0U;
     }
 
@@ -145,5 +157,6 @@ size_t PhysicsWorld_GetContactHits(PhysicsWorld* world, PhysicsContactHit* hits,
         out_hit->entity_b = PhysicsWorld_GetEntityForBody(world, body_b);
     }
 
+    ENGINE_PROFILE_ZONE_END(contact_hits_zone);
     return count;
 }

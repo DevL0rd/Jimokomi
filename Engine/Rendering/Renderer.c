@@ -11,6 +11,9 @@
 #include "ResourceManagerRegistry.h"
 #include "ResourceManagerStats.h"
 #include "../Core/PlatformRuntimeInternal.h"
+#include "../Core/Profiling.h"
+
+#include "../Core/Memory.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -174,7 +177,8 @@ static const Texture* renderer_get_material_triangle_texture(
 static TriangleDrawInstance renderer_prepare_triangle_draw(
     Renderer* renderer,
     const Material* material,
-    const TriangleRenderable* triangle
+    const TriangleRenderable* triangle,
+    bool use_texture_uv
 )
 {
     TriangleDrawInstance draw;
@@ -195,7 +199,7 @@ static TriangleDrawInstance renderer_prepare_triangle_draw(
         ? renderer_multiply_color(triangle->color, (Color32){ material->base_color })
         : triangle->color;
 
-    if (material != NULL && material->uv_mode == MATERIAL_UV_WORLD)
+    if (use_texture_uv && material != NULL && material->uv_mode == MATERIAL_UV_WORLD)
     {
         draw.uv_a = renderer_world_uv(triangle->a, material);
         draw.uv_b = renderer_world_uv(triangle->b, material);
@@ -364,8 +368,8 @@ static void renderer_draw_procedural_mesh(
     const RendererFrame* frame,
     const ProceduralMeshRenderable* mesh
 ) {
-    const ProceduralMeshResource* source;
     const MaterialResource* material;
+    const ProceduralMeshResource* source = NULL;
     uint32_t frame_index;
     size_t index;
 
@@ -376,15 +380,6 @@ static void renderer_draw_procedural_mesh(
 
     material = resource_manager_get_material(renderer->lifecycle->resource_manager, mesh->material_handle);
     if (material == NULL)
-    {
-        return;
-    }
-
-    source = resource_manager_get_procedural_mesh(
-        renderer->lifecycle->resource_manager,
-        mesh->procedural_mesh_handle
-    );
-    if (source == NULL)
     {
         return;
     }
@@ -401,6 +396,7 @@ static void renderer_draw_procedural_mesh(
                 mesh->material_handle,
                 frame->now_ms
             );
+            bool use_texture_uv = texture != NULL;
             size_t draw_count = 0U;
 
             for (index = 0U; index < mesh->triangle_count; ++index)
@@ -411,7 +407,8 @@ static void renderer_draw_procedural_mesh(
                     renderer->scratch->scratch_triangles[draw_count++] = renderer_prepare_triangle_draw(
                         renderer,
                         &material->value,
-                        &frame->triangles[triangle_index]
+                        &frame->triangles[triangle_index],
+                        use_texture_uv
                     );
                 }
             }
@@ -444,6 +441,15 @@ static void renderer_draw_procedural_mesh(
         return;
     }
 
+    source = resource_manager_get_procedural_mesh(
+        renderer->lifecycle->resource_manager,
+        mesh->procedural_mesh_handle
+    );
+    if (source == NULL)
+    {
+        return;
+    }
+
     if (source->build_mesh == NULL)
     {
         return;
@@ -455,6 +461,7 @@ static void renderer_draw_procedural_mesh(
         const Mesh* geometry = resource_manager_get_or_create_baked_mesh(
             renderer->lifecycle->resource_manager,
             mesh->procedural_mesh_handle,
+            mesh->instance_signature,
             frame_index,
             mesh->user_data
         );
@@ -472,12 +479,14 @@ static void renderer_draw_procedural_mesh(
                 mesh->material_handle,
                 frame->now_ms
             );
+            bool use_texture_uv = texture != NULL;
             for (index = 0U; index < geometry->triangle_count; ++index)
             {
                 renderer->scratch->scratch_triangles[index] = renderer_prepare_triangle_draw(
                     renderer,
                     &material->value,
-                    &geometry->triangles[index]
+                    &geometry->triangles[index],
+                    use_texture_uv
                 );
             }
             backend->draw_triangles(
@@ -1008,6 +1017,7 @@ void renderer_get_stats_snapshot(const Renderer* renderer, RendererStatsSnapshot
 }
 
 void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFrame *frame) {
+    ENGINE_PROFILE_ZONE_BEGIN(renderer_draw_zone, "renderer_draw");
     size_t index;
     bool needs_sort = false;
     bool batching_enabled = false;
@@ -1019,31 +1029,36 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
     bool material_renderables_sorted_by_layer = true;
     double frame_started_ms;
     if (renderer == NULL || backend == NULL || frame == NULL) {
+        ENGINE_PROFILE_ZONE_END(renderer_draw_zone);
         return;
     }
 
     frame_started_ms = renderer_now_ms();
 
-    renderer_compute_frame_signatures(frame, &frame_signature, &sort_signature, &instance_signature, &material_renderables_sorted_by_layer);
-    overlay_signature = renderer_compute_overlay_signature(frame);
-    renderer->signatures->dirty_flags = RENDERER_DIRTY_NONE;
-    if (frame_signature != renderer->signatures->last_frame_signature) {
-        renderer->signatures->dirty_flags |= RENDERER_DIRTY_FRAME_LIST;
-    }
-    if (sort_signature != renderer->signatures->last_sort_signature) {
-        renderer->signatures->dirty_flags |= RENDERER_DIRTY_SORT;
-    }
-    if (overlay_signature != renderer->signatures->last_overlay_signature) {
-        renderer->signatures->dirty_flags |= RENDERER_DIRTY_OVERLAY_LIST;
-    }
-    if (instance_signature != renderer->signatures->last_instance_batch_signature) {
-        renderer->signatures->dirty_flags |= RENDERER_DIRTY_INSTANCE_BATCH;
-    }
-    if (frame->backdrop_signature != renderer->signatures->last_backdrop_signature) {
-        renderer->signatures->dirty_flags |= RENDERER_DIRTY_BACKDROP;
-    }
-    if (frame->metadata_dirty || frame->metadata_signature != renderer->signatures->last_metadata_signature) {
-        renderer->signatures->dirty_flags |= RENDERER_DIRTY_SNAPSHOT_METADATA;
+    {
+        ENGINE_PROFILE_ZONE_BEGIN(signature_zone, "renderer_draw_signatures");
+        renderer_compute_frame_signatures(frame, &frame_signature, &sort_signature, &instance_signature, &material_renderables_sorted_by_layer);
+        overlay_signature = renderer_compute_overlay_signature(frame);
+        renderer->signatures->dirty_flags = RENDERER_DIRTY_NONE;
+        if (frame_signature != renderer->signatures->last_frame_signature) {
+            renderer->signatures->dirty_flags |= RENDERER_DIRTY_FRAME_LIST;
+        }
+        if (sort_signature != renderer->signatures->last_sort_signature) {
+            renderer->signatures->dirty_flags |= RENDERER_DIRTY_SORT;
+        }
+        if (overlay_signature != renderer->signatures->last_overlay_signature) {
+            renderer->signatures->dirty_flags |= RENDERER_DIRTY_OVERLAY_LIST;
+        }
+        if (instance_signature != renderer->signatures->last_instance_batch_signature) {
+            renderer->signatures->dirty_flags |= RENDERER_DIRTY_INSTANCE_BATCH;
+        }
+        if (frame->backdrop_signature != renderer->signatures->last_backdrop_signature) {
+            renderer->signatures->dirty_flags |= RENDERER_DIRTY_BACKDROP;
+        }
+        if (frame->metadata_dirty || frame->metadata_signature != renderer->signatures->last_metadata_signature) {
+            renderer->signatures->dirty_flags |= RENDERER_DIRTY_SNAPSHOT_METADATA;
+        }
+        ENGINE_PROFILE_ZONE_END(signature_zone);
     }
 
     renderer->stats->last_material_renderable_count = frame->material_renderable_count;
@@ -1065,14 +1080,21 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
         double started_ms;
         draw_material_renderables = frame->material_renderables;
         if (frame->backdrop_draw != NULL) {
+            ENGINE_PROFILE_ZONE_BEGIN(backdrop_zone, "renderer_draw_backdrop");
             Target target;
             target_init(&target, backend, 0.0f, 0.0f);
             frame->backdrop_draw(&target, &renderer->lifecycle->camera, frame->backdrop_user_data);
+            ENGINE_PROFILE_ZONE_END(backdrop_zone);
         }
-        for (index = 0U; index < frame->procedural_mesh_count; ++index) {
-            renderer_draw_procedural_mesh(renderer, backend, frame, &frame->procedural_meshes[index]);
+        {
+            ENGINE_PROFILE_ZONE_BEGIN(procedural_mesh_zone, "renderer_draw_procedural_meshes");
+            for (index = 0U; index < frame->procedural_mesh_count; ++index) {
+                renderer_draw_procedural_mesh(renderer, backend, frame, &frame->procedural_meshes[index]);
+            }
+            ENGINE_PROFILE_ZONE_END(procedural_mesh_zone);
         }
         if (draw_material_renderables != NULL && frame->material_renderable_count == 1U) {
+            ENGINE_PROFILE_ZONE_BEGIN(single_renderable_zone, "renderer_draw_single_renderable");
             started_ms = renderer_now_ms();
             if (renderer_is_material_renderable_visible(renderer, &draw_material_renderables[0])) {
                 renderer->stats->last_visible_material_renderable_count = 1U;
@@ -1083,11 +1105,14 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
                 renderer->stats->last_visibility_ms = renderer_now_ms() - started_ms;
             }
             if (resource_manager_has_pending_bakes(renderer->lifecycle->resource_manager)) {
+                ENGINE_PROFILE_ZONE_BEGIN(pending_bakes_single_zone, "renderer_process_pending_bakes");
                 resource_manager_process_pending_bakes(
                     renderer->lifecycle->resource_manager,
                     renderer_compute_bake_budget_ms(frame_started_ms, renderer->lifecycle->prebake_target_fps)
                 );
+                ENGINE_PROFILE_ZONE_END(pending_bakes_single_zone);
             }
+            ENGINE_PROFILE_ZONE_END(single_renderable_zone);
             goto draw_debug;
         }
         if (!material_renderables_sorted_by_layer && frame->material_renderables != NULL && frame->material_renderable_count > 0U) {
@@ -1099,13 +1124,16 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
             }
         }
         if (frame->material_renderables != NULL && needs_sort && renderer_reserve_scratch(renderer, frame->material_renderable_count)) {
+            ENGINE_PROFILE_ZONE_BEGIN(sort_zone, "renderer_sort_material_renderables");
             started_ms = renderer_now_ms();
             memcpy(renderer->scratch->scratch_material_renderables, frame->material_renderables, frame->material_renderable_count * sizeof(*renderer->scratch->scratch_material_renderables));
             qsort(renderer->scratch->scratch_material_renderables, frame->material_renderable_count, sizeof(*renderer->scratch->scratch_material_renderables), renderer_compare_material_layer);
             renderer->stats->last_sort_ms = renderer_now_ms() - started_ms;
             draw_material_renderables = renderer->scratch->scratch_material_renderables;
+            ENGINE_PROFILE_ZONE_END(sort_zone);
         }
         if (draw_material_renderables != NULL) {
+            ENGINE_PROFILE_ZONE_BEGIN(material_draw_zone, "renderer_draw_material_renderables");
             RendererTextureBatch batch = { 0 };
 
             batching_enabled = renderer_reserve_instances(renderer, frame->material_renderable_count);
@@ -1138,17 +1166,21 @@ void renderer_draw(Renderer *renderer, RenderBackend *backend, const RendererFra
                 renderer->stats->last_material_renderable_draw_count += 1U;
             }
             renderer_flush_texture_batch(renderer, backend, &batch);
+            ENGINE_PROFILE_ZONE_END(material_draw_zone);
         }
         if (resource_manager_has_pending_bakes(renderer->lifecycle->resource_manager)) {
+            ENGINE_PROFILE_ZONE_BEGIN(pending_bakes_frame_zone, "renderer_process_pending_bakes");
             resource_manager_process_pending_bakes(
                 renderer->lifecycle->resource_manager,
                 renderer_compute_bake_budget_ms(frame_started_ms, renderer->lifecycle->prebake_target_fps)
             );
+            ENGINE_PROFILE_ZONE_END(pending_bakes_frame_zone);
         }
     }
 
 draw_debug:
     if (frame->draw_debug) {
+        ENGINE_PROFILE_ZONE_BEGIN(debug_world_zone, "renderer_draw_debug_world");
         debug_overlay_draw_world(
             renderer->lifecycle->debug_overlay,
             backend,
@@ -1162,6 +1194,7 @@ draw_debug:
             frame->selected_debug_entity_id,
             frame->hovered_debug_entity_id
         );
+        ENGINE_PROFILE_ZONE_END(debug_world_zone);
     }
     renderer->signatures->last_frame_signature = frame_signature;
     renderer->signatures->last_sort_signature = sort_signature;
@@ -1169,4 +1202,5 @@ draw_debug:
     renderer->signatures->last_instance_batch_signature = instance_signature;
     renderer->signatures->last_backdrop_signature = frame->backdrop_signature;
     renderer->signatures->last_metadata_signature = frame->metadata_signature;
+    ENGINE_PROFILE_ZONE_END(renderer_draw_zone);
 }

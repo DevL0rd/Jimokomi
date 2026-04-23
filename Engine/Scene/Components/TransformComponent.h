@@ -35,5 +35,6 @@ void TransformComponent_ClearDirty(TransformComponent* component, uint32_t dirty
 void TransformComponent_SetPosition(TransformComponent* component, float x, float y, bool teleported);
 void TransformComponent_SetRotation(TransformComponent* component, float angle_radians);
 void TransformComponent_SetScale(TransformComponent* component, float scale_x, float scale_y);
+uint64_t TransformComponent_ComputeVisualSignature(const TransformComponent* component, float render_alpha);
 
 #endif

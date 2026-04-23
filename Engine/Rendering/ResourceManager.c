@@ -1,5 +1,7 @@
 #include "ResourceManagerRegistryInternal.h"
 
+#include "../Core/Memory.h"
+
 #include <stdlib.h>
 
 bool resource_manager_reserve(

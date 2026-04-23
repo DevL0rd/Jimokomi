@@ -2,9 +2,11 @@
 
 #include "RendererLifecycleInternal.h"
 #include "ResourceManagerRegistry.h"
+#include "../Core/Profiling.h"
 
 bool renderer_is_material_renderable_visible(const Renderer* renderer, const MaterialRenderable* item)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(visibility_zone, "renderer_is_material_renderable_visible");
     const ProceduralTextureResource* source = NULL;
     const TextureResource* texture = NULL;
     const MaterialResource* material = NULL;
@@ -17,12 +19,14 @@ bool renderer_is_material_renderable_visible(const Renderer* renderer, const Mat
 
     if (renderer == NULL || item == NULL || !item->visible)
     {
+        ENGINE_PROFILE_ZONE_END(visibility_zone);
         return false;
     }
 
     material = resource_manager_get_material(renderer->lifecycle->resource_manager, item->material_handle);
     if (material == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(visibility_zone);
         return false;
     }
 
@@ -37,6 +41,7 @@ bool renderer_is_material_renderable_visible(const Renderer* renderer, const Mat
         source = resource_manager_get_procedural_texture(renderer->lifecycle->resource_manager, material->value.procedural_texture_handle);
         if (source == NULL)
         {
+            ENGINE_PROFILE_ZONE_END(visibility_zone);
             return false;
         }
 
@@ -48,8 +53,12 @@ bool renderer_is_material_renderable_visible(const Renderer* renderer, const Mat
     right = left + width;
     bottom = top + height;
 
-    return right >= renderer->lifecycle->camera.x &&
-           bottom >= renderer->lifecycle->camera.y &&
-           left <= renderer->lifecycle->camera.x + renderer->lifecycle->camera.view_width &&
-           top <= renderer->lifecycle->camera.y + renderer->lifecycle->camera.view_height;
+    {
+        bool visible = right >= renderer->lifecycle->camera.x &&
+                       bottom >= renderer->lifecycle->camera.y &&
+                       left <= renderer->lifecycle->camera.x + renderer->lifecycle->camera.view_width &&
+                       top <= renderer->lifecycle->camera.y + renderer->lifecycle->camera.view_height;
+        ENGINE_PROFILE_ZONE_END(visibility_zone);
+        return visible;
+    }
 }

@@ -3,6 +3,7 @@
 #include "AppInternal.h"
 #include "Core/InputPacketStreamInternal.h"
 #include "Core/PlatformRuntimeInternal.h"
+#include "Core/Profiling.h"
 #include "Core/TaskSystem.h"
 #include "Runtime/AppRenderLoop.h"
 #include "Runtime/AppSimulationInternal.h"
@@ -17,8 +18,89 @@
 #include "Scene/SceneView.h"
 
 #include <stdatomic.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+static const char* engine_app_profile_build_mode(void)
+{
+#if defined(JIMOKOMI_ENABLE_TRACY_PROFILE)
+    return "profile";
+#elif defined(NDEBUG)
+    return "default";
+#else
+    return "debug";
+#endif
+}
+
+static const char* engine_app_profile_platform(void)
+{
+#if defined(_WIN32)
+    return "windows";
+#elif defined(__APPLE__)
+    return "apple";
+#elif defined(__linux__)
+    return "linux";
+#else
+    return "unknown";
+#endif
+}
+
+static void engine_app_profile_configure_plots(void)
+{
+    engine_profile_plot_config("Engine/FPS", ENGINE_PROFILE_PLOT_NUMBER, false, true, 0xff6bbf59U);
+    engine_profile_plot_config("Engine/FrameMs", ENGINE_PROFILE_PLOT_NUMBER, false, true, 0xff4bb8ccU);
+    engine_profile_plot_config("Engine/DrawMs", ENGINE_PROFILE_PLOT_NUMBER, false, true, 0xfff4a261U);
+    engine_profile_plot_config("Engine/UpdateMs", ENGINE_PROFILE_PLOT_NUMBER, false, true, 0xffe76f51U);
+
+    engine_profile_plot_config("Sim/UpdateMs", ENGINE_PROFILE_PLOT_NUMBER, false, true, 0xff8ecae6U);
+    engine_profile_plot_config("Sim/InputMs", ENGINE_PROFILE_PLOT_NUMBER, false, true, 0xff219ebcU);
+    engine_profile_plot_config("Sim/GameUpdateMs", ENGINE_PROFILE_PLOT_NUMBER, false, true, 0xff023047U);
+    engine_profile_plot_config("Sim/FixedStepMs", ENGINE_PROFILE_PLOT_NUMBER, false, true, 0xff264653U);
+    engine_profile_plot_config("Sim/DragMs", ENGINE_PROFILE_PLOT_NUMBER, false, true, 0xff2a9d8fU);
+    engine_profile_plot_config("Sim/SnapshotAcquireMs", ENGINE_PROFILE_PLOT_NUMBER, false, true, 0xff577590U);
+    engine_profile_plot_config("Sim/SnapshotBuildMs", ENGINE_PROFILE_PLOT_NUMBER, false, true, 0xff7b2cbfU);
+    engine_profile_plot_config("Sim/PhysicsSubsteps", ENGINE_PROFILE_PLOT_NUMBER, true, false, 0xff9b5de5U);
+
+    engine_profile_plot_config("Physics/CorePhysStepMs", ENGINE_PROFILE_PLOT_NUMBER, false, true, 0xffef476fU);
+    engine_profile_plot_config("Physics/Hz", ENGINE_PROFILE_PLOT_NUMBER, false, true, 0xff06d6a0U);
+    engine_profile_plot_config("Physics/Substeps", ENGINE_PROFILE_PLOT_NUMBER, true, false, 0xffffd166U);
+    engine_profile_plot_config("Physics/Particles", ENGINE_PROFILE_PLOT_NUMBER, true, false, 0xff118ab2U);
+
+    engine_profile_plot_config("Renderer/FrameDrawMs", ENGINE_PROFILE_PLOT_NUMBER, false, true, 0xffbc6c25U);
+    engine_profile_plot_config("Resources/PendingBakes", ENGINE_PROFILE_PLOT_NUMBER, true, false, 0xffdda15eU);
+}
+
+static void engine_app_profile_publish_app_info(
+    const TaskSystem* simulation_task_system,
+    const TaskSystem* render_task_system
+)
+{
+    TaskSystemStatsSnapshot simulation_stats;
+    TaskSystemStatsSnapshot render_stats;
+    char app_info[256];
+
+    memset(&simulation_stats, 0, sizeof(simulation_stats));
+    memset(&render_stats, 0, sizeof(render_stats));
+    task_system_get_stats_snapshot(simulation_task_system, &simulation_stats);
+    task_system_get_stats_snapshot(render_task_system, &render_stats);
+    snprintf(
+        app_info,
+        sizeof(app_info),
+        "Jimokomi build=%s platform=%s cores=%d sim_workers=%d render_workers=%d corephys_profile=%s",
+        engine_app_profile_build_mode(),
+        engine_app_profile_platform(),
+        engine_platform_get_online_core_count(),
+        simulation_stats.worker_count,
+        render_stats.worker_count,
+#if defined(JIMOKOMI_ENABLE_TRACY_PROFILE)
+        "on"
+#else
+        "off"
+#endif
+    );
+    engine_profile_app_info(app_info);
+}
 
 Engine* EngineApp_GetEngine(EngineAppContext* app)
 {
@@ -38,6 +120,19 @@ Scene* EngineApp_GetScene(EngineAppContext* app)
 TaskSystem* EngineApp_GetTaskSystem(EngineAppContext* app)
 {
     return app != NULL ? app->task_system : NULL;
+}
+
+int EngineApp_GetDisplayRefreshRate(EngineAppContext* app)
+{
+    int refresh_rate_hz = 60;
+
+    if (app == NULL || app->backend == NULL)
+    {
+        return refresh_rate_hz;
+    }
+
+    refresh_rate_hz = raylib_backend_get_display_refresh_rate(app->backend);
+    return refresh_rate_hz > 0 ? refresh_rate_hz : 60;
 }
 
 void EngineAppDesc_InitDefaults(EngineAppDesc* desc)
@@ -72,6 +167,7 @@ int EngineApp_Run(const EngineAppDesc* desc)
     memset(&app, 0, sizeof(app));
     memset(&sim_context, 0, sizeof(sim_context));
     memset(&input_stream, 0, sizeof(input_stream));
+    engine_profile_set_thread_name("Main Thread");
     runtime_config_from_engine_settings(&runtime_config, settings);
     renderer_config = RendererConfig_Defaults();
     InteractionSystem_Init(&app.interaction_state);
@@ -112,6 +208,8 @@ int EngineApp_Run(const EngineAppDesc* desc)
     {
         goto cleanup;
     }
+    engine_app_profile_configure_plots();
+    engine_app_profile_publish_app_info(app.task_system, app.render_task_system);
 
     app.renderer = renderer_create(raylib_backend_get_render_backend(app.backend), &renderer_config);
     if (app.renderer == NULL)

@@ -18,11 +18,6 @@ const EngineSettings* EngineSettings_GetDefaults(void)
 
         .physics_onscreen_sleep_threshold = 0.05f,
         .physics_offscreen_sleep_threshold = 1.0f,
-        .physics_adaptive_hz_enabled = false,
-        .physics_target_hz = 60.0f,
-        .physics_min_hz = 60.0f,
-        .physics_max_hz = 300.0f,
-        .physics_frame_budget_hz = 30.0f,
         .physics_max_substeps = 10U,
         .physics_step_substep_count = 4U,
 

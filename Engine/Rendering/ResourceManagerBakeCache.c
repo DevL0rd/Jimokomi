@@ -3,6 +3,8 @@
 #include "ResourceManagerStatsInternal.h"
 #include "GeneratedFrame.h"
 
+#include "../Core/Memory.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -439,6 +441,7 @@ const Texture* resource_manager_get_baked_texture(
 const Mesh* resource_manager_get_or_create_baked_mesh(
     ResourceManager* manager,
     ResourceHandle procedural_mesh_handle,
+    uint64_t instance_signature,
     uint32_t frame_index,
     void* user_data
 ) {
@@ -466,6 +469,7 @@ const Mesh* resource_manager_get_or_create_baked_mesh(
     for (index = 0U; index < manager->bake_cache->baked_mesh_count; ++index) {
         mesh = &manager->bake_cache->baked_meshes[index];
         if (mesh->procedural_mesh_handle.id == procedural_mesh_handle.id &&
+            mesh->instance_signature == instance_signature &&
             mesh->frame_index == cache_frame_index &&
             (source->frames.cache_policy != BAKE_POLICY_REFRESH_FRAME ||
              mesh->source_frame_index == source_frame_index)) {
@@ -476,6 +480,7 @@ const Mesh* resource_manager_get_or_create_baked_mesh(
     for (index = 0U; index < manager->bake_cache->baked_mesh_count; ++index) {
         mesh = &manager->bake_cache->baked_meshes[index];
         if (mesh->procedural_mesh_handle.id == procedural_mesh_handle.id &&
+            mesh->instance_signature == instance_signature &&
             mesh->frame_index == cache_frame_index) {
             if (mesh->mesh != NULL) {
                 mesh->mesh->triangle_count = 0U;
@@ -493,6 +498,7 @@ const Mesh* resource_manager_get_or_create_baked_mesh(
     mesh = &manager->bake_cache->baked_meshes[manager->bake_cache->baked_mesh_count++];
     memset(mesh, 0, sizeof(*mesh));
     mesh->procedural_mesh_handle = procedural_mesh_handle;
+    mesh->instance_signature = instance_signature;
     mesh->frame_index = cache_frame_index;
     mesh->source_frame_index = source_frame_index;
     mesh->mesh = (Mesh*)calloc(1U, sizeof(*mesh->mesh));

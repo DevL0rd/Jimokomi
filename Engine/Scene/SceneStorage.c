@@ -11,6 +11,8 @@
 #include "Components/RigidBodyComponent.h"
 #include "../Physics/PhysicsBodyControl.h"
 
+#include "../Core/Memory.h"
+
 #include <stdlib.h>
 #include <string.h>
 

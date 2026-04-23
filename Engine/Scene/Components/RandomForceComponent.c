@@ -1,5 +1,7 @@
 #include "RandomForceComponent.h"
 
+#include "../../Core/Memory.h"
+
 #include <stdlib.h>
 
 static void RandomForceComponent_DestroyBase(Component* component)

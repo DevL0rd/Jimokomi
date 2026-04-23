@@ -33,5 +33,6 @@ Engine* EngineApp_GetEngine(EngineAppContext* app);
 Renderer* EngineApp_GetRenderer(EngineAppContext* app);
 Scene* EngineApp_GetScene(EngineAppContext* app);
 TaskSystem* EngineApp_GetTaskSystem(EngineAppContext* app);
+int EngineApp_GetDisplayRefreshRate(EngineAppContext* app);
 
 #endif

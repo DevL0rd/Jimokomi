@@ -10,6 +10,9 @@
 #include "SpatialGrid.h"
 #include "Components/ColliderComponent.h"
 #include "Components/TransformComponent.h"
+#include "../Core/Profiling.h"
+
+#include "../Core/Memory.h"
 
 #include <stdlib.h>
 
@@ -115,12 +118,18 @@ struct Entity* Scene_PickEntityAtScreen(Scene* scene, float screen_x, float scre
 
 size_t Scene_QueryEntitiesInAabb(Scene* scene, Aabb bounds, struct Entity** results, size_t capacity)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(query_zone, "Scene_QueryEntitiesInAabb");
     if (scene == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(query_zone);
         return 0U;
     }
 
-    return SpatialGrid_QueryAabb(&scene->spatial->spatial_grid, bounds, results, capacity);
+    {
+        size_t count = SpatialGrid_QueryAabb(&scene->spatial->spatial_grid, bounds, results, capacity);
+        ENGINE_PROFILE_ZONE_END(query_zone);
+        return count;
+    }
 }
 
 size_t Scene_QueryEntitiesInRadius(Scene* scene, Vec2 center, float radius, struct Entity** results, size_t capacity)

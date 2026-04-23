@@ -1,5 +1,11 @@
 # Project Rules
 
+## Required Workflow
+- Before doing any task work, first read `README.md`.
+- Before doing any task work, second inspect the full directory tree for `Engine/` and `Game/` to understand subsystem structure and ownership.
+- Before doing any task work, third explore all files relevant to the task and search globally for existing code, APIs, diagnostics, or patterns that may help.
+- Before implementation, fourth make a solid plan with a todo checklist, mark steps off as they are completed, and delete the checklist when the task is done.
+
 ## Core Rules
 - Use `Scene + Entity + Component`.
 - `Scene` owns world lifecycle and systems.
@@ -13,7 +19,6 @@
 - Prefer small, focused modules.
 - One responsibility per file.
 - Group by subsystem, not convenience.
-- Keep APIs few and obvious.
 - Prefer explicit ownership and boundaries.
 - Do not add arbitrary preemptive limits, caps, throttles, thresholds, budgets, or fallback cutoffs.
 - Any limit must be required by a real invariant or exposed through centralized config/settings with a clear owner and default.
@@ -73,6 +78,13 @@
 - Keep runtime logging and profiler output clean and readable.
 - Prefer real counters, timings, and state metadata over guesses.
 - Treat frame drops and pacing changes as first-class performance signals.
+- VS Code owns the local build/run/debug/profile workflow for this repo.
+- Main VS Code launches are `Run`, `Debug`, `Profile`, and `Profile (UI)`.
+- Main VS Code tasks are `configure: default`, `build: default`, `run: default`, `configure: debug`, `build: debug`, `configure: profile`, and `build: profile`.
+- For file-based profiling, use the VS Code `Profile` launch or `run: profile` task. Those automatically dump Tracy output into `captures/`.
+- The main raw Tracy capture file is `captures/latest.tracy`.
+- The main exported summaries are `captures/latest-zones.csv`, `captures/latest-zones-self.csv`, `captures/latest-corephys-zones.csv`, `captures/latest-renderer-zones.csv`, `captures/latest-sim-zones.csv`, and `captures/latest-messages.csv`.
+- Use `Profile (UI)` only when a live Tracy UI session is needed; do not use it at the same time as automatic file capture.
 
 ## Build Rules
 - Replace recursive source globs with explicit grouped source lists when touching build structure.

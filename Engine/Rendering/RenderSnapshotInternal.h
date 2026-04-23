@@ -2,6 +2,7 @@
 #define JIMOKOMI_ENGINE_RENDERING_RENDERSNAPSHOTINTERNAL_H
 
 #include "RenderSnapshot.h"
+#include "ParticleVisualResources.h"
 
 struct RenderWorldSnapshot {
     MaterialRenderable* material_renderables;
@@ -16,6 +17,12 @@ struct RenderWorldSnapshot {
     LineRenderable* lines;
     size_t line_capacity;
     size_t line_count;
+    ParticleSurfaceMeshBuildInput* particle_surface_mesh_inputs;
+    size_t particle_surface_mesh_input_capacity;
+    size_t particle_surface_mesh_input_count;
+    PhysicsParticleRenderData* particle_surface_mesh_particles;
+    size_t particle_surface_mesh_particle_capacity;
+    size_t particle_surface_mesh_particle_count;
     uint64_t material_frame_signature;
     uint64_t material_sort_signature;
     uint64_t material_instance_signature;
@@ -57,6 +64,8 @@ bool render_world_snapshot_reserve_material_renderables(RenderWorldSnapshot* sna
 bool render_world_snapshot_reserve_procedural_meshes(RenderWorldSnapshot* snapshot, size_t required_capacity);
 bool render_world_snapshot_reserve_triangles(RenderWorldSnapshot* snapshot, size_t required_capacity);
 bool render_world_snapshot_reserve_lines(RenderWorldSnapshot* snapshot, size_t required_capacity);
+bool render_world_snapshot_reserve_particle_surface_mesh_inputs(RenderWorldSnapshot* snapshot, size_t required_capacity);
+bool render_world_snapshot_reserve_particle_surface_mesh_particles(RenderWorldSnapshot* snapshot, size_t required_capacity);
 bool render_world_snapshot_reserve_debug_collisions(RenderWorldSnapshot* snapshot, size_t required_capacity);
 void render_world_snapshot_reset(RenderWorldSnapshot* snapshot);
 void render_world_snapshot_build_frame(const RenderWorldSnapshot* snapshot, RendererFrame* frame);

@@ -25,5 +25,6 @@ EngineInputSnapshot raylib_backend_snapshot_input(const RaylibBackend *backend);
 RenderBackend* raylib_backend_get_render_backend(RaylibBackend* backend);
 const RenderBackend* raylib_backend_get_render_backend_const(const RaylibBackend* backend);
 void raylib_backend_get_window_size(const RaylibBackend* backend, int* out_width, int* out_height);
+int raylib_backend_get_display_refresh_rate(const RaylibBackend* backend);
 
 #endif

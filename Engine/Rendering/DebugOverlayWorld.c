@@ -2,6 +2,7 @@
 
 #include "DebugOverlayUiInternal.h"
 #include "DebugOverlayWorldInternal.h"
+#include "../Core/Profiling.h"
 #include <math.h>
 
 static void debug_draw_entity(
@@ -221,6 +222,7 @@ void debug_overlay_draw_world(
     uint64_t selected_entity_id,
     uint64_t hovered_entity_id
 ) {
+    ENGINE_PROFILE_ZONE_BEGIN(draw_world_zone, "debug_overlay_draw_world");
     size_t index;
     Target target;
     bool has_selected_entity;
@@ -230,6 +232,7 @@ void debug_overlay_draw_world(
     (void)now_ms;
 
     if (overlay == NULL || !overlay->ui->draw_world_gizmos || backend == NULL || camera == NULL) {
+        ENGINE_PROFILE_ZONE_END(draw_world_zone);
         return;
     }
 
@@ -238,6 +241,7 @@ void debug_overlay_draw_world(
         backend->set_target == NULL ||
         backend->reset_target == NULL ||
         backend->clear == NULL) {
+        ENGINE_PROFILE_ZONE_END(draw_world_zone);
         return;
     }
 
@@ -258,6 +262,7 @@ void debug_overlay_draw_world(
     }
 
     if (overlay->world->texture == NULL) {
+        ENGINE_PROFILE_ZONE_END(draw_world_zone);
         return;
     }
 
@@ -328,4 +333,5 @@ void debug_overlay_draw_world(
 
     target_init(&target, backend, 0.0f, 0.0f);
     target_texture(&target, overlay->world->texture, 0.0f, 0.0f);
+    ENGINE_PROFILE_ZONE_END(draw_world_zone);
 }

@@ -7,6 +7,8 @@
 #include "ResourceManagerBake.h"
 #include "ResourceManagerRegistry.h"
 
+#include "../Core/Memory.h"
+
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

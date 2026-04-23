@@ -3,6 +3,8 @@
 #include "PhysicsWorldLifecycleInternal.h"
 #include "PhysicsWorldParticlesInternal.h"
 
+#include "../Core/Memory.h"
+
 #include <corephys/corephys.h>
 
 #include <stdlib.h>
@@ -31,6 +33,26 @@ static bool PhysicsWorld_ParticleSystemHandlesEqual(
 static int PhysicsWorld_FindParticleSystemIndex(
     const PhysicsWorld* world,
     PhysicsParticleSystemHandle handle
+);
+
+static const PhysicsWorldTrackedParticleSystem* PhysicsWorld_GetTrackedParticleSystemConst(
+    const PhysicsWorld* world,
+    PhysicsParticleSystemHandle handle
+)
+{
+    int index = PhysicsWorld_FindParticleSystemIndex(world, handle);
+
+    if (index < 0 || world == NULL || world->particles == NULL)
+    {
+        return NULL;
+    }
+
+    return &world->particles->systems[index];
+}
+
+static int PhysicsWorld_FindParticleSystemIndex(
+    const PhysicsWorld* world,
+    PhysicsParticleSystemHandle handle
 )
 {
     size_t index = 0U;
@@ -42,7 +64,7 @@ static int PhysicsWorld_FindParticleSystemIndex(
 
     for (index = 0U; index < world->particles->system_count; ++index)
     {
-        if (PhysicsWorld_ParticleSystemHandlesEqual(world->particles->systems[index], handle))
+        if (PhysicsWorld_ParticleSystemHandlesEqual(world->particles->systems[index].handle, handle))
         {
             return (int)index;
         }
@@ -53,7 +75,7 @@ static int PhysicsWorld_FindParticleSystemIndex(
 
 static bool PhysicsWorld_ReserveParticleSystems(PhysicsWorldParticleState* particles, size_t required_capacity)
 {
-    PhysicsParticleSystemHandle* resized = NULL;
+    PhysicsWorldTrackedParticleSystem* resized = NULL;
     size_t next_capacity = 0U;
 
     if (particles == NULL)
@@ -71,7 +93,7 @@ static bool PhysicsWorld_ReserveParticleSystems(PhysicsWorldParticleState* parti
         next_capacity *= 2U;
     }
 
-    resized = (PhysicsParticleSystemHandle*)realloc(
+    resized = (PhysicsWorldTrackedParticleSystem*)realloc(
         particles->systems,
         next_capacity * sizeof(*particles->systems)
     );
@@ -99,7 +121,12 @@ static bool PhysicsWorld_TrackParticleSystem(
         return false;
     }
 
-    world->particles->systems[world->particles->system_count++] = handle;
+    world->particles->systems[world->particles->system_count++] = (PhysicsWorldTrackedParticleSystem){
+        .handle = handle,
+        .previous_positions = NULL,
+        .previous_count = 0U,
+        .previous_capacity = 0U
+    };
     return true;
 }
 
@@ -115,6 +142,7 @@ static void PhysicsWorld_UntrackParticleSystem(
         return;
     }
 
+    free(world->particles->systems[index].previous_positions);
     memmove(
         &world->particles->systems[index],
         &world->particles->systems[index + 1],
@@ -153,6 +181,7 @@ typedef struct PhysicsParticleRenderQueryContext
     size_t capacity;
     size_t count;
     float radius;
+    const PhysicsWorldTrackedParticleSystem* tracked_system;
 } PhysicsParticleRenderQueryContext;
 
 static bool PhysicsWorld_CopyQueriedParticleRenderData(
@@ -168,19 +197,100 @@ static bool PhysicsWorld_CopyQueriedParticleRenderData(
     PhysicsParticleRenderData* particle = NULL;
 
     (void)system_id;
-    (void)particle_index;
-
     if (query == NULL || query->particles == NULL || query->count >= query->capacity)
     {
         return false;
     }
 
     particle = &query->particles[query->count++];
+    particle->previous_position =
+        query->tracked_system != NULL && particle_index >= 0 && (size_t)particle_index < query->tracked_system->previous_count
+            ? query->tracked_system->previous_positions[particle_index]
+            : (Vec2){ position.x, position.y };
     particle->position = (Vec2){ position.x, position.y };
     particle->radius = query->radius;
     particle->color_argb = PhysicsWorld_PackParticleColor(color);
     particle->user_tag = (uintptr_t)user_data;
     return query->count < query->capacity;
+}
+
+static bool PhysicsWorld_ReserveTrackedPreviousPositions(
+    PhysicsWorldTrackedParticleSystem* tracked_system,
+    size_t required_capacity
+)
+{
+    Vec2* resized = NULL;
+    size_t next_capacity = 0U;
+
+    if (tracked_system == NULL)
+    {
+        return false;
+    }
+    if (tracked_system->previous_capacity >= required_capacity)
+    {
+        return true;
+    }
+
+    next_capacity = tracked_system->previous_capacity > 0U ? tracked_system->previous_capacity : 256U;
+    while (next_capacity < required_capacity)
+    {
+        next_capacity *= 2U;
+    }
+
+    resized = (Vec2*)realloc(tracked_system->previous_positions, next_capacity * sizeof(*resized));
+    if (resized == NULL)
+    {
+        return false;
+    }
+
+    tracked_system->previous_positions = resized;
+    tracked_system->previous_capacity = next_capacity;
+    return true;
+}
+
+void PhysicsWorld_CapturePreviousParticlePositions(PhysicsWorld* world)
+{
+    size_t system_index = 0U;
+
+    if (world == NULL || world->particles == NULL)
+    {
+        return;
+    }
+
+    for (system_index = 0U; system_index < world->particles->system_count; ++system_index)
+    {
+        PhysicsWorldTrackedParticleSystem* tracked_system = &world->particles->systems[system_index];
+        b2ParticleSystemId system_id = PhysicsWorld_LoadParticleSystemHandle(tracked_system->handle);
+        const b2Vec2* positions = NULL;
+        int particle_count = 0;
+        int particle_index = 0;
+
+        tracked_system->previous_count = 0U;
+        if (!b2ParticleSystem_IsValid(system_id))
+        {
+            continue;
+        }
+
+        particle_count = b2ParticleSystem_GetParticleCount(system_id);
+        positions = b2ParticleSystem_GetPositionBuffer(system_id);
+        if (particle_count <= 0 || positions == NULL)
+        {
+            continue;
+        }
+        if (!PhysicsWorld_ReserveTrackedPreviousPositions(tracked_system, (size_t)particle_count))
+        {
+            continue;
+        }
+
+        tracked_system->previous_count = (size_t)particle_count;
+        for (particle_index = 0; particle_index < particle_count; ++particle_index)
+        {
+            tracked_system->previous_positions[particle_index] = (Vec2){
+                positions[particle_index].x,
+                positions[particle_index].y
+            };
+        }
+    }
 }
 
 bool PhysicsWorld_CreateParticleSystem(
@@ -374,7 +484,7 @@ size_t PhysicsWorld_GetParticleCount(const PhysicsWorld* world)
 
     for (system_index = 0U; system_index < world->particles->system_count; ++system_index)
     {
-        total_count += PhysicsWorld_GetParticleSystemParticleCount(world, world->particles->systems[system_index]);
+        total_count += PhysicsWorld_GetParticleSystemParticleCount(world, world->particles->systems[system_index].handle);
     }
     return total_count;
 }
@@ -414,7 +524,13 @@ size_t PhysicsWorld_CopyParticleSystemRenderData(
     for (particle_index = 0; particle_index < particle_count && copied_count < capacity; ++particle_index)
     {
         PhysicsParticleRenderData* particle = &particles[copied_count++];
+        const PhysicsWorldTrackedParticleSystem* tracked_system =
+            PhysicsWorld_GetTrackedParticleSystemConst(world, handle);
 
+        particle->previous_position =
+            tracked_system != NULL && (size_t)particle_index < tracked_system->previous_count
+                ? tracked_system->previous_positions[particle_index]
+                : (Vec2){ positions[particle_index].x, positions[particle_index].y };
         particle->position = (Vec2){ positions[particle_index].x, positions[particle_index].y };
         particle->radius = radius;
         particle->color_argb = colors != NULL
@@ -452,7 +568,8 @@ size_t PhysicsWorld_CopyParticleSystemRenderDataInAabb(
         .particles = particles,
         .capacity = capacity,
         .count = 0U,
-        .radius = b2ParticleSystem_GetRadius(system_id)
+        .radius = b2ParticleSystem_GetRadius(system_id),
+        .tracked_system = PhysicsWorld_GetTrackedParticleSystemConst(world, handle)
     };
 
     (void)b2ParticleSystem_QueryParticlesInAABB(
@@ -480,7 +597,7 @@ size_t PhysicsWorld_CopyParticleRenderData(
 
     for (system_index = 0U; system_index < world->particles->system_count; ++system_index)
     {
-        PhysicsParticleSystemHandle handle = world->particles->systems[system_index];
+        PhysicsParticleSystemHandle handle = world->particles->systems[system_index].handle;
         copied_count += PhysicsWorld_CopyParticleSystemRenderData(
             world,
             handle,
@@ -503,11 +620,12 @@ void PhysicsWorld_DestroyParticleState(PhysicsWorld* world)
 
     for (index = 0U; index < world->particles->system_count; ++index)
     {
-        b2ParticleSystemId system_id = PhysicsWorld_LoadParticleSystemHandle(world->particles->systems[index]);
+        b2ParticleSystemId system_id = PhysicsWorld_LoadParticleSystemHandle(world->particles->systems[index].handle);
         if (b2ParticleSystem_IsValid(system_id))
         {
             b2DestroyParticleSystem(system_id);
         }
+        free(world->particles->systems[index].previous_positions);
     }
 
     free(world->particles->systems);

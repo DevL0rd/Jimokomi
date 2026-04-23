@@ -4,6 +4,7 @@
 #include "../AppInternal.h"
 #include "../Core/InputPacketStream.h"
 #include "../Core/PlatformRuntimeInternal.h"
+#include "../Core/Profiling.h"
 #include "../Rendering/RaylibBackend.h"
 #include "../Rendering/Renderer.h"
 #include "../Rendering/RenderSnapshotExchange.h"
@@ -57,6 +58,7 @@ void engine_app_run_render_loop(
     InputPacketStream* input_stream
 )
 {
+    ENGINE_PROFILE_ZONE_BEGIN(render_loop_zone, "Render Loop");
     uint64_t last_render_snapshot_sequence = 0U;
     const RenderSnapshotBuffer* retained_render_snapshot = NULL;
 
@@ -67,10 +69,12 @@ void engine_app_run_render_loop(
 
     while (!raylib_backend_should_close(app->backend))
     {
+        ENGINE_PROFILE_ZONE_BEGIN(frame_zone, "Render Frame");
         const RenderSnapshotBuffer* render_snapshot;
         EngineRuntimeInputPacket* next_input_packet;
         DebugOverlaySnapshot debug_overlay_snapshot;
         EngineStatsSnapshot engine_stats_snapshot;
+        const RenderStatsSnapshot* render_stats_snapshot;
         EngineInputSnapshot input_snapshot;
         RendererFrame frame;
         const DebugEntityView* selected_entity;
@@ -109,8 +113,10 @@ void engine_app_run_render_loop(
         if (render_snapshot == NULL)
         {
             engine_app_render_sleep_ms(settings->app_idle_sleep_ms);
+            ENGINE_PROFILE_ZONE_END(frame_zone);
             continue;
         }
+        render_stats_snapshot = render_snapshot_buffer_get_stats(render_snapshot);
 
         selected_entity = render_snapshot_buffer_get_selected_entity(render_snapshot);
         has_selection = selected_entity != NULL || app->interaction_state.selected_entity_id != 0U;
@@ -160,7 +166,7 @@ void engine_app_run_render_loop(
 
         render_snapshot_buffer_build_frame(render_snapshot, &frame);
         selected_entity = render_snapshot_buffer_get_selected_entity(render_snapshot);
-        debug_overlay_snapshot = render_snapshot_buffer_get_stats(render_snapshot)->overlay;
+        debug_overlay_snapshot = render_stats_snapshot->overlay;
         debug_overlay_snapshot.fps = (float)engine_stats_snapshot.fps;
         debug_overlay_snapshot.draw_ms = (float)engine_stats_snapshot.draw_ms;
         debug_overlay_snapshot.snapshot_age_ms =
@@ -187,10 +193,27 @@ void engine_app_run_render_loop(
         );
         raylib_backend_end_frame(app->backend);
         Engine_draw_end(&app->engine);
+
+        engine_profile_plot_value("Engine/FPS", engine_stats_snapshot.fps);
+        engine_profile_plot_value("Engine/FrameMs", engine_stats_snapshot.frame_ms);
+        engine_profile_plot_value("Engine/DrawMs", engine_stats_snapshot.draw_ms);
+        engine_profile_plot_value("Engine/UpdateMs", engine_stats_snapshot.update_ms);
+        engine_profile_plot_value("Sim/InputMs", render_stats_snapshot->sim.input_ms);
+        engine_profile_plot_value("Sim/GameUpdateMs", render_stats_snapshot->sim.game_update_ms);
+        engine_profile_plot_value("Sim/FixedStepMs", render_stats_snapshot->sim.fixed_step_wall_ms);
+        engine_profile_plot_value("Sim/SnapshotBuildMs", render_stats_snapshot->sim.snapshot_build_ms);
+        engine_profile_plot_value("Physics/CorePhysStepMs", render_stats_snapshot->overlay.physics_ms);
+        engine_profile_plot_value("Physics/Hz", render_stats_snapshot->physics.physics_hz);
+        engine_profile_plot_integer("Physics/Substeps", render_stats_snapshot->physics.physics_substeps);
+        engine_profile_plot_integer("Physics/Particles", render_stats_snapshot->physics.particle_count);
+        engine_profile_plot_value("Renderer/FrameDrawMs", render_stats_snapshot->engine_stats.draw_ms);
+        engine_profile_plot_integer("Resources/PendingBakes", (int64_t)render_stats_snapshot->resources.pending_bakes);
+        ENGINE_PROFILE_ZONE_END(frame_zone);
     }
 
     if (retained_render_snapshot != NULL)
     {
         render_snapshot_exchange_release_published(render_snapshot_exchange, retained_render_snapshot);
     }
+    ENGINE_PROFILE_ZONE_END(render_loop_zone);
 }

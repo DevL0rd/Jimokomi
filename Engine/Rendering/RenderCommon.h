@@ -3,6 +3,8 @@
 
 #include "../Core/Geometry.h"
 
+#include "../Core/Memory.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

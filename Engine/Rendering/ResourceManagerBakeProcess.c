@@ -2,6 +2,7 @@
 #include "ResourceManagerBakeProcessInternal.h"
 #include "ResourceManagerBakeQueueInternal.h"
 #include "GeneratedFrame.h"
+#include "../Core/Profiling.h"
 #include "../Core/PlatformRuntimeInternal.h"
 
 #include <string.h>
@@ -153,15 +154,18 @@ const Texture* resource_manager_get_or_create_baked_texture(
 }
 
 void resource_manager_process_pending_bakes(ResourceManager* manager, double time_budget_ms) {
+    ENGINE_PROFILE_ZONE_BEGIN(process_bakes_zone, "resource_manager_process_pending_bakes");
     double started_ms;
     double effective_budget_ms;
 
     if (manager == NULL) {
+        ENGINE_PROFILE_ZONE_END(process_bakes_zone);
         return;
     }
 
     manager->bake_queue->last_bake_process_ms = 0.0;
     if (time_budget_ms <= 0.0) {
+        ENGINE_PROFILE_ZONE_END(process_bakes_zone);
         return;
     }
 
@@ -205,6 +209,7 @@ void resource_manager_process_pending_bakes(ResourceManager* manager, double tim
     manager->bake_queue->last_bake_process_ms = resource_manager_now_ms() - started_ms;
 
     resource_manager_reset_empty_bake_queue(manager);
+    ENGINE_PROFILE_ZONE_END(process_bakes_zone);
 }
 
 bool resource_manager_prewarm_procedural_texture(

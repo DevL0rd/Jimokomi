@@ -1,0 +1,7 @@
+{
+  "cmake.useCMakePresets": "always",
+  "cmake.configureOnOpen": false,
+  "cmake.buildBeforeRun": false,
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/build/default/compile_commands.json",
+  "terminal.integrated.cwd": "${workspaceFolder}"
+}

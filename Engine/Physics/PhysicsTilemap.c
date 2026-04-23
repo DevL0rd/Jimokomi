@@ -3,6 +3,8 @@
 
 #include "../Scene/SceneTypes.h"
 
+#include "../Core/Memory.h"
+
 #include <stdlib.h>
 
 static bool PhysicsWorld_ReserveTileBodies(PhysicsWorld* world, size_t required_capacity)

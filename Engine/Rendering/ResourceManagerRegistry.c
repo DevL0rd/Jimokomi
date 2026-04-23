@@ -5,6 +5,8 @@
 
 #include "RenderCommon.h"
 #include "Target.h"
+#include "../Core/Memory.h"
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>

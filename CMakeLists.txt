@@ -1,16 +1,41 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(Jimokomi VERSION 0.1.0 LANGUAGES C)
+project(Jimokomi VERSION 0.1.0 LANGUAGES C CXX)
+
+include(CheckIPOSupported)
+include(FetchContent)
 
 find_package(Threads REQUIRED)
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+option(JIMOKOMI_ENABLE_NATIVE_OPTIMIZATION "Tune local builds for the current machine" ON)
+option(JIMOKOMI_ENABLE_IPO "Enable link-time optimization for supported builds" OFF)
+option(JIMOKOMI_ENABLE_TRACY_PROFILE "Reserve a profiling build mode for future Tracy integration" OFF)
+
+if(JIMOKOMI_ENABLE_NATIVE_OPTIMIZATION)
+	if(MSVC)
+		add_compile_options(/favor:INTEL64)
+	else()
+		add_compile_options(-march=native -mtune=native)
+	endif()
+endif()
+
+if(JIMOKOMI_ENABLE_IPO)
+	check_ipo_supported(RESULT jimokomi_ipo_supported OUTPUT jimokomi_ipo_output)
+	if(NOT jimokomi_ipo_supported)
+		message(FATAL_ERROR "IPO/LTO requested but not supported: ${jimokomi_ipo_output}")
+	endif()
+	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+endif()
 
 set(COREPHYS_SAMPLES OFF CACHE BOOL "" FORCE)
 set(COREPHYS_BENCHMARKS OFF CACHE BOOL "" FORCE)
 set(COREPHYS_DOCS OFF CACHE BOOL "" FORCE)
+set(COREPHYS_PROFILE ${JIMOKOMI_ENABLE_TRACY_PROFILE} CACHE BOOL "" FORCE)
 set(COREPHYS_UNIT_TESTS OFF CACHE BOOL "" FORCE)
 set(COREPHYS_VALIDATE OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
@@ -24,6 +49,17 @@ if(UNIX AND NOT APPLE)
 	set(GLFW_BUILD_WAYLAND ON CACHE BOOL "" FORCE)
 endif()
 
+if(JIMOKOMI_ENABLE_TRACY_PROFILE)
+	FetchContent_Declare(
+		tracy
+		GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+		GIT_TAG v0.11.1
+		GIT_SHALLOW TRUE
+		GIT_PROGRESS TRUE
+	)
+	FetchContent_MakeAvailable(tracy)
+endif()
+
 add_subdirectory(third_party/corephys)
 add_subdirectory(third_party/raylib)
 
@@ -32,8 +68,11 @@ set(SOURCES
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/App.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/Input.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/InputPacketStream.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/Memory.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/PathResolver.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/PlatformRuntime.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/Profiling.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/ProfilingOpenGL.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/Stats.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/TaskSystem.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Engine/Engine.c"
@@ -130,4 +169,9 @@ if(MSVC)
 	target_compile_definitions(jimokomi PRIVATE _CRT_SECURE_NO_WARNINGS)
 else()
 	target_compile_options(jimokomi PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+if(JIMOKOMI_ENABLE_TRACY_PROFILE)
+	target_compile_definitions(jimokomi PRIVATE JIMOKOMI_ENABLE_TRACY_PROFILE=1)
+	target_link_libraries(jimokomi PRIVATE TracyClient)
 endif()

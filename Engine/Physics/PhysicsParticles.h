@@ -41,6 +41,7 @@ typedef struct PhysicsParticleDesc {
 } PhysicsParticleDesc;
 
 typedef struct PhysicsParticleRenderData {
+    Vec2 previous_position;
     Vec2 position;
     float radius;
     uint32_t color_argb;

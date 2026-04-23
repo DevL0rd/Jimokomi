@@ -1,6 +1,9 @@
 #include "RenderSnapshot.h"
 #include "RenderSnapshotExchange.h"
 #include "RenderSnapshotInternal.h"
+#include "../Core/Profiling.h"
+
+#include "../Core/Memory.h"
 
 #include <stdatomic.h>
 #include <stdlib.h>
@@ -36,6 +39,8 @@ static void render_snapshot_exchange_free_world(RenderWorldSnapshot* world) {
     free(world->procedural_meshes);
     free(world->triangles);
     free(world->lines);
+    free(world->particle_surface_mesh_inputs);
+    free(world->particle_surface_mesh_particles);
     free(world->debug_entities);
     free(world->debug_collisions);
     free(world->pick_targets);
@@ -193,6 +198,74 @@ bool render_world_snapshot_reserve_lines(RenderWorldSnapshot* snapshot, size_t r
     return true;
 }
 
+bool render_world_snapshot_reserve_particle_surface_mesh_inputs(
+    RenderWorldSnapshot* snapshot,
+    size_t required_capacity
+) {
+    ParticleSurfaceMeshBuildInput* next_inputs;
+    size_t next_capacity;
+
+    if (snapshot == NULL) {
+        return false;
+    }
+    if (snapshot->particle_surface_mesh_input_capacity >= required_capacity) {
+        return true;
+    }
+
+    next_capacity = snapshot->particle_surface_mesh_input_capacity > 0U
+        ? snapshot->particle_surface_mesh_input_capacity
+        : 4U;
+    while (next_capacity < required_capacity) {
+        next_capacity *= 2U;
+    }
+
+    next_inputs = (ParticleSurfaceMeshBuildInput*)realloc(
+        snapshot->particle_surface_mesh_inputs,
+        next_capacity * sizeof(*next_inputs)
+    );
+    if (next_inputs == NULL) {
+        return false;
+    }
+
+    snapshot->particle_surface_mesh_inputs = next_inputs;
+    snapshot->particle_surface_mesh_input_capacity = next_capacity;
+    return true;
+}
+
+bool render_world_snapshot_reserve_particle_surface_mesh_particles(
+    RenderWorldSnapshot* snapshot,
+    size_t required_capacity
+) {
+    PhysicsParticleRenderData* next_particles;
+    size_t next_capacity;
+
+    if (snapshot == NULL) {
+        return false;
+    }
+    if (snapshot->particle_surface_mesh_particle_capacity >= required_capacity) {
+        return true;
+    }
+
+    next_capacity = snapshot->particle_surface_mesh_particle_capacity > 0U
+        ? snapshot->particle_surface_mesh_particle_capacity
+        : 256U;
+    while (next_capacity < required_capacity) {
+        next_capacity *= 2U;
+    }
+
+    next_particles = (PhysicsParticleRenderData*)realloc(
+        snapshot->particle_surface_mesh_particles,
+        next_capacity * sizeof(*next_particles)
+    );
+    if (next_particles == NULL) {
+        return false;
+    }
+
+    snapshot->particle_surface_mesh_particles = next_particles;
+    snapshot->particle_surface_mesh_particle_capacity = next_capacity;
+    return true;
+}
+
 bool render_world_snapshot_reserve_debug_collisions(RenderWorldSnapshot* snapshot, size_t required_capacity) {
     DebugCollisionView* next_collisions;
     size_t next_capacity;
@@ -268,6 +341,8 @@ void render_world_snapshot_reset(RenderWorldSnapshot* snapshot) {
     snapshot->procedural_mesh_count = 0U;
     snapshot->triangle_count = 0U;
     snapshot->line_count = 0U;
+    snapshot->particle_surface_mesh_input_count = 0U;
+    snapshot->particle_surface_mesh_particle_count = 0U;
     snapshot->material_frame_signature = 0U;
     snapshot->material_sort_signature = 0U;
     snapshot->material_instance_signature = 0U;
@@ -292,11 +367,13 @@ void render_world_snapshot_reset(RenderWorldSnapshot* snapshot) {
 }
 
 RenderSnapshotBuffer* render_snapshot_exchange_begin_write(RenderSnapshotExchange* exchange) {
+    ENGINE_PROFILE_ZONE_BEGIN(begin_write_zone, "render_snapshot_exchange_begin_write");
     size_t published_index;
     size_t index;
     RenderSnapshotBuffer* buffer;
 
     if (exchange == NULL) {
+        ENGINE_PROFILE_ZONE_END(begin_write_zone);
         return NULL;
     }
 
@@ -319,18 +396,22 @@ RenderSnapshotBuffer* render_snapshot_exchange_begin_write(RenderSnapshotExchang
     }
 
     if (buffer == NULL) {
+        ENGINE_PROFILE_ZONE_END(begin_write_zone);
         return NULL;
     }
 
     buffer->sequence = 0U;
     buffer->published_at_ms = 0U;
+    ENGINE_PROFILE_ZONE_END(begin_write_zone);
     return buffer;
 }
 
 void render_snapshot_exchange_publish(RenderSnapshotExchange* exchange, RenderSnapshotBuffer* buffer) {
+    ENGINE_PROFILE_ZONE_BEGIN(publish_zone, "render_snapshot_exchange_publish");
     size_t index;
 
     if (exchange == NULL || buffer == NULL) {
+        ENGINE_PROFILE_ZONE_END(publish_zone);
         return;
     }
 
@@ -340,6 +421,7 @@ void render_snapshot_exchange_publish(RenderSnapshotExchange* exchange, RenderSn
         }
     }
     if (index >= 3U) {
+        ENGINE_PROFILE_ZONE_END(publish_zone);
         return;
     }
 
@@ -348,6 +430,7 @@ void render_snapshot_exchange_publish(RenderSnapshotExchange* exchange, RenderSn
     atomic_store_explicit(&exchange->published_index, index, memory_order_release);
     atomic_store_explicit(&exchange->published_sequence, buffer->sequence, memory_order_release);
     exchange->write_index = (index + 1U) % 3U;
+    ENGINE_PROFILE_ZONE_END(publish_zone);
 }
 
 uint64_t render_snapshot_exchange_get_published_sequence(const RenderSnapshotExchange* exchange) {
@@ -359,9 +442,11 @@ uint64_t render_snapshot_exchange_get_published_sequence(const RenderSnapshotExc
 }
 
 const RenderSnapshotBuffer* render_snapshot_exchange_acquire_published(RenderSnapshotExchange* exchange) {
+    ENGINE_PROFILE_ZONE_BEGIN(acquire_published_zone, "render_snapshot_exchange_acquire_published");
     uint64_t sequence;
 
     if (exchange == NULL) {
+        ENGINE_PROFILE_ZONE_END(acquire_published_zone);
         return NULL;
     }
 
@@ -370,17 +455,21 @@ const RenderSnapshotBuffer* render_snapshot_exchange_acquire_published(RenderSna
 
         sequence = atomic_load_explicit(&exchange->published_sequence, memory_order_acquire);
         if (sequence == 0U) {
+            ENGINE_PROFILE_ZONE_END(acquire_published_zone);
             return NULL;
         }
 
         index = atomic_load_explicit(&exchange->published_index, memory_order_acquire);
         if (index >= 3U) {
+            ENGINE_PROFILE_ZONE_END(acquire_published_zone);
             return NULL;
         }
 
         atomic_fetch_add_explicit(&exchange->reader_counts[index], 1U, memory_order_acq_rel);
         if (index == atomic_load_explicit(&exchange->published_index, memory_order_acquire)) {
-            return &exchange->buffers[index];
+            const RenderSnapshotBuffer* buffer = &exchange->buffers[index];
+            ENGINE_PROFILE_ZONE_END(acquire_published_zone);
+            return buffer;
         }
         atomic_fetch_sub_explicit(&exchange->reader_counts[index], 1U, memory_order_acq_rel);
     }

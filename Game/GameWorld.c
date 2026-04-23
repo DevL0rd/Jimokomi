@@ -2,6 +2,7 @@
 
 #include "BallVisualResources.h"
 #include "LiquidSourceSystem.h"
+#include "../Engine/Core/Profiling.h"
 #include "../Engine/Scene/SceneAccess.h"
 #include "../Engine/Scene/SceneFactories.h"
 #include "../Engine/Scene/ScenePhysics.h"
@@ -15,6 +16,22 @@ static float jimokomi_random_range(float min_value, float max_value)
 {
     float t = (float)rand() / (float)RAND_MAX;
     return min_value + ((max_value - min_value) * t);
+}
+
+static float jimokomi_physics_target_hz_for_display(EngineAppContext* app)
+{
+    float target_hz = (float)EngineApp_GetDisplayRefreshRate(app);
+
+    if (target_hz <= 0.0f)
+    {
+        target_hz = 60.0f;
+    }
+    if (target_hz > PHYSICS_MAX_HZ)
+    {
+        target_hz = PHYSICS_MAX_HZ;
+    }
+
+    return target_hz;
 }
 
 static void jimokomi_ball_spawn_position(float* out_x, float* out_y)
@@ -85,6 +102,7 @@ static void jimokomi_scene_input(Scene* scene, const SceneInputState* input_stat
 
 static Entity* jimokomi_spawn_ball(JimokomiGameState* game, size_t index)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(spawn_ball_zone, "jimokomi_spawn_ball");
     Entity* entity;
     SceneDynamicCircleDesc desc = { 0 };
     float x = 0.0f;
@@ -92,6 +110,7 @@ static Entity* jimokomi_spawn_ball(JimokomiGameState* game, size_t index)
 
     if (game == NULL || game->scene == NULL || index >= BALL_COUNT)
     {
+        ENGINE_PROFILE_ZONE_END(spawn_ball_zone);
         return NULL;
     }
 
@@ -113,10 +132,12 @@ static Entity* jimokomi_spawn_ball(JimokomiGameState* game, size_t index)
     entity = Scene_CreateDynamicCircle(game->scene, &desc);
     if (entity == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(spawn_ball_zone);
         return NULL;
     }
 
     game->active_ball_count += 1U;
+    ENGINE_PROFILE_ZONE_END(spawn_ball_zone);
     return entity;
 }
 
@@ -133,12 +154,14 @@ static Entity* jimokomi_create_wave_paddle(Scene* scene)
 
 static void jimokomi_update_wave_paddle(JimokomiGameState* game, double dt_seconds)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(wave_paddle_zone, "jimokomi_update_wave_paddle");
     double t;
     float alpha;
     float x;
 
     if (game == NULL || game->scene == NULL || game->wave_paddle == NULL || dt_seconds <= 0.0)
     {
+        ENGINE_PROFILE_ZONE_END(wave_paddle_zone);
         return;
     }
 
@@ -154,19 +177,23 @@ static void jimokomi_update_wave_paddle(JimokomiGameState* game, double dt_secon
         (float)dt_seconds,
         true
     );
+    ENGINE_PROFILE_ZONE_END(wave_paddle_zone);
 }
 
 bool jimokomi_game_register_resources(EngineAppContext* app, JimokomiGameState* game)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(register_zone, "jimokomi_game_register_resources");
     Renderer* renderer;
 
     if (app == NULL || game == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(register_zone);
         return false;
     }
     renderer = EngineApp_GetRenderer(app);
     if (renderer == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(register_zone);
         return false;
     }
 
@@ -174,29 +201,31 @@ bool jimokomi_game_register_resources(EngineAppContext* app, JimokomiGameState* 
             renderer,
             &game->ball_material_handle))
     {
+        ENGINE_PROFILE_ZONE_END(register_zone);
         return false;
     }
-    return game_liquid_sources_register_resources(renderer, &game->liquid_sources);
+    {
+        bool result = game_liquid_sources_register_resources(renderer, &game->liquid_sources);
+        ENGINE_PROFILE_ZONE_END(register_zone);
+        return result;
+    }
 }
 
 Scene* jimokomi_game_create_scene(EngineAppContext* app, JimokomiGameState* game)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(create_scene_zone, "jimokomi_game_create_scene");
     PhysicsWorldConfig physics_config = { 0 };
     SceneView view = { 0 };
     const EngineSettings* settings = EngineSettings_GetDefaults();
 
     if (app == NULL || game == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(create_scene_zone);
         return NULL;
     }
 
     physics_config.gravity_y = PHYSICS_EARTH_GRAVITY_MPS2 * PHYSICS_PIXELS_PER_METER;
-    physics_config.target_hz = settings != NULL ? settings->physics_target_hz : PHYSICS_MAX_HZ;
-    physics_config.min_hz = settings != NULL ? settings->physics_min_hz : PHYSICS_MIN_HZ;
-    physics_config.max_hz = settings != NULL ? settings->physics_max_hz : PHYSICS_MAX_HZ;
-    physics_config.frame_budget_hz = settings != NULL ? settings->physics_frame_budget_hz : PHYSICS_FRAME_BUDGET_HZ;
-    physics_config.adaptive_hz_enabled = settings == NULL || settings->physics_adaptive_hz_enabled;
-    physics_config.has_adaptive_hz_setting = settings != NULL;
+    physics_config.target_hz = jimokomi_physics_target_hz_for_display(app);
     physics_config.sleep_threshold = settings != NULL ? settings->physics_offscreen_sleep_threshold : 30.0f;
     physics_config.continuous_collision_enabled = false;
     physics_config.has_continuous_collision_setting = true;
@@ -212,6 +241,7 @@ Scene* jimokomi_game_create_scene(EngineAppContext* app, JimokomiGameState* game
     game->scene = Scene_Create("Main", &physics_config);
     if (game->scene == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(create_scene_zone);
         return NULL;
     }
 
@@ -231,6 +261,7 @@ Scene* jimokomi_game_create_scene(EngineAppContext* app, JimokomiGameState* game
     {
         Scene_Destroy(game->scene);
         game->scene = NULL;
+        ENGINE_PROFILE_ZONE_END(create_scene_zone);
         return NULL;
     }
 
@@ -238,21 +269,25 @@ Scene* jimokomi_game_create_scene(EngineAppContext* app, JimokomiGameState* game
     {
         Scene_Destroy(game->scene);
         game->scene = NULL;
+        ENGINE_PROFILE_ZONE_END(create_scene_zone);
         return NULL;
     }
 
     game->player = jimokomi_spawn_ball(game, PLAYER_INDEX);
     game->spawn_cursor = 1U;
+    ENGINE_PROFILE_ZONE_END(create_scene_zone);
     return game->scene;
 }
 
 void jimokomi_game_update_sim(EngineAppContext* app, double dt_seconds, const EngineInput* input, JimokomiGameState* game)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(update_zone, "jimokomi_game_update_sim");
     (void)app;
     (void)input;
 
     if (game == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(update_zone);
         return;
     }
 
@@ -266,16 +301,20 @@ void jimokomi_game_update_sim(EngineAppContext* app, double dt_seconds, const En
         game->spawn_accumulator_seconds -= BALL_SPAWN_INTERVAL_SECONDS;
         if (jimokomi_spawn_ball(game, game->spawn_cursor) == NULL)
         {
+            ENGINE_PROFILE_ZONE_END(update_zone);
             return;
         }
         game->spawn_cursor += 1U;
     }
+    ENGINE_PROFILE_ZONE_END(update_zone);
 }
 
 void jimokomi_game_post_update_sim(EngineAppContext* app, double dt_seconds, const EngineInput* input, JimokomiGameState* game)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(post_update_zone, "jimokomi_game_post_update_sim");
     (void)app;
     (void)dt_seconds;
     (void)input;
     (void)game;
+    ENGINE_PROFILE_ZONE_END(post_update_zone);
 }

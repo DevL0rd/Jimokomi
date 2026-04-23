@@ -1,6 +1,8 @@
 #include "ResourceManagerInvalidationInternal.h"
 #include "ResourceManagerStatsInternal.h"
 
+#include "../Core/Memory.h"
+
 #include <stdlib.h>
 
 static bool resource_manager_reserve_handles(

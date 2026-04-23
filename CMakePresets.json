@@ -1,0 +1,66 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 22,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default",
+      "description": "Native optimized local build with LTO.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/default",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "JIMOKOMI_ENABLE_NATIVE_OPTIMIZATION": "ON",
+        "JIMOKOMI_ENABLE_IPO": "ON",
+        "JIMOKOMI_ENABLE_TRACY_PROFILE": "OFF"
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "description": "Native local debug build for stepping.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "JIMOKOMI_ENABLE_NATIVE_OPTIMIZATION": "ON",
+        "JIMOKOMI_ENABLE_IPO": "OFF",
+        "JIMOKOMI_ENABLE_TRACY_PROFILE": "OFF"
+      }
+    },
+    {
+      "name": "profile",
+      "displayName": "Profile",
+      "description": "Native optimized profiling build reserved for Tracy.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/profile",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "JIMOKOMI_ENABLE_NATIVE_OPTIMIZATION": "ON",
+        "JIMOKOMI_ENABLE_IPO": "ON",
+        "JIMOKOMI_ENABLE_TRACY_PROFILE": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "jobs": 0
+    },
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "jobs": 0
+    },
+    {
+      "name": "profile",
+      "configurePreset": "profile",
+      "jobs": 0
+    }
+  ]
+}

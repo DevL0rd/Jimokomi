@@ -5,7 +5,10 @@
 #include "DebugOverlayInspectorInternal.h"
 #include "DebugOverlayUiInternal.h"
 #include "DebugOverlayWorldInternal.h"
+#include "../Core/Profiling.h"
 #include "../Settings.h"
+
+#include "../Core/Memory.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -122,10 +125,12 @@ static void debug_overlay_tick_dashboard_state(
     const DebugOverlaySnapshot* snapshot,
     const EngineStatsSnapshot* stats
 ) {
+    ENGINE_PROFILE_ZONE_BEGIN(history_zone, "debug_overlay_tick_dashboard_state");
     bool pushed_history = false;
     uint64_t now_ms = 0U;
 
     if (overlay == NULL || snapshot == NULL || stats == NULL) {
+        ENGINE_PROFILE_ZONE_END(history_zone);
         return;
     }
 
@@ -142,6 +147,7 @@ static void debug_overlay_tick_dashboard_state(
     }
 
     debug_overlay_update_display_values(overlay, snapshot, overlay->history->last_one_percent_low_fps);
+    ENGINE_PROFILE_ZONE_END(history_zone);
 }
 
 static bool debug_overlay_should_redraw_panel(
@@ -254,6 +260,7 @@ void debug_overlay_draw_ui(
     int viewport_width,
     int viewport_height
 ) {
+    ENGINE_PROFILE_ZONE_BEGIN(draw_ui_zone, "debug_overlay_draw_ui");
     Target target;
     bool has_selection;
     uint64_t dashboard_signature;
@@ -263,13 +270,16 @@ void debug_overlay_draw_ui(
     double composite_started_ms = 0.0;
 
     if (overlay == NULL || !overlay->ui->draw_ui || backend == NULL || snapshot == NULL || stats == NULL) {
+        ENGINE_PROFILE_ZONE_END(draw_ui_zone);
         return;
     }
 
     has_selection = selected_entity != NULL;
     now_ms = (uint64_t)debug_overlay_now_ms();
     layout_started_ms = debug_overlay_now_ms();
+    ENGINE_PROFILE_ZONE_BEGIN(layout_zone, "debug_overlay_layout");
     debug_overlay_ensure_layout(overlay, has_selection, viewport_width, viewport_height);
+    ENGINE_PROFILE_ZONE_END(layout_zone);
     overlay->ui->last_ui_layout_ms = debug_overlay_now_ms() - layout_started_ms;
     debug_overlay_tick_dashboard_state(overlay, snapshot, stats);
     dashboard_signature = debug_overlay_compute_dashboard_signature(overlay, snapshot, viewport_width, viewport_height);
@@ -321,6 +331,7 @@ void debug_overlay_draw_ui(
                 now_ms,
                 debug_dashboard_redraw_interval_ms(),
                 overlay->ui->dashboard_panel.dragging)) {
+            ENGINE_PROFILE_ZONE_BEGIN(dashboard_zone, "debug_overlay_dashboard_redraw");
             double redraw_started_ms = debug_overlay_now_ms();
             backend->set_target(backend->userdata, overlay->dashboard->texture);
             backend->clear(backend->userdata, (Color32){ 0x00000000U });
@@ -332,6 +343,7 @@ void debug_overlay_draw_ui(
             overlay->dashboard->redraw_count += 1U;
             overlay->dashboard->last_redraw_ms = debug_overlay_now_ms() - redraw_started_ms;
             overlay->ui->last_ui_draw_ms += overlay->dashboard->last_redraw_ms;
+            ENGINE_PROFILE_ZONE_END(dashboard_zone);
         } else {
             overlay->dashboard->redraw_skip_count += 1U;
         }
@@ -343,6 +355,7 @@ void debug_overlay_draw_ui(
                 now_ms,
                 debug_inspector_redraw_interval_ms(),
                 overlay->ui->inspector_panel.dragging)) {
+            ENGINE_PROFILE_ZONE_BEGIN(inspector_zone, "debug_overlay_inspector_redraw");
             double redraw_started_ms = debug_overlay_now_ms();
             backend->set_target(backend->userdata, overlay->inspector->texture);
             backend->clear(backend->userdata, (Color32){ 0x00000000U });
@@ -356,11 +369,13 @@ void debug_overlay_draw_ui(
             overlay->inspector->redraw_count += 1U;
             overlay->inspector->last_redraw_ms = debug_overlay_now_ms() - redraw_started_ms;
             overlay->ui->last_ui_draw_ms += overlay->inspector->last_redraw_ms;
+            ENGINE_PROFILE_ZONE_END(inspector_zone);
         } else {
             overlay->inspector->redraw_skip_count += 1U;
         }
 
         if (overlay->dashboard->texture != NULL) {
+            ENGINE_PROFILE_ZONE_BEGIN(composite_zone, "debug_overlay_composite");
             composite_started_ms = debug_overlay_now_ms();
             target_init(&target, backend, 0.0f, 0.0f);
             target_texture(&target, overlay->dashboard->texture, overlay->ui->dashboard_panel.x, overlay->ui->dashboard_panel.y);
@@ -368,6 +383,8 @@ void debug_overlay_draw_ui(
                 target_texture(&target, overlay->inspector->texture, overlay->ui->inspector_panel.x, overlay->ui->inspector_panel.y);
             }
             overlay->ui->last_ui_composite_ms = debug_overlay_now_ms() - composite_started_ms;
+            ENGINE_PROFILE_ZONE_END(composite_zone);
+            ENGINE_PROFILE_ZONE_END(draw_ui_zone);
             return;
         }
     }
@@ -377,4 +394,5 @@ void debug_overlay_draw_ui(
     if (selected_entity != NULL) {
         debug_overlay_draw_inspector_contents(overlay, &target, selected_entity);
     }
+    ENGINE_PROFILE_ZONE_END(draw_ui_zone);
 }

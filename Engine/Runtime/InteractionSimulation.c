@@ -1,5 +1,6 @@
 #include "InteractionSystem.h"
 
+#include "../Core/Profiling.h"
 #include "../Physics/PhysicsBodyControl.h"
 #include "../Physics/PhysicsWorld.h"
 #include "../Scene/Components/DraggableComponent.h"
@@ -10,6 +11,7 @@
 
 void InteractionSystem_ApplyDragPacket(Scene* scene, const EngineRuntimeInputPacket* input_packet)
 {
+    ENGINE_PROFILE_ZONE_BEGIN(drag_packet_zone, "InteractionSystem_ApplyDragPacket");
     PhysicsWorld* physics_world;
     Entity* entity;
     RigidBodyComponent* rigid_body;
@@ -21,6 +23,7 @@ void InteractionSystem_ApplyDragPacket(Scene* scene, const EngineRuntimeInputPac
         (!input_packet->drag_entity_active && !input_packet->drag_entity_release) ||
         input_packet->drag_entity_id == 0U)
     {
+        ENGINE_PROFILE_ZONE_END(drag_packet_zone);
         return;
     }
 
@@ -28,6 +31,7 @@ void InteractionSystem_ApplyDragPacket(Scene* scene, const EngineRuntimeInputPac
     entity = Scene_FindEntityById(scene, input_packet->drag_entity_id);
     if (physics_world == NULL || entity == NULL)
     {
+        ENGINE_PROFILE_ZONE_END(drag_packet_zone);
         return;
     }
 
@@ -35,6 +39,7 @@ void InteractionSystem_ApplyDragPacket(Scene* scene, const EngineRuntimeInputPac
     draggable = (DraggableComponent*)Entity_GetComponent(entity, COMPONENT_DRAGGABLE);
     if (rigid_body == NULL || draggable == NULL || !draggable->enabled)
     {
+        ENGINE_PROFILE_ZONE_END(drag_packet_zone);
         return;
     }
     release_velocity_scale = draggable->release_velocity_scale;
@@ -64,4 +69,5 @@ void InteractionSystem_ApplyDragPacket(Scene* scene, const EngineRuntimeInputPac
             }
         );
     }
+    ENGINE_PROFILE_ZONE_END(drag_packet_zone);
 }

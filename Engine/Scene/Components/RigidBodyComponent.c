@@ -2,6 +2,8 @@
 
 #include "../Entity.h"
 
+#include "../../Core/Memory.h"
+
 #include <stdlib.h>
 
 static void RigidBodyComponent_DestroyBase(Component* component)

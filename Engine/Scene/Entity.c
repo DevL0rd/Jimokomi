@@ -1,5 +1,7 @@
 #include "EntityInternal.h"
 
+#include "../Core/Memory.h"
+
 #include <stdlib.h>
 #include <string.h>
 

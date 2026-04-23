@@ -1,5 +1,7 @@
 #include "Engine.h"
 
+#include "Core/Profiling.h"
+
 #include <string.h>
 
 static EngineConfig Engine_default_config(void) {
@@ -63,6 +65,7 @@ void Engine_draw_end(Engine* engine) {
     }
 
     EngineStats_end_draw(&engine->stats);
+    ENGINE_PROFILE_FRAME_MARK();
 }
 
 EngineStatsSnapshot Engine_get_stats_snapshot(const Engine* engine) {

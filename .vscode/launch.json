@@ -1,0 +1,120 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/default/jimokomi",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "console": "integratedTerminal",
+      "noDebug": true,
+      "preLaunchTask": "build: default",
+      "linux": {
+        "MIMode": "gdb",
+        "miDebuggerPath": "/usr/bin/gdb"
+      },
+      "osx": {
+        "MIMode": "lldb"
+      },
+      "windows": {
+        "type": "cppvsdbg",
+        "program": "${workspaceFolder}\\build\\default\\jimokomi.exe"
+      }
+    },
+    {
+      "name": "Debug",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/debug/jimokomi",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "console": "integratedTerminal",
+      "preLaunchTask": "build: debug",
+      "linux": {
+        "MIMode": "gdb",
+        "miDebuggerPath": "/usr/bin/gdb"
+      },
+      "osx": {
+        "MIMode": "lldb"
+      },
+      "setupCommands": [
+        {
+          "description": "Enable GDB pretty printing",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "windows": {
+        "type": "cppvsdbg",
+        "program": "${workspaceFolder}\\build\\debug\\jimokomi.exe"
+      }
+    },
+    {
+      "name": "Profile",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/profile/jimokomi",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "console": "integratedTerminal",
+      "preLaunchTask": "prepare: profile capture",
+      "postDebugTask": "finalize: profile capture",
+      "linux": {
+        "MIMode": "gdb",
+        "miDebuggerPath": "/usr/bin/gdb"
+      },
+      "osx": {
+        "MIMode": "lldb"
+      },
+      "setupCommands": [
+        {
+          "description": "Enable GDB pretty printing",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "windows": {
+        "type": "cppvsdbg",
+        "program": "${workspaceFolder}\\build\\profile\\jimokomi.exe"
+      }
+    },
+    {
+      "name": "Profile (UI)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/profile/jimokomi",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "console": "integratedTerminal",
+      "preLaunchTask": "build: profile",
+      "linux": {
+        "MIMode": "gdb",
+        "miDebuggerPath": "/usr/bin/gdb"
+      },
+      "osx": {
+        "MIMode": "lldb"
+      },
+      "setupCommands": [
+        {
+          "description": "Enable GDB pretty printing",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "windows": {
+        "type": "cppvsdbg",
+        "program": "${workspaceFolder}\\build\\profile\\jimokomi.exe"
+      }
+    }
+  ]
+}

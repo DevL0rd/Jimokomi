@@ -1,5 +1,7 @@
 #include "DraggableComponent.h"
 
+#include "../../Core/Memory.h"
+
 #include <stdlib.h>
 
 static void DraggableComponent_DestroyBase(Component* component)

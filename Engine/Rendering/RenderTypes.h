@@ -91,6 +91,7 @@ typedef struct Mesh {
 typedef struct ProceduralMeshRenderable {
     ResourceHandle procedural_mesh_handle;
     ResourceHandle material_handle;
+    uint64_t instance_signature;
     size_t triangle_start;
     size_t triangle_count;
     size_t line_start;

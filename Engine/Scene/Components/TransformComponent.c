@@ -2,8 +2,28 @@
 
 #include "../Entity.h"
 
+#include "../../Core/Memory.h"
+
 #include <math.h>
 #include <stdlib.h>
+
+static uint64_t transform_component_hash_u64(uint64_t hash, uint64_t value)
+{
+    hash ^= value + 0x9e3779b97f4a7c15ULL + (hash << 6U) + (hash >> 2U);
+    return hash;
+}
+
+static uint32_t transform_component_float_bits(float value)
+{
+    union
+    {
+        float f;
+        uint32_t u;
+    } bits;
+
+    bits.f = value;
+    return bits.u;
+}
 
 static void TransformComponent_DestroyBase(Component* component)
 {
@@ -126,4 +146,49 @@ void TransformComponent_SetScale(TransformComponent* component, float scale_x, f
     component->scale_x = scale_x;
     component->scale_y = scale_y;
     TransformComponent_MarkDirty(component, TRANSFORM_DIRTY_SCALE);
+}
+
+uint64_t TransformComponent_ComputeVisualSignature(const TransformComponent* component, float render_alpha)
+{
+    float alpha;
+    float angle_delta;
+    float visual_x;
+    float visual_y;
+    float visual_angle;
+    uint64_t hash = 1469598103934665603ULL;
+
+    if (component == NULL)
+    {
+        return 0U;
+    }
+
+    alpha = render_alpha;
+    if (alpha < 0.0f)
+    {
+        alpha = 0.0f;
+    }
+    else if (alpha > 1.0f)
+    {
+        alpha = 1.0f;
+    }
+
+    visual_x = component->previous_x + ((component->x - component->previous_x) * alpha);
+    visual_y = component->previous_y + ((component->y - component->previous_y) * alpha);
+    angle_delta = fmodf(component->angle_radians - component->previous_angle_radians, 6.28318530718f);
+    if (angle_delta > 3.14159265359f)
+    {
+        angle_delta -= 6.28318530718f;
+    }
+    else if (angle_delta < -3.14159265359f)
+    {
+        angle_delta += 6.28318530718f;
+    }
+    visual_angle = component->previous_angle_radians + (angle_delta * alpha);
+
+    hash = transform_component_hash_u64(hash, transform_component_float_bits(visual_x));
+    hash = transform_component_hash_u64(hash, transform_component_float_bits(visual_y));
+    hash = transform_component_hash_u64(hash, transform_component_float_bits(visual_angle));
+    hash = transform_component_hash_u64(hash, transform_component_float_bits(component->scale_x));
+    hash = transform_component_hash_u64(hash, transform_component_float_bits(component->scale_y));
+    return hash;
 }

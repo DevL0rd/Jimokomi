@@ -16,6 +16,9 @@
 #include "../Scene/Components/RigidBodyComponent.h"
 #include "../Scene/Components/SelectableComponent.h"
 #include "../Scene/Components/TransformComponent.h"
+#include "../Core/Profiling.h"
+
+#include "../Core/Memory.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -56,18 +59,6 @@ struct SceneRenderSnapshotBuilder {
     size_t scratch_entity_capacity;
     PhysicsParticleRenderData* scratch_particles;
     size_t scratch_particle_capacity;
-    float* scratch_mesh_values;
-    float* scratch_mesh_red;
-    float* scratch_mesh_green;
-    float* scratch_mesh_blue;
-    float* scratch_mesh_alpha;
-    size_t scratch_mesh_capacity;
-    float* scratch_worker_mesh_values;
-    float* scratch_worker_mesh_red;
-    float* scratch_worker_mesh_green;
-    float* scratch_worker_mesh_blue;
-    float* scratch_worker_mesh_alpha;
-    size_t scratch_worker_mesh_capacity;
 };
 
 static bool scene_render_snapshot_builder_reserve_entities(
@@ -115,16 +106,6 @@ void scene_render_snapshot_builder_destroy(SceneRenderSnapshotBuilder* builder) 
 
     free(builder->scratch_entities);
     free(builder->scratch_particles);
-    free(builder->scratch_mesh_values);
-    free(builder->scratch_mesh_red);
-    free(builder->scratch_mesh_green);
-    free(builder->scratch_mesh_blue);
-    free(builder->scratch_mesh_alpha);
-    free(builder->scratch_worker_mesh_values);
-    free(builder->scratch_worker_mesh_red);
-    free(builder->scratch_worker_mesh_green);
-    free(builder->scratch_worker_mesh_blue);
-    free(builder->scratch_worker_mesh_alpha);
     free(builder);
 }
 
@@ -162,116 +143,6 @@ static bool scene_render_snapshot_builder_reserve_particles(
     return true;
 }
 
-static bool scene_render_snapshot_builder_reserve_mesh_field(
-    SceneRenderSnapshotBuilder* builder,
-    size_t required_capacity
-) {
-    float* next_values;
-    float* next_red;
-    float* next_green;
-    float* next_blue;
-    float* next_alpha;
-    size_t next_capacity;
-
-    if (builder == NULL) {
-        return false;
-    }
-    if (builder->scratch_mesh_capacity >= required_capacity) {
-        return true;
-    }
-
-    next_capacity = builder->scratch_mesh_capacity > 0U
-        ? builder->scratch_mesh_capacity
-        : 4096U;
-    while (next_capacity < required_capacity) {
-        next_capacity *= 2U;
-    }
-
-    next_values = (float*)malloc(next_capacity * sizeof(*next_values));
-    next_red = (float*)malloc(next_capacity * sizeof(*next_red));
-    next_green = (float*)malloc(next_capacity * sizeof(*next_green));
-    next_blue = (float*)malloc(next_capacity * sizeof(*next_blue));
-    next_alpha = (float*)malloc(next_capacity * sizeof(*next_alpha));
-    if (next_values == NULL || next_red == NULL || next_green == NULL || next_blue == NULL || next_alpha == NULL) {
-        free(next_values);
-        free(next_red);
-        free(next_green);
-        free(next_blue);
-        free(next_alpha);
-        return false;
-    }
-
-    free(builder->scratch_mesh_values);
-    free(builder->scratch_mesh_red);
-    free(builder->scratch_mesh_green);
-    free(builder->scratch_mesh_blue);
-    free(builder->scratch_mesh_alpha);
-    builder->scratch_mesh_values = next_values;
-    builder->scratch_mesh_red = next_red;
-    builder->scratch_mesh_green = next_green;
-    builder->scratch_mesh_blue = next_blue;
-    builder->scratch_mesh_alpha = next_alpha;
-    builder->scratch_mesh_capacity = next_capacity;
-    return true;
-}
-
-static bool scene_render_snapshot_builder_reserve_worker_mesh_field(
-    SceneRenderSnapshotBuilder* builder,
-    size_t required_capacity
-) {
-    float* next_values;
-    float* next_red;
-    float* next_green;
-    float* next_blue;
-    float* next_alpha;
-    size_t next_capacity;
-
-    if (builder == NULL)
-    {
-        return false;
-    }
-    if (builder->scratch_worker_mesh_capacity >= required_capacity)
-    {
-        return true;
-    }
-
-    next_capacity = builder->scratch_worker_mesh_capacity > 0U
-        ? builder->scratch_worker_mesh_capacity
-        : 4096U;
-    while (next_capacity < required_capacity)
-    {
-        next_capacity *= 2U;
-    }
-
-    next_values = (float*)malloc(next_capacity * sizeof(*next_values));
-    next_red = (float*)malloc(next_capacity * sizeof(*next_red));
-    next_green = (float*)malloc(next_capacity * sizeof(*next_green));
-    next_blue = (float*)malloc(next_capacity * sizeof(*next_blue));
-    next_alpha = (float*)malloc(next_capacity * sizeof(*next_alpha));
-    if (next_values == NULL || next_red == NULL || next_green == NULL || next_blue == NULL || next_alpha == NULL)
-    {
-        free(next_values);
-        free(next_red);
-        free(next_green);
-        free(next_blue);
-        free(next_alpha);
-        return false;
-    }
-
-    free(builder->scratch_worker_mesh_values);
-    free(builder->scratch_worker_mesh_red);
-    free(builder->scratch_worker_mesh_green);
-    free(builder->scratch_worker_mesh_blue);
-    free(builder->scratch_worker_mesh_alpha);
-    builder->scratch_worker_mesh_values = next_values;
-    builder->scratch_worker_mesh_red = next_red;
-    builder->scratch_worker_mesh_green = next_green;
-    builder->scratch_worker_mesh_blue = next_blue;
-    builder->scratch_worker_mesh_alpha = next_alpha;
-    builder->scratch_worker_mesh_capacity = next_capacity;
-    return true;
-}
-
 static float scene_render_snapshot_lerp(float a, float b, float alpha)
 {
     return a + ((b - a) * alpha);
@@ -295,6 +166,78 @@ static uint64_t scene_render_snapshot_hash_u64(uint64_t hash, uint64_t value)
 {
     hash ^= value + 0x9e3779b97f4a7c15ULL + (hash << 6U) + (hash >> 2U);
     return hash;
+}
+
+typedef struct SceneRenderSnapshotMeshWriterState
+{
+    RenderWorldSnapshot* world;
+    size_t triangle_start;
+    size_t line_start;
+    size_t triangle_count;
+    size_t line_count;
+} SceneRenderSnapshotMeshWriterState;
+
+static bool scene_render_snapshot_mesh_add_triangle(
+    void* user_data,
+    Vec2 a,
+    Vec2 b,
+    Vec2 c,
+    Color32 color,
+    int layer
+)
+{
+    SceneRenderSnapshotMeshWriterState* state = (SceneRenderSnapshotMeshWriterState*)user_data;
+    TriangleRenderable* triangle = NULL;
+
+    if (state == NULL || state->world == NULL)
+    {
+        return false;
+    }
+    if (!render_world_snapshot_reserve_triangles(state->world, state->world->triangle_count + 1U))
+    {
+        return false;
+    }
+
+    triangle = &state->world->triangles[state->world->triangle_count++];
+    memset(triangle, 0, sizeof(*triangle));
+    triangle->a = a;
+    triangle->b = b;
+    triangle->c = c;
+    triangle->color = color;
+    triangle->layer = layer;
+    triangle->visible = true;
+    state->triangle_count += 1U;
+    return true;
+}
+
+static bool scene_render_snapshot_mesh_add_line(
+    void* user_data,
+    Vec2 a,
+    Vec2 b,
+    Color32 color,
+    int layer
+)
+{
+    SceneRenderSnapshotMeshWriterState* state = (SceneRenderSnapshotMeshWriterState*)user_data;
+    LineRenderable* line = NULL;
+
+    if (state == NULL || state->world == NULL)
+    {
+        return false;
+    }
+    if (!render_world_snapshot_reserve_lines(state->world, state->world->line_count + 1U))
+    {
+        return false;
+    }
+
+    line = &state->world->lines[state->world->line_count++];
+    line->a = a;
+    line->b = b;
+    line->color = color;
+    line->layer = layer;
+    line->visible = true;
+    state->line_count += 1U;
+    return true;
 }
 
 Aabb scene_render_snapshot_compute_view_bounds(
@@ -556,10 +499,208 @@ static Aabb scene_render_snapshot_expand_aabb(Aabb bounds, float amount)
     };
 }
 
-static size_t scene_render_snapshot_append_particle_visuals(
+static size_t scene_render_snapshot_append_particle_visual_data(
     const SceneRenderSnapshotDesc* desc,
-    PhysicsParticleRenderData* scratch_particles,
-    size_t scratch_particle_capacity,
+    const SceneParticleVisualDesc* binding,
+    const PhysicsParticleRenderData* scratch_particles,
+    size_t particle_count,
+    MaterialRenderable* material_renderables,
+    size_t remaining_capacity,
+    size_t material_renderable_count,
+    uint64_t* material_frame_signature,
+    uint64_t* material_sort_signature,
+    uint64_t* material_instance_signature
+)
+{
+    size_t particle_index = 0U;
+    size_t visible_particle_count = particle_count;
+
+    if (desc == NULL || binding == NULL || scratch_particles == NULL || material_renderables == NULL)
+    {
+        return material_renderable_count;
+    }
+    if (!binding->particles_visible || remaining_capacity == 0U || particle_count == 0U)
+    {
+        return material_renderable_count;
+    }
+    if (visible_particle_count > remaining_capacity)
+    {
+        visible_particle_count = remaining_capacity;
+    }
+
+    if (material_frame_signature != NULL)
+    {
+        *material_frame_signature = scene_render_snapshot_hash_u64(*material_frame_signature, visible_particle_count);
+        *material_frame_signature = scene_render_snapshot_hash_u64(*material_frame_signature, binding->particle_material_handle.id);
+    }
+    for (particle_index = 0U; particle_index < visible_particle_count; ++particle_index)
+    {
+        const PhysicsParticleRenderData* particle = &scratch_particles[particle_index];
+        MaterialRenderable* item = &material_renderables[material_renderable_count++];
+        Color32 tint = (Color32){
+            particle->color_argb != 0U
+                ? particle->color_argb
+                : binding->particle_fallback_tint.value
+        };
+
+        item->x = scene_render_snapshot_lerp(
+            particle->previous_position.x,
+            particle->position.x,
+            desc->render_alpha
+        );
+        item->y = scene_render_snapshot_lerp(
+            particle->previous_position.y,
+            particle->position.y,
+            desc->render_alpha
+        );
+        item->angle_radians = 0.0f;
+        item->anchor_x = 0.5f;
+        item->anchor_y = 0.5f;
+        item->layer = binding->particle_layer;
+        item->visible = true;
+        item->material_handle = binding->particle_material_handle;
+        item->tint = tint;
+        item->user_data = NULL;
+
+        if (material_sort_signature != NULL)
+        {
+            *material_sort_signature = scene_render_snapshot_hash_u64(*material_sort_signature, (uint64_t)(int64_t)item->layer);
+        }
+        if (material_instance_signature != NULL)
+        {
+            *material_instance_signature = scene_render_snapshot_hash_u64(*material_instance_signature, item->material_handle.id);
+            *material_instance_signature = scene_render_snapshot_hash_u64(*material_instance_signature, item->tint.value);
+        }
+    }
+
+    return material_renderable_count;
+}
+
+static void scene_render_snapshot_append_particle_mesh_data(
+    const SceneRenderSnapshotDesc* desc,
+    RenderWorldSnapshot* world,
+    const SceneParticleVisualDesc* binding,
+    const PhysicsParticleRenderData* source_particles,
+    size_t particle_count
+)
+{
+    SceneRenderSnapshotMeshWriterState writer_state;
+    ProceduralMeshRenderable* mesh = NULL;
+    PhysicsParticleRenderData* mesh_particles = NULL;
+    ProceduralMeshWriter writer;
+    ProceduralMeshContext context;
+    float cell_size;
+    float influence_radius;
+    float threshold;
+    float particle_radius;
+    size_t particle_index;
+    size_t particle_offset;
+
+    if (desc == NULL || world == NULL || binding == NULL || source_particles == NULL || particle_count == 0U)
+    {
+        return;
+    }
+    if (!binding->mesh_visible || binding->mesh_handle.id == 0U)
+    {
+        return;
+    }
+
+    particle_radius = PhysicsWorld_GetParticleSystemRadius(Scene_GetPhysicsWorldConst(desc->scene), binding->particle_system);
+    cell_size = binding->mesh_cell_size > 0.0f
+        ? binding->mesh_cell_size
+        : particle_radius * SCENE_PARTICLE_MESH_DEFAULT_CELL_SIZE_RADIUS_SCALE;
+    influence_radius = binding->mesh_influence_radius > 0.0f
+        ? binding->mesh_influence_radius
+        : particle_radius * SCENE_PARTICLE_MESH_DEFAULT_INFLUENCE_RADIUS_SCALE;
+    threshold = binding->mesh_threshold > 0.0f
+        ? binding->mesh_threshold
+        : SCENE_PARTICLE_MESH_DEFAULT_THRESHOLD;
+    if (cell_size <= 0.0f || influence_radius <= 0.0f || threshold <= 0.0f)
+    {
+        return;
+    }
+    if (!render_world_snapshot_reserve_particle_surface_mesh_particles(
+            world,
+            world->particle_surface_mesh_particle_count + particle_count))
+    {
+        return;
+    }
+    if (!render_world_snapshot_reserve_procedural_meshes(world, world->procedural_mesh_count + 1U))
+    {
+        return;
+    }
+
+    particle_offset = world->particle_surface_mesh_particle_count;
+    mesh_particles = &world->particle_surface_mesh_particles[particle_offset];
+    for (particle_index = 0U; particle_index < particle_count; ++particle_index)
+    {
+        const PhysicsParticleRenderData* source = &source_particles[particle_index];
+        PhysicsParticleRenderData* target = &mesh_particles[particle_index];
+
+        *target = *source;
+        target->position.x = scene_render_snapshot_lerp(
+            source->previous_position.x,
+            source->position.x,
+            desc->render_alpha
+        );
+        target->position.y = scene_render_snapshot_lerp(
+            source->previous_position.y,
+            source->position.y,
+            desc->render_alpha
+        );
+    }
+    world->particle_surface_mesh_particle_count += particle_count;
+
+    memset(&writer_state, 0, sizeof(writer_state));
+    writer_state.world = world;
+    writer_state.triangle_start = world->triangle_count;
+    writer_state.line_start = world->line_count;
+
+    memset(&writer, 0, sizeof(writer));
+    writer.user_data = &writer_state;
+    writer.add_triangle = scene_render_snapshot_mesh_add_triangle;
+    writer.add_line = scene_render_snapshot_mesh_add_line;
+
+    memset(&context, 0, sizeof(context));
+    context.now_ms = desc->now_ms;
+
+    {
+        ParticleSurfaceMeshBuildInput mesh_input = {
+            .task_system = desc->task_system,
+            .particles = mesh_particles,
+            .particle_count = particle_count,
+            .fallback_tint = binding->particle_fallback_tint,
+            .mesh_tint = binding->mesh_tint,
+            .mesh_layer = binding->mesh_layer,
+            .cell_size = cell_size,
+            .influence_radius = influence_radius,
+            .threshold = threshold
+        };
+
+        if (!particle_surface_mesh_build_geometry(&writer, &context, &mesh_input))
+        {
+            world->triangle_count = writer_state.triangle_start;
+            world->line_count = writer_state.line_start;
+            world->particle_surface_mesh_particle_count = particle_offset;
+            return;
+        }
+    }
+
+    mesh = &world->procedural_meshes[world->procedural_mesh_count++];
+    memset(mesh, 0, sizeof(*mesh));
+    mesh->procedural_mesh_handle = binding->mesh_handle;
+    mesh->material_handle = binding->mesh_material_handle;
+    mesh->triangle_start = writer_state.triangle_start;
+    mesh->triangle_count = writer_state.triangle_count;
+    mesh->line_start = writer_state.line_start;
+    mesh->line_count = writer_state.line_count;
+    mesh->layer = binding->mesh_layer;
+    mesh->visible = true;
+}
+
+static size_t scene_render_snapshot_append_particle_bindings(
+    const SceneRenderSnapshotDesc* desc,
+    RenderWorldSnapshot* world,
     MaterialRenderable* material_renderables,
     size_t material_renderable_capacity,
     size_t material_renderable_count,
@@ -573,7 +714,7 @@ static size_t scene_render_snapshot_append_particle_visuals(
     size_t binding_count = 0U;
     size_t binding_index = 0U;
 
-    if (desc == NULL || desc->scene == NULL || scratch_particles == NULL || material_renderables == NULL)
+    if (desc == NULL || desc->scene == NULL || world == NULL || desc->scratch_particles == NULL || material_renderables == NULL)
     {
         return material_renderable_count;
     }
@@ -583,415 +724,35 @@ static size_t scene_render_snapshot_append_particle_visuals(
     if (physics_world == NULL || bindings == NULL)
     {
         return material_renderable_count;
-    }
-
-    for (binding_index = 0U; binding_index < binding_count && material_renderable_count < material_renderable_capacity; ++binding_index)
-    {
-        const SceneParticleVisualDesc* binding = &bindings[binding_index];
-        size_t capacity = material_renderable_capacity - material_renderable_count;
-        size_t particle_count;
-        size_t particle_index;
-        float particle_radius;
-
-        if (!binding->particles_visible || capacity == 0U)
-        {
-            continue;
-        }
-
-        if (capacity > scratch_particle_capacity)
-        {
-            capacity = scratch_particle_capacity;
-        }
-        particle_radius = PhysicsWorld_GetParticleSystemRadius(physics_world, binding->particle_system);
-        particle_count = PhysicsWorld_CopyParticleSystemRenderDataInAabb(
-            physics_world,
-            binding->particle_system,
-            scene_render_snapshot_expand_aabb(desc->view_bounds, particle_radius),
-            scratch_particles,
-            capacity
-        );
-
-        if (material_frame_signature != NULL)
-        {
-            *material_frame_signature = scene_render_snapshot_hash_u64(*material_frame_signature, particle_count);
-            *material_frame_signature = scene_render_snapshot_hash_u64(*material_frame_signature, binding->particle_material_handle.id);
-        }
-
-        for (particle_index = 0U; particle_index < particle_count && material_renderable_count < material_renderable_capacity; ++particle_index)
-        {
-            const PhysicsParticleRenderData* particle = &scratch_particles[particle_index];
-            MaterialRenderable* item = &material_renderables[material_renderable_count++];
-            Color32 tint = (Color32){
-                particle->color_argb != 0U
-                    ? particle->color_argb
-                    : binding->particle_fallback_tint.value
-            };
-
-            item->x = particle->position.x;
-            item->y = particle->position.y;
-            item->angle_radians = 0.0f;
-            item->anchor_x = 0.5f;
-            item->anchor_y = 0.5f;
-            item->layer = binding->particle_layer;
-            item->visible = true;
-            item->material_handle = binding->particle_material_handle;
-            item->tint = tint;
-            item->user_data = NULL;
-
-            if (material_sort_signature != NULL)
-            {
-                *material_sort_signature = scene_render_snapshot_hash_u64(*material_sort_signature, (uint64_t)(int64_t)item->layer);
-            }
-            if (material_instance_signature != NULL)
-            {
-                *material_instance_signature = scene_render_snapshot_hash_u64(*material_instance_signature, item->material_handle.id);
-                *material_instance_signature = scene_render_snapshot_hash_u64(*material_instance_signature, item->tint.value);
-            }
-        }
-    }
-
-    return material_renderable_count;
-}
-
-static uint8_t scene_render_snapshot_color_channel(uint32_t argb, uint32_t shift)
-{
-    return (uint8_t)((argb >> shift) & 0xffU);
-}
-
-static Vec2 scene_render_snapshot_interp_mesh_point(
-    Vec2 a,
-    Vec2 b,
-    float value_a,
-    float value_b,
-    float threshold
-) {
-    float span = value_b - value_a;
-    float t = fabsf(span) > 0.000001f ? (threshold - value_a) / span : 0.5f;
-    t = clamp_f(t, 0.0f, 1.0f);
-    return (Vec2){
-        a.x + (b.x - a.x) * t,
-        a.y + (b.y - a.y) * t
-    };
-}
-
-static Color32 scene_render_snapshot_mesh_color(
-    const SceneParticleVisualDesc* binding,
-    const float* values,
-    const float* red,
-    const float* green,
-    const float* blue,
-    const float* alpha,
-    size_t a,
-    size_t b,
-    size_t c,
-    size_t d
-) {
-    float total = values[a] + values[b] + values[c] + values[d];
-    float tint_alpha = (float)scene_render_snapshot_color_channel(binding->mesh_tint.value, 24U);
-    float r;
-    float g;
-    float bl;
-    float al;
-
-    if (total <= 0.000001f)
-    {
-        return binding->mesh_tint;
-    }
-
-    r = (red[a] + red[b] + red[c] + red[d]) / total;
-    g = (green[a] + green[b] + green[c] + green[d]) / total;
-    bl = (blue[a] + blue[b] + blue[c] + blue[d]) / total;
-    al = (alpha[a] + alpha[b] + alpha[c] + alpha[d]) / total;
-    if (tint_alpha > 0.0f)
-    {
-        al = tint_alpha;
-    }
-
-    return color_rgba(
-        (uint8_t)clamp_f(r, 0.0f, 255.0f),
-        (uint8_t)clamp_f(g, 0.0f, 255.0f),
-        (uint8_t)clamp_f(bl, 0.0f, 255.0f),
-        (uint8_t)clamp_f(al, 0.0f, 255.0f)
-    );
-}
-
-typedef struct SceneParticleMeshFieldContext
-{
-    const PhysicsParticleRenderData* particles;
-    size_t particle_count;
-    uint32_t fallback_color;
-    float min_x;
-    float min_y;
-    float cell_size;
-    float influence_radius;
-    size_t vertex_count_x;
-    size_t vertex_count_y;
-    size_t vertex_count;
-    size_t worker_count;
-    float* values;
-    float* red;
-    float* green;
-    float* blue;
-    float* alpha;
-} SceneParticleMeshFieldContext;
-
-static void scene_render_snapshot_accumulate_mesh_field_range(
-    int start_index,
-    int end_index,
-    uint32_t worker_index,
-    void* user_context
-) {
-    SceneParticleMeshFieldContext* context = (SceneParticleMeshFieldContext*)user_context;
-    size_t worker_offset;
-    int particle_index;
-
-    if (context == NULL ||
-        context->particles == NULL ||
-        worker_index >= context->worker_count)
-    {
-        return;
-    }
-
-    worker_offset = (size_t)worker_index * context->vertex_count;
-    if (start_index < 0)
-    {
-        start_index = 0;
-    }
-    if (end_index > (int)context->particle_count)
-    {
-        end_index = (int)context->particle_count;
-    }
-
-    for (particle_index = start_index; particle_index < end_index; ++particle_index)
-    {
-        const PhysicsParticleRenderData* particle = &context->particles[particle_index];
-        uint32_t color = particle->color_argb != 0U ? particle->color_argb : context->fallback_color;
-        int min_vertex_x = (int)floorf((particle->position.x - context->influence_radius - context->min_x) / context->cell_size);
-        int min_vertex_y = (int)floorf((particle->position.y - context->influence_radius - context->min_y) / context->cell_size);
-        int max_vertex_x = (int)ceilf((particle->position.x + context->influence_radius - context->min_x) / context->cell_size);
-        int max_vertex_y = (int)ceilf((particle->position.y + context->influence_radius - context->min_y) / context->cell_size);
-        int vertex_y;
-
-        if (min_vertex_x < 0) min_vertex_x = 0;
-        if (min_vertex_y < 0) min_vertex_y = 0;
-        if (max_vertex_x >= (int)context->vertex_count_x) max_vertex_x = (int)context->vertex_count_x - 1;
-        if (max_vertex_y >= (int)context->vertex_count_y) max_vertex_y = (int)context->vertex_count_y - 1;
-
-        for (vertex_y = min_vertex_y; vertex_y <= max_vertex_y; ++vertex_y)
-        {
-            int vertex_x;
-            float y = context->min_y + (float)vertex_y * context->cell_size;
-            for (vertex_x = min_vertex_x; vertex_x <= max_vertex_x; ++vertex_x)
-            {
-                float x = context->min_x + (float)vertex_x * context->cell_size;
-                float dx = x - particle->position.x;
-                float dy = y - particle->position.y;
-                float distance = sqrtf(dx * dx + dy * dy);
-                float weight = 1.0f - (distance / context->influence_radius);
-                if (weight > 0.0f)
-                {
-                    size_t vertex_index = worker_offset + (size_t)vertex_y * context->vertex_count_x + (size_t)vertex_x;
-                    context->values[vertex_index] += weight;
-                    context->red[vertex_index] += weight * (float)scene_render_snapshot_color_channel(color, 16U);
-                    context->green[vertex_index] += weight * (float)scene_render_snapshot_color_channel(color, 8U);
-                    context->blue[vertex_index] += weight * (float)scene_render_snapshot_color_channel(color, 0U);
-                    context->alpha[vertex_index] += weight * (float)scene_render_snapshot_color_channel(color, 24U);
-                }
-            }
-        }
-    }
-}
-
-typedef struct SceneParticleMeshReduceContext
-{
-    size_t vertex_count;
-    size_t worker_count;
-    const float* worker_values;
-    const float* worker_red;
-    const float* worker_green;
-    const float* worker_blue;
-    const float* worker_alpha;
-    float* values;
-    float* red;
-    float* green;
-    float* blue;
-    float* alpha;
-} SceneParticleMeshReduceContext;
-
-static void scene_render_snapshot_reduce_mesh_field_range(
-    int start_index,
-    int end_index,
-    uint32_t worker_index,
-    void* user_context
-) {
-    SceneParticleMeshReduceContext* context = (SceneParticleMeshReduceContext*)user_context;
-    int vertex_index;
-
-    (void)worker_index;
-
-    if (context == NULL)
-    {
-        return;
-    }
-    if (start_index < 0)
-    {
-        start_index = 0;
-    }
-    if (end_index > (int)context->vertex_count)
-    {
-        end_index = (int)context->vertex_count;
-    }
-
-    for (vertex_index = start_index; vertex_index < end_index; ++vertex_index)
-    {
-        float value = 0.0f;
-        float red = 0.0f;
-        float green = 0.0f;
-        float blue = 0.0f;
-        float alpha = 0.0f;
-        size_t worker_index2;
-
-        for (worker_index2 = 0U; worker_index2 < context->worker_count; ++worker_index2)
-        {
-            size_t source_index = worker_index2 * context->vertex_count + (size_t)vertex_index;
-            value += context->worker_values[source_index];
-            red += context->worker_red[source_index];
-            green += context->worker_green[source_index];
-            blue += context->worker_blue[source_index];
-            alpha += context->worker_alpha[source_index];
-        }
-
-        context->values[vertex_index] = value;
-        context->red[vertex_index] = red;
-        context->green[vertex_index] = green;
-        context->blue[vertex_index] = blue;
-        context->alpha[vertex_index] = alpha;
-    }
-}
-
-static bool scene_render_snapshot_add_mesh_triangle(
-    RenderWorldSnapshot* world,
-    const Camera* camera,
-    Vec2 a,
-    Vec2 b,
-    Vec2 c,
-    Color32 color,
-    int layer
-) {
-    TriangleRenderable* triangle;
-
-    if (world == NULL)
-    {
-        return false;
-    }
-    if (!render_world_snapshot_reserve_triangles(world, world->triangle_count + 1U))
-    {
-        return false;
-    }
-
-    triangle = &world->triangles[world->triangle_count++];
-    triangle->a = a;
-    triangle->b = b;
-    triangle->c = c;
-    if (camera != NULL)
-    {
-        triangle->screen_a = camera_world_to_screen(camera, a);
-        triangle->screen_b = camera_world_to_screen(camera, b);
-        triangle->screen_c = camera_world_to_screen(camera, c);
-        triangle->screen_space_valid = true;
-    }
-    else
-    {
-        triangle->screen_a = (Vec2){ 0.0f, 0.0f };
-        triangle->screen_b = (Vec2){ 0.0f, 0.0f };
-        triangle->screen_c = (Vec2){ 0.0f, 0.0f };
-        triangle->screen_space_valid = false;
-    }
-    triangle->uv_a = a;
-    triangle->uv_b = b;
-    triangle->uv_c = c;
-    triangle->color = color;
-    triangle->layer = layer;
-    triangle->visible = true;
-    return true;
-}
-
-static void scene_render_snapshot_append_particle_mesh(
-    const SceneRenderSnapshotDesc* desc,
-    RenderWorldSnapshot* world
-) {
-    const SceneParticleVisualDesc* bindings = NULL;
-    const PhysicsWorld* physics_world = NULL;
-    size_t binding_count = 0U;
-    size_t binding_index = 0U;
-
-    if (desc == NULL || desc->scene == NULL || world == NULL || desc->scratch_particles == NULL)
-    {
-        return;
-    }
-
-    physics_world = Scene_GetPhysicsWorldConst(desc->scene);
-    bindings = Scene_GetParticleVisualBindings(desc->scene, &binding_count);
-    if (physics_world == NULL || bindings == NULL)
-    {
-        return;
     }
 
     for (binding_index = 0U; binding_index < binding_count; ++binding_index)
     {
         const SceneParticleVisualDesc* binding = &bindings[binding_index];
-        size_t triangle_count_before = world->triangle_count;
-        size_t line_count_before = world->line_count;
-        ProceduralMeshRenderable* mesh = NULL;
-        size_t particle_count;
-        float min_x;
-        float min_y;
-        float max_x;
-        float max_y;
-        float cell_size;
-        float influence_radius;
-        float threshold;
-        float particle_radius;
-        size_t cell_count_x;
-        size_t cell_count_y;
-        size_t vertex_count_x;
-        size_t vertex_count_y;
-        size_t vertex_count;
-        float* mesh_values;
-        float* mesh_red;
-        float* mesh_green;
-        float* mesh_blue;
-        float* mesh_alpha;
-        size_t worker_count;
-        size_t worker_field_capacity;
-        size_t particle_index;
-        size_t cell_y;
+        float query_radius = 0.0f;
+        size_t particle_count = 0U;
 
-        if (!binding->mesh_visible ||
-            binding->mesh_handle.id == 0U)
+        if (!binding->particles_visible && !binding->mesh_visible)
         {
             continue;
         }
 
-        particle_radius = PhysicsWorld_GetParticleSystemRadius(physics_world, binding->particle_system);
-        cell_size = binding->mesh_cell_size > 0.0f
-            ? binding->mesh_cell_size
-            : particle_radius * SCENE_PARTICLE_MESH_DEFAULT_CELL_SIZE_RADIUS_SCALE;
-        influence_radius = binding->mesh_influence_radius > 0.0f
-            ? binding->mesh_influence_radius
-            : particle_radius * SCENE_PARTICLE_MESH_DEFAULT_INFLUENCE_RADIUS_SCALE;
-        threshold = binding->mesh_threshold > 0.0f
-            ? binding->mesh_threshold
-            : SCENE_PARTICLE_MESH_DEFAULT_THRESHOLD;
-        if (cell_size <= 0.0f || influence_radius <= 0.0f || threshold <= 0.0f)
+        query_radius = PhysicsWorld_GetParticleSystemRadius(physics_world, binding->particle_system);
+        if (binding->mesh_visible)
         {
-            continue;
+            float mesh_influence_radius = binding->mesh_influence_radius > 0.0f
+                ? binding->mesh_influence_radius
+                : query_radius * SCENE_PARTICLE_MESH_DEFAULT_INFLUENCE_RADIUS_SCALE;
+            if (mesh_influence_radius > query_radius)
+            {
+                query_radius = mesh_influence_radius;
+            }
         }
 
         particle_count = PhysicsWorld_CopyParticleSystemRenderDataInAabb(
             physics_world,
             binding->particle_system,
-            scene_render_snapshot_expand_aabb(desc->view_bounds, influence_radius),
+            scene_render_snapshot_expand_aabb(desc->view_bounds, query_radius),
             desc->scratch_particles,
             desc->scratch_particle_capacity
         );
@@ -1000,232 +761,28 @@ static void scene_render_snapshot_append_particle_mesh(
             continue;
         }
 
-        if (!render_world_snapshot_reserve_procedural_meshes(world, world->procedural_mesh_count + 1U))
-        {
-            continue;
-        }
-        mesh = &world->procedural_meshes[world->procedural_mesh_count++];
-        memset(mesh, 0, sizeof(*mesh));
-        mesh->procedural_mesh_handle = binding->mesh_handle;
-        mesh->material_handle = binding->mesh_material_handle;
-        mesh->triangle_start = triangle_count_before;
-        mesh->line_start = line_count_before;
-        mesh->layer = binding->mesh_layer;
-        mesh->visible = true;
-        min_x = desc->scratch_particles[0].position.x - influence_radius;
-        min_y = desc->scratch_particles[0].position.y - influence_radius;
-        max_x = desc->scratch_particles[0].position.x + influence_radius;
-        max_y = desc->scratch_particles[0].position.y + influence_radius;
-        for (particle_index = 1U; particle_index < particle_count; ++particle_index)
-        {
-            const PhysicsParticleRenderData* particle = &desc->scratch_particles[particle_index];
-            min_x = fminf(min_x, particle->position.x - influence_radius);
-            min_y = fminf(min_y, particle->position.y - influence_radius);
-            max_x = fmaxf(max_x, particle->position.x + influence_radius);
-            max_y = fmaxf(max_y, particle->position.y + influence_radius);
-        }
-
-        cell_count_x = (size_t)ceilf((max_x - min_x) / cell_size);
-        cell_count_y = (size_t)ceilf((max_y - min_y) / cell_size);
-        if (cell_count_x == 0U || cell_count_y == 0U)
-        {
-            continue;
-        }
-        if (!render_world_snapshot_reserve_triangles(
-                world,
-                world->triangle_count + cell_count_x * cell_count_y * 6U))
-        {
-            continue;
-        }
-        vertex_count_x = cell_count_x + 1U;
-        vertex_count_y = cell_count_y + 1U;
-        vertex_count = vertex_count_x * vertex_count_y;
-        if (!scene_render_snapshot_builder_reserve_mesh_field(desc->builder, vertex_count))
-        {
-            continue;
-        }
-        mesh_values = desc->builder->scratch_mesh_values;
-        mesh_red = desc->builder->scratch_mesh_red;
-        mesh_green = desc->builder->scratch_mesh_green;
-        mesh_blue = desc->builder->scratch_mesh_blue;
-        mesh_alpha = desc->builder->scratch_mesh_alpha;
-
-        worker_count = desc->task_system != NULL
-            ? (size_t)task_system_get_worker_count(desc->task_system)
-            : 1U;
-        if (worker_count < 1U)
-        {
-            worker_count = 1U;
-        }
-        worker_field_capacity = vertex_count * worker_count;
-        if (!scene_render_snapshot_builder_reserve_worker_mesh_field(desc->builder, worker_field_capacity))
-        {
-            continue;
-        }
-
-        memset(desc->builder->scratch_worker_mesh_values, 0, worker_field_capacity * sizeof(*desc->builder->scratch_worker_mesh_values));
-        memset(desc->builder->scratch_worker_mesh_red, 0, worker_field_capacity * sizeof(*desc->builder->scratch_worker_mesh_red));
-        memset(desc->builder->scratch_worker_mesh_green, 0, worker_field_capacity * sizeof(*desc->builder->scratch_worker_mesh_green));
-        memset(desc->builder->scratch_worker_mesh_blue, 0, worker_field_capacity * sizeof(*desc->builder->scratch_worker_mesh_blue));
-        memset(desc->builder->scratch_worker_mesh_alpha, 0, worker_field_capacity * sizeof(*desc->builder->scratch_worker_mesh_alpha));
-
-        {
-            SceneParticleMeshFieldContext field_context = {
-                .particles = desc->scratch_particles,
-                .particle_count = particle_count,
-                .fallback_color = binding->particle_fallback_tint.value,
-                .min_x = min_x,
-                .min_y = min_y,
-                .cell_size = cell_size,
-                .influence_radius = influence_radius,
-                .vertex_count_x = vertex_count_x,
-                .vertex_count_y = vertex_count_y,
-                .vertex_count = vertex_count,
-                .worker_count = worker_count,
-                .values = desc->builder->scratch_worker_mesh_values,
-                .red = desc->builder->scratch_worker_mesh_red,
-                .green = desc->builder->scratch_worker_mesh_green,
-                .blue = desc->builder->scratch_worker_mesh_blue,
-                .alpha = desc->builder->scratch_worker_mesh_alpha
-            };
-
-            if (!task_system_parallel_for(
-                    desc->task_system,
-                    (int)particle_count,
-                    1,
-                    scene_render_snapshot_accumulate_mesh_field_range,
-                    &field_context))
-            {
-                scene_render_snapshot_accumulate_mesh_field_range(
-                    0,
-                    (int)particle_count,
-                    0U,
-                    &field_context
-                );
-            }
-        }
-
-        {
-            SceneParticleMeshReduceContext reduce_context = {
-                .vertex_count = vertex_count,
-                .worker_count = worker_count,
-                .worker_values = desc->builder->scratch_worker_mesh_values,
-                .worker_red = desc->builder->scratch_worker_mesh_red,
-                .worker_green = desc->builder->scratch_worker_mesh_green,
-                .worker_blue = desc->builder->scratch_worker_mesh_blue,
-                .worker_alpha = desc->builder->scratch_worker_mesh_alpha,
-                .values = mesh_values,
-                .red = mesh_red,
-                .green = mesh_green,
-                .blue = mesh_blue,
-                .alpha = mesh_alpha
-            };
-
-            if (!task_system_parallel_for(
-                    desc->task_system,
-                    (int)vertex_count,
-                    1,
-                    scene_render_snapshot_reduce_mesh_field_range,
-                    &reduce_context))
-            {
-                scene_render_snapshot_reduce_mesh_field_range(
-                    0,
-                    (int)vertex_count,
-                    0U,
-                    &reduce_context
-                );
-            }
-        }
-
-        for (cell_y = 0U; cell_y < cell_count_y; ++cell_y)
-        {
-            size_t cell_x;
-            for (cell_x = 0U; cell_x < cell_count_x; ++cell_x)
-            {
-                size_t v0 = cell_y * vertex_count_x + cell_x;
-                size_t v1 = v0 + 1U;
-                size_t v3 = v0 + vertex_count_x;
-                size_t v2 = v3 + 1U;
-                float value0 = mesh_values[v0];
-                float value1 = mesh_values[v1];
-                float value2 = mesh_values[v2];
-                float value3 = mesh_values[v3];
-                bool inside0 = value0 >= threshold;
-                bool inside1 = value1 >= threshold;
-                bool inside2 = value2 >= threshold;
-                bool inside3 = value3 >= threshold;
-                Vec2 p0 = { min_x + (float)cell_x * cell_size, min_y + (float)cell_y * cell_size };
-                Vec2 p1 = { p0.x + cell_size, p0.y };
-                Vec2 p2 = { p0.x + cell_size, p0.y + cell_size };
-                Vec2 p3 = { p0.x, p0.y + cell_size };
-                Vec2 points[8];
-                size_t point_count = 0U;
-                size_t point_index;
-                Color32 color;
-
-                if (!inside0 && !inside1 && !inside2 && !inside3)
-                {
-                    continue;
-                }
-
-                if (inside0) points[point_count++] = p0;
-                if (inside0 != inside1) {
-                    points[point_count++] = scene_render_snapshot_interp_mesh_point(p0, p1, value0, value1, threshold);
-                }
-                if (inside1) points[point_count++] = p1;
-                if (inside1 != inside2) {
-                    points[point_count++] = scene_render_snapshot_interp_mesh_point(p1, p2, value1, value2, threshold);
-                }
-                if (inside2) points[point_count++] = p2;
-                if (inside2 != inside3) {
-                    points[point_count++] = scene_render_snapshot_interp_mesh_point(p2, p3, value2, value3, threshold);
-                }
-                if (inside3) points[point_count++] = p3;
-                if (inside3 != inside0) {
-                    points[point_count++] = scene_render_snapshot_interp_mesh_point(p3, p0, value3, value0, threshold);
-                }
-                if (point_count < 3U)
-                {
-                    continue;
-                }
-
-                color = scene_render_snapshot_mesh_color(
-                    binding,
-                    mesh_values,
-                    mesh_red,
-                    mesh_green,
-                    mesh_blue,
-                    mesh_alpha,
-                    v0,
-                    v1,
-                    v2,
-                    v3
-                );
-                for (point_index = 1U; point_index + 1U < point_count; ++point_index)
-                {
-                    if (!scene_render_snapshot_add_mesh_triangle(
-                        world,
-                        desc->has_camera ? &desc->camera : NULL,
-                        points[0],
-                            points[point_index],
-                            points[point_index + 1U],
-                            color,
-                            binding->mesh_layer))
-                    {
-                        return;
-                    }
-                }
-            }
-        }
-
-        mesh->triangle_count = world->triangle_count - mesh->triangle_start;
-        mesh->line_count = world->line_count - mesh->line_start;
-        if (mesh->triangle_count == 0U && mesh->line_count == 0U)
-        {
-            world->procedural_mesh_count -= 1U;
-        }
-
+        scene_render_snapshot_append_particle_mesh_data(
+            desc,
+            world,
+            binding,
+            desc->scratch_particles,
+            particle_count
+        );
+        material_renderable_count = scene_render_snapshot_append_particle_visual_data(
+            desc,
+            binding,
+            desc->scratch_particles,
+            particle_count,
+            material_renderables,
+            material_renderable_capacity - material_renderable_count,
+            material_renderable_count,
+            material_frame_signature,
+            material_sort_signature,
+            material_instance_signature
+        );
     }
+
+    return material_renderable_count;
 }
 
 static bool scene_render_snapshot_build_desc(
@@ -1276,7 +833,6 @@ static bool scene_render_snapshot_build_desc(
     buffer->world.draw_scene_renderables = true;
     buffer->world.draw_debug_world = desc->debug_overlay_enabled && desc->draw_debug_world;
     buffer->world.now_ms = desc->now_ms;
-    scene_render_snapshot_append_particle_mesh(desc, &buffer->world);
     entity_item_count = scene_render_snapshot_collect_frame_data(
         desc,
         buffer->world.material_renderables,
@@ -1294,10 +850,9 @@ static bool scene_render_snapshot_build_desc(
         buffer->world.pick_target_capacity,
         &buffer->world.pick_target_count
     );
-    buffer->world.material_renderable_count = scene_render_snapshot_append_particle_visuals(
+    buffer->world.material_renderable_count = scene_render_snapshot_append_particle_bindings(
         desc,
-        desc->scratch_particles,
-        desc->scratch_particle_capacity,
+        &buffer->world,
         buffer->world.material_renderables,
         buffer->world.material_renderable_capacity,
         entity_item_count,
@@ -1502,13 +1057,16 @@ bool scene_render_snapshot_build(
     uint64_t backdrop_signature,
     RenderSnapshotBuffer* buffer
 ) {
+    ENGINE_PROFILE_ZONE_BEGIN(snapshot_build_zone, "scene_render_snapshot_build");
     PhysicsWorldSnapshot physics_snapshot;
     SceneRenderSnapshotDesc desc;
 
     if (builder == NULL || scene == NULL || buffer == NULL) {
+        ENGINE_PROFILE_ZONE_END(snapshot_build_zone);
         return false;
     }
     if (!scene_render_snapshot_builder_reserve_entities(builder, Scene_GetEntityCount(scene))) {
+        ENGINE_PROFILE_ZONE_END(snapshot_build_zone);
         return false;
     }
 
@@ -1517,6 +1075,7 @@ bool scene_render_snapshot_build(
         PhysicsWorld_GetSnapshot(Scene_GetPhysicsWorld(scene), &physics_snapshot);
     }
     if (!scene_render_snapshot_builder_reserve_particles(builder, physics_snapshot.particle_count)) {
+        ENGINE_PROFILE_ZONE_END(snapshot_build_zone);
         return false;
     }
 
@@ -1547,5 +1106,9 @@ bool scene_render_snapshot_build(
     desc.backdrop_signature = backdrop_signature;
     desc.physics_snapshot = &physics_snapshot;
 
-    return scene_render_snapshot_build_desc(&desc, buffer);
+    {
+        bool built = scene_render_snapshot_build_desc(&desc, buffer);
+        ENGINE_PROFILE_ZONE_END(snapshot_build_zone);
+        return built;
+    }
 }
